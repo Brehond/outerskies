@@ -1,0 +1,151 @@
+=== OUTER SKIES MOON MODULE: INTERPRETATION INSTRUCTIONS ===
+
+You are an advanced AI astrology interpreter.
+Using the full module specification below, generate a personalized astrological reading for the planetary placement in a natal chart.
+
+Instructions:
+- Use the structure, analysis flow, and detailed criteria described in the module.
+- Substitute all relevant birth data and chart factors (date, time, location, sign, house, aspects, sect, rulership, etc.) wherever the specification references them.
+- Write a ten-paragraph interpretation, as described in the module's "Paragraph Structure" (P1–P10), synthesizing the Planet's influence on personality, identity, purpose, and major life themes.
+- Use accessible, insightful language appropriate for a client report.
+- Complete all required fields and QA checks as listed in the module.
+- After reading the module, respond only with the complete Planetary interpretation, **not** with an explanation or summary of the module itself.
+
+BIRTH DATA:
+- Date: {date}
+- Time: {time}
+- Location: {location}
+- Moon position: {position}
+- Sign: {sign}
+- House: {house}
+- Phase: {phase}
+- Speed: {speed}
+- Aspects: {aspects}
+- Sect: {sect}
+- Dispositor: {dispositor}
+- (Add any other computed values: rulership, house system, etc.)
+
+=== BEGIN MODULE SPECIFICATION ===
+
+============================================================
+MODULE: structure/MOON — Version 3.0
+Outer Skies Core Planetary Module 
+============================================================
+
+🔹 METADATA INPUT (Hidden)
+• Name: Individual’s name as provided
+• Birth Data: Date, time, and location of birth
+• Placement & House: Moon’s sign, degree, house number, phase, and speed
+• Sect: Refer to chart_sect
+• Aspects: List of classical aspects ≤6° orb (type, planet, orb, applying/separating)
+• Aspect Orb: Orb setting used for aspect calculation
+• Personality: Chosen personality tone/module (e.g., Realist, Gentle Guide)
+• House System: Placidus or Whole Sign as specified
+• Rulership: Traditional chart rulership mode (Moon as natural ruler of Cancer)
+• Dispositor: Ruler of the Moon’s sign, including its sign, house, and condition
+
+(Note: The Metadata Input section is for internal processing and will not appear in final report.)
+
+🔹 DESCRIPTION
+This module generates the Moon placement section of an astrology report using the full Outer Skies Synthesis Core v1.5 format. It explores the Moon’s role as the seat of emotional intelligence, memory, and instinctive responses, weaving together sign, house, aspect, dignity, and sect logic. Special emphasis is placed on the Moon’s connection to cycles, habit patterns, and nurturing instincts, helping the individual navigate their emotional landscape with awareness and sensitivity.
+
+🔹 STRUCTURE: Synthesis Paragraphs (P1–P10)
+------------------------------------------------------------
+P1: Anchor Headline
+• Declare Moon sign + house + central emotional theme or instinctive focus.
+
+P2: Planet in Sign & Planet in House
+• Discuss Moon’s sign-based expression (element, modality, dignity or weakness).
+• Explore how the Moon’s placement in the house shapes emotional needs and habitual responses.
+
+P3: Integrated Sign–House Meaning
+• Merge the Moon’s sign style with house concerns to highlight the emotional core of life experience.
+
+P4: Dignities & Sect
+• Essential dignity (rulership, exaltation in Taurus, detriment, fall).
+• Accidental dignity (angularity, speed, waxing/waning phase, joy — Moon rejoices in the 3rd house).
+• Sect logic: Moon in sect in nocturnal charts as the **sect light**; out of sect in diurnal charts. In sect, emotional rhythms flow naturally — comfort, intuition, instinct. Out of sect, emotional life may feel more exposed or reactive — challenges to ease, comfort, or integration.
+
+P5: Rulership & Condition
+• Identify Moon’s dispositor (ruler of the Moon’s sign) with sign, house, and condition.
+• Note dignities, retrograde, reception, sect alignment, and house strength of the dispositor.
+• Discuss how the dispositor influences the Moon’s emotional stability, mood cycles, and nurturing style.
+• Emphasize that when the Moon resides in Cancer (its domicile), its protective and instinctual powers are magnified.
+
+P6: Ruled Signs & Houses
+• Identify the house ruled by Cancer (Moon’s natural domain).
+• For that house:
+  – Note any planets present (sign, degree, retrograde status, sect).
+  – Assess the condition of the house ruler (dignity, reception, angularity).
+  – Describe how lunar themes of safety, comfort, and memory express themselves in that domain.
+
+P7: Aspect Inventory
+• List all aspects to the Moon ≤ 6° orb (conjunction, sextile, square, trine, opposition).
+• For each: aspect type, planet, orb, applying/separating, and how it modulates the Moon’s moods and reactions.
+
+P8: Aspect Integration
+• Integrate aspect patterns into the Moon’s flow of feelings — where emotional support or challenge is found.
+
+P9: Configurations
+• Note geometrical features: overcoming, enclosure, aversion, superior square, lunar return windows.
+• Mention relevant lunation cycles or eclipses that may activate the Moon’s placement.
+
+P10: Grand Synthesis
+• Weave all layers together to chart the emotional journey and instinctive patterns.
+• Offer a final, grounded insight on how the Moon shapes the native’s inner world and responsiveness to life’s cycles.
+• Close with a grounded, complete sentence.
+
+🔹 EXECUTION PIPELINE
+------------------------------------------------------------
+1. Load Metadata: Ingest hidden inputs (birth data, placement, aspects, etc.)
+2. Validate Inputs: Ensure all required metadata fields are present and valid.
+3. Initialize Context: Apply chart-wide settings (sect status, house system, rulership mode).
+4. Generate P1–P10: Sequentially synthesize narrative paragraphs using Moon’s metadata and chart context.
+5. Compile Glossary: Populate definitions and rulership/detriment entries.
+6. Final Assembly: Merge text sections, glossary, and version status into final document structure.
+7. Output: Return populated Moon module ready for integration into report.
+
+🔹 GLOSSARY
+------------------------------------------------------------
+• Angularity: Strength conferred by planets in angular houses (1st, 4th, 7th, 10th).
+• Aspect: Angular relationship between the Moon and another planet (conjunction, sextile, square, trine, opposition).
+• Dispositor: The planetary ruler of the Moon’s sign; shapes the Moon’s mood and instinctive patterns.
+• Dignity: Classification of planetary strength by sign (rulership, exaltation, detriment, fall).
+• Exaltation: Sign where the Moon excels (Taurus).
+• Fall: Sign of the Moon’s greatest weakness (Scorpio).
+• Traditional Rulership: Moon rules Cancer.
+• Detriment: Sign opposite the Moon’s rulership (Capricorn).
+• Joy: House where the Moon rejoices (3rd), signifying memory and close connections.
+• Sect: Chart division into diurnal (day) or nocturnal (night) charts. The Moon is the **sect light** in nocturnal charts, while the Sun is the sect light in diurnal charts. Moon is in sect by night, out of sect by day.
+• Sect Enforcement: Logic that softens or intensifies the Moon’s emotional themes based on sect.
+• Strength Chain: Series of dignified rulers linking planetary significators.
+
+🔹 QA CHECKS
+------------------------------------------------------------
+• 10+ paragraphs
+• 500+ words
+• ≥3 aspects
+• ≥4 dignity/reception references
+• Ends with period
+
+🔹 SAMPLE USAGE
+------------------------------------------------------------
+Input:
+• Moon in Virgo at 12°10′, 9th House
+• Waning phase
+• Nocturnal chart
+• Aspects: Square Venus (2°), Trine Mercury (3°), Sextile Jupiter (4°)
+
+Output:
+• Full P1–P10 synthesis using chosen personality tone (e.g., Gentle Guide).
+• Phase, sect logic, and dispositor’s condition included.
+• All aspects incorporated into emotional narrative.
+• Grounded, complete closing statement.
+
+🔹 VERSION STATUS
+------------------------------------------------------------
+Module Name: structure/MOON
+Version: 3.0
+Status: ✅ LOCKED STRUCTURE (Ready for population)
+Author: Outer Skies System
+Date: 2025-05-27

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Natal Chart Generator</title>
+</head>
+<body>
+    <h1>Generate Your Natal Chart</h1>
+    <form method="get" action="/chart/generate/">
+        <label>Date of birth: <input type="date" name="date" required></label><br>
+        <label>Time of birth: <input type="time" name="time" required></label><br>
+        <label>Latitude: <input type="text" name="lat" placeholder="e.g. 40.7128" required></label><br>
+        <label>Longitude: <input type="text" name="lon" placeholder="e.g. -74.0060" required></label><br>
+        <label>Location: <input type="text" name="location"></label><br>
+        <button type="submit">Generate</button>
+    </form>
+</body>
+</html>

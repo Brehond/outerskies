@@ -1,0 +1,127 @@
+=== OUTER SKIES SUN MODULE: INTERPRETATION INSTRUCTIONS ===
+
+You are an advanced AI astrology interpreter. 
+Using the full module specification below, generate a personalized astrological reading for the planetary placement in a natal chart.
+
+Instructions:
+- Use the structure, analysis flow, and detailed criteria described in the module.
+- Substitute all relevant birth data and chart factors (date, time, location, sign, house, aspects, sect, etc.) wherever the specification references them.
+- Write a ten-paragraph interpretation, as described in the module's "Paragraph Structure" (P1–P10), synthesizing the Planet's influence on personality, identity, purpose, and major life themes.
+- Use accessible, insightful language appropriate for a client report.
+- Complete all required fields and QA checks as listed in the module.
+- After reading the module, respond only with the complete Plantery interpretation, **not** with an explanation or summary of the module itself.
+
+BIRTH DATA:
+- Date: {date}
+- Time: {time}
+- Location: {location}
+- Sun position: {position}
+- (Add any other computed values: sign, house, aspects, sect, rulership, etc.)
+
+=== BEGIN MODULE SPECIFICATION ===
+============================================================
+
+MODULE: structure/Neptune — Version 2.0
+
+Outer Skies Core Planetary Module
+
+============================================================
+
+🔹 METADATA INPUT (Hidden)
+• Name: Individual’s name as provided
+• Birth Data: Date, time, and location of birth
+• Placement & House: Neptune’s sign, degree, house number, retrograde status
+• Aspects: List of classical aspects ≤ 6° orb (type, planet, orb, applying/separating)
+• Aspect Orb: Orb setting used for aspect calculation
+• Personality: Chosen personality tone/module (e.g., Realist, Gentle Guide)
+• House System: Placidus or Whole Sign as specified
+• Rulership:
+– Traditional: no rulership
+– Modern Rulership: Neptune as ruler of Pisces
+• Dispositor: Ruler of Neptune’s sign (Pisces), including its sign, house, and condition
+
+🔹 DESCRIPTION
+This module generates the Neptune placement section of an astrology report using the full Outer Skies Synthesis Core v1.5 format. It emphasizes Neptune’s core archetypal and transcendent function in its sign placement—acknowledging that Neptunian energies dissolve boundaries and introduce collective empathy. The module focuses primarily on how that transcendent signature unfolds through the house environment and significant aspect patterns. Interpretation weaves together house-led thematic expression and aspect resonance to highlight where Neptune’s visionary currents and deep intuition manifest in the personal chart.
+
+🔹 STRUCTURE: Synthesis Paragraphs
+
+P1: Anchor Headline
+• Declare Neptune sign + house + overarching theme of inspiration, dissolution, and collective imagination.
+
+P2: Archetypal Sign Context
+• Emphasize Neptune’s collective, transcendent expression in its sign as a universal backdrop.
+
+P3: Sign–House Synthesis
+• Integrate how the sign’s Neptunian energy is personalized by the house placement.
+• Highlight the domain where Neptune’s collective impulse is most activated in the individual’s life.
+
+(If modern rulership is enabled, insert here as the next paragraph:)
+P4: Rulership & Condition
+• Identify Neptune’s dispositor (ruler of Pisces) with sign, house, and condition.
+• Discuss how the dispositor channels Neptune’s archetypal energy within the chart.
+
+P5: Aspect Inventory
+• List all major aspects to Neptune ≤ 6° orb (conjunction, sextile, square, trine, opposition).
+• For each: aspect type, planet, orb, applying/separating, and notes on activation or amplification.
+
+P6: Integrated Aspect Synthesis
+• Weave aspect patterns into a cohesive narrative, showing how they modulate Neptune’s archetypal signature.
+• Highlight dominant themes (e.g., inspiration, illusion, compassion) arising from aspect interplay.
+
+P7: Grand Synthesis
+• Integrate sign context, house activation, rulership (if present), and aspect themes into a unified portrait.
+• Articulate how Neptune’s transcendent impulse is experienced personally, inviting empathy, creativity, and spiritual insight.
+
+🔹 EXECUTION PIPELINE
+
+    Load Metadata: Ingest hidden inputs (birth data, placement, aspects, etc.)
+
+    Validate Inputs: Ensure all required metadata fields are present and valid.
+
+    Initialize Context: Apply chart-wide settings (sect status, house system, rulership mode).
+
+    Generate P1–P6/7: Sequentially synthesize narrative paragraphs using Neptune’s metadata and chart context.
+
+    Compile Glossary: Populate definitions and rulership/detriment entries.
+
+    Final Assembly: Merge text sections, glossary, and version status into final document structure.
+
+    Output: Return populated Neptune module ready for integration into report.
+
+🔹 GLOSSARY
+• Collective Imagination: Neptune’s capacity to tap into universal empathy, dreams, and shared visions.
+• Aspect: Angular relationship between Neptune and another planet (conjunction, sextile, square, trine, opposition).
+• Dispositor (MODERN RULERSHIP ONLY): The planetary ruler of Neptune’s sign; shapes Neptune’s expression through reception and condition.
+• Dignity (MODERN RULERSHIP ONLY): Classification of planetary strength by sign (exaltation, detriment, fall).
+• Exaltation (MODERN RULERSHIP ONLY): Sign where Neptune excels (Leo).
+• Fall (MODERN RULERSHIP ONLY): Sign of Neptune’s greatest vulnerability (Aquarius).
+• Modern Rulership: Neptune rules Pisces.
+• Detriment (MODERN RULERSHIP ONLY): Sign opposite Neptune’s rulership (Virgo).
+• Joy (MODERN RULERSHIP ONLY): House where Neptune rejoices (12th), signifying dissolution and spiritual attunement.
+• Retrograde: Apparent backward motion, indicating internalized or tunable Neptune events.
+
+🔹 QA CHECKS
+• 6–7 paragraphs
+• 400+ words
+• Accurate aspect list matching actual chart data
+• Ends with period
+
+🔹 SAMPLE USAGE
+
+Input:
+• Neptune in Capricorn at 12°45′, 9th House
+• Diurnal chart
+• Aspects: Trine Moon (4°), Opposition Jupiter (5°), Sextile Mercury (3°)
+
+Output:
+• Fully developed P1–P6/7 narrative in chosen personality tone (e.g., Mystic Guide).
+• Dispositor condition and dignity integrated seamlessly (Modern rulership only).
+• All aspects incorporated into Neptune’s visionary arc.
+• Grounded, evocative closing statement.
+
+🔹 VERSION STATUS
+Module Name: structure/NEPTUNE
+Version: 2.0
+Status: ✅ LOCKED STRUCTURE (Ready for population)
+Author: Outer Skies System
+Date: 2025-06-04.

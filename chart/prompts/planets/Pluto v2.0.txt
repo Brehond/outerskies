@@ -1,0 +1,106 @@
+============================================================
+
+MODULE: structure/Pluto — Version 2.0
+
+Outer Skies Core Planetary Module
+
+============================================================
+
+🔹 METADATA INPUT (Hidden)
+• Name: Individual’s name as provided
+• Birth Data: Date, time, and location of birth
+• Placement & House: Pluto’s sign, degree, house number, retrograde status
+• Aspects: List of classical aspects ≤ 6° orb (type, planet, orb, applying/separating)
+• Aspect Orb: Orb setting used for aspect calculation
+• Personality: Chosen personality tone/module (e.g., Realist, Mystic Guide)
+• House System: Placidus or Whole Sign as specified
+• Rulership:
+– Traditional: no rulership
+– Modern Rulership: Pluto as ruler of Scorpio
+• Dispositor: Ruler of Pluto’s sign (Scorpio), including its sign, house, and condition
+
+🔹 DESCRIPTION
+This module generates the Pluto placement section of an astrology report using the full Outer Skies Synthesis Core v1.5 format. It emphasizes Pluto’s core transformative, regenerative, and subconscious function in its sign placement—acknowledging that Plutonian energies catalyze profound endings and rebirth. The module focuses primarily on how that underworld signature unfolds through the house environment and potent aspect configurations. Interpretation weaves together house-led thematic expression and aspect dynamics to highlight where Pluto’s deep alchemical processes and personal empowerment manifest in the chart.
+
+🔹 STRUCTURE: Synthesis Paragraphs
+
+P1: Anchor Headline
+• Declare Pluto sign + house + overarching theme of transformation, regeneration, and psychological depth.
+
+P2: Archetypal Sign Context
+• Emphasize Pluto’s collective, underworld expression in its sign as an archetypal backdrop, reflecting generational cycles of power and renewal.
+
+P3: Sign–House Synthesis
+• Integrate how the sign’s Plutonian energy is personalized by the house placement.
+• Highlight the domain where Pluto’s transformative impulse is most activated in the individual’s life.
+
+(If modern rulership is enabled, insert here as the next paragraph:)
+P4: Rulership & Condition
+• Identify Pluto’s dispositor (ruler of Scorpio) with sign, house, and condition.
+• Discuss how the dispositor channels Pluto’s archetypal power within the chart.
+
+P5: Aspect Inventory
+• List all major aspects to Pluto ≤ 6° orb (conjunction, sextile, square, trine, opposition).
+• For each: aspect type, planet, orb, applying/separating, and notes on activation or intensity.
+
+P6: Integrated Aspect Synthesis
+• Weave aspect patterns into a cohesive narrative, showing how they modulate Pluto’s archetypal signature.
+• Highlight dominant themes (e.g., empowerment, crisis, healing) arising from aspect interplay.
+
+P7: Grand Synthesis
+• Integrate sign context, house activation, rulership (if present), and aspect themes into a unified portrait.
+• Articulate how Pluto’s regenerative impulse is experienced personally, driving deep insight, transformation, and renewal.
+
+🔹 EXECUTION PIPELINE
+
+    Load Metadata: Ingest hidden inputs (birth data, placement, aspects, etc.)
+
+    Validate Inputs: Ensure all required metadata fields are present and valid.
+
+    Initialize Context: Apply chart-wide settings (sect status, house system, rulership mode).
+
+    Generate P1–P6/7: Sequentially synthesize narrative paragraphs using Pluto’s metadata and chart context.
+
+    Compile Glossary: Populate definitions and rulership/detriment entries.
+
+    Final Assembly: Merge text sections, glossary, and version status into final document structure.
+
+    Output: Return populated Pluto module ready for integration into report.
+
+🔹 GLOSSARY
+• Underworld Process: Pluto’s transformative cycle of endings and rebirth, revealing hidden truths.
+• Aspect: Angular relationship between Pluto and another planet (conjunction, sextile, square, trine, opposition).
+• Dispositor (MODERN RULERSHIP ONLY): The planetary ruler of Pluto’s sign; shapes Pluto’s expression through reception and condition.
+• Dignity (MODERN RULERSHIP ONLY): Classification of planetary strength by sign (exaltation, detriment, fall).
+• Exaltation (MODERN RULERSHIP ONLY): Sign where Pluto excels (Aries).
+• Fall (MODERN RULERSHIP ONLY): Sign of Pluto’s greatest vulnerability (Libra).
+• Modern Rulership: Pluto rules Scorpio.
+• Detriment (MODERN RULERSHIP ONLY): Sign opposite Pluto’s rulership (Taurus).
+• Joy (MODERN RULERSHIP ONLY): House where Pluto rejoices (8th), signifying depth, intimacy, and shared resources.
+• Retrograde: Apparent backward motion, indicating internalized or subterranean Plutonian processes.
+
+🔹 QA CHECKS
+• 6–7 paragraphs
+• 400+ words
+• Accurate aspect list matching actual chart data
+• Ends with period
+
+🔹 SAMPLE USAGE
+
+Input:
+• Pluto in Leo at 22°13′, 5th House
+• Nocturnal chart
+• Aspects: Square Moon (3°), Trine Jupiter (4°), Opposition Mercury (5°)
+
+Output:
+• Fully developed P1–P6/7 narrative in chosen personality tone (e.g., Depth Guide).
+• Dispositor condition and dignity integrated seamlessly (Modern rulership only).
+• All aspects incorporated into Pluto’s transformative arc.
+• Grounded, powerful closing statement.
+
+🔹 VERSION STATUS
+Module Name: structure/PLUTO
+Version: 2.0
+Status: ✅ LOCKED STRUCTURE (Ready for population)
+Author: Outer Skies System
+Date: 2025-06-04.

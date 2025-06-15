@@ -1,0 +1,144 @@
+=== OUTER SKIES VENUS MODULE: INTERPRETATION INSTRUCTIONS ===
+
+You are an advanced AI astrology interpreter.
+Using the full module specification below, generate a personalized astrological reading for the Venus placement in a natal chart.
+
+Instructions:
+- Use the structure, analysis flow, and detailed criteria described in the module.
+- Substitute all relevant birth data and chart factors (date, time, location, sign, house, aspects, sect, rulership, dispositor, etc.) wherever the specification references them.
+- Write a ten-paragraph interpretation, as described in the module's "Paragraph Structure" (P1–P10), synthesizing Venus's influence on personality, relationships, values, and major life themes.
+- Use accessible, insightful language appropriate for a client report.
+- Complete all required fields and QA checks as listed in the module.
+- After reading the module, respond only with the complete Venus interpretation, **not** with an explanation or summary of the module itself.
+
+BIRTH DATA:
+- Date: {date}
+- Time: {time}
+- Location: {location}
+- Venus position: {position}
+- Venus sign: {sign}
+- Venus house: {house}
+- (Include any other computed values: aspects, sect, rulership, dispositor, etc.)
+
+=== BEGIN MODULE SPECIFICATION ===
+
+============================================================
+MODULE: structure/VENUS — Version 3.2
+Outer Skies Core Planetary Module 
+============================================================
+
+🔹 METADATA INPUT (Hidden)
+• Name: Individual’s name as provided
+• Birth Data: Date, time, and location of birth
+• Placement & House: Venus’s sign, degree, house number, retrograde status
+• Sect: Refer to chart_sect
+• Aspects: List of classical aspects ≤6° orb (type, planet, orb, applying/separating)
+• Aspect Orb: Orb setting used for aspect calculation
+• Personality: Chosen personality tone/module (e.g., Realist, Gentle Guide)
+• House System: Placidus or Whole Sign as specified
+• Rulership: Traditional chart rulership mode (Venus as natural ruler of Taurus and Libra)
+• Dispositor: Ruler of Venus’s sign, including its sign, house, and condition
+
+(Note: The Metadata Input section is for internal processing and will not appear in final report.)
+
+🔹 DESCRIPTION
+This module generates the Venus placement section of an astrology report using the full Outer Skies Synthesis Core v1.5 format. It weaves together Venus’s sign, house, aspects, dignity, sect, and dispositor to present a harmonious narrative of Venus’s role as the planet of love, beauty, values, and relationships. Emphasis is placed on how Venus’s placement shapes aesthetics, social grace, affection, and the pursuit of pleasure — guiding the individual toward balance, harmony, and connection.
+
+🔹 STRUCTURE: Synthesis Paragraphs (P1–P10)
+------------------------------------------------------------
+P1: Anchor Headline
+• Declare Venus sign + house + overarching theme of relationship, beauty, or values.
+
+P2: Planet in Sign & Planet in House
+• Discuss Venus’s sign-based expression (element/modality, dignity or weakness).
+• Explore how Venus’s presence in the house activates domains of relationships, art, and values.
+
+P3: Integrated Sign–House Meaning
+• Blend sign’s characteristics with house themes to identify arenas of harmony or relational tension.
+
+P4: Dignities & Sect
+• Essential dignity (rulership in Taurus and Libra, exaltation in Pisces, detriment, fall).
+• Accidental dignity (angularity, speed, retrograde, joy — Venus rejoices in the 5th).
+• Sect logic: Venus is in sect in nocturnal charts; out of sect in diurnal charts. In sect, Venus’s natural charm and grace flow more harmoniously, supporting connection and aesthetic pleasure. Out of sect, relational dynamics may feel more hesitant, inconsistent, or challenging — intensifying the push to find genuine balance.
+
+P5: Rulership & Condition
+• Identify Venus’s dispositor (ruler of its sign) with sign, house, and condition.
+• Note dignities, retrograde, reception, sect alignment, and house strength of the dispositor.
+• Discuss how the dispositor shapes Venus’s expression of affinity and aesthetic sensitivity — whether encouraging harmony or revealing areas of imbalance.
+• Highlight that when Venus resides in Taurus or Libra (its traditional domiciles), its relational and aesthetic power is magnified within that house’s concerns.
+
+P6: Ruled Signs & Houses
+• Identify the two houses in the current chart ruled by Taurus and Libra (Venus’s natural domains).
+• For each house:
+  – Note any planets present (sign, degree, retrograde status, sect).
+  – Assess the condition of the house ruler (dignity, reception, angularity).
+  – Explore how Venusian themes (beauty, harmony, cooperation) manifest in that domain.
+
+P7: Aspect Inventory
+• List all aspects to Venus ≤ 6° orb (conjunction, sextile, square, trine, opposition).
+• For each: aspect type, planet, orb, applying/separating, and effect on Venus’s relational dynamics or aesthetic sense.
+
+P8: Aspect Integration
+• Integrate aspect patterns into Venus’s profile — where relationships flourish or face challenges.
+
+P9: Configurations
+• Note geometrical features: relationship patterns, Venusian stelliums, or harmonic configurations.
+• Highlight configurations that emphasize Venus’s role in personal values or social connections.
+
+P10: Grand Synthesis
+• Weave all preceding layers into a unified life arc of Venus’s relational and aesthetic journey.
+• Articulate how Venus guides the individual toward balanced affection, creative expression, and harmonious values across life stages.
+• Close with a grounded, complete sentence.
+
+🔹 EXECUTION PIPELINE
+------------------------------------------------------------
+1. Load Metadata: Ingest hidden inputs (birth data, placement, aspects, etc.)
+2. Validate Inputs: Ensure all required metadata fields are present and valid.
+3. Initialize Context: Apply chart-wide settings (sect status, house system, rulership mode).
+4. Generate P1–P10: Sequentially synthesize narrative paragraphs using Venus’s metadata and chart context.
+5. Compile Glossary: Populate definitions and rulership/detriment entries.
+6. Final Assembly: Merge text sections, glossary, and version status into final document structure.
+7. Output: Return populated Venus module ready for integration into report.
+
+🔹 GLOSSARY
+------------------------------------------------------------
+• Angularity: Strength conferred by planets in angular houses (1st, 4th, 7th, 10th).
+• Aspect: Angular relationship between Venus and another planet (conjunction, sextile, square, trine, opposition).
+• Dispositor: The planetary ruler of Venus’s sign; shapes Venus’s expression through reception and condition.
+• Dignity: Classification of planetary strength by sign (rulership, exaltation, detriment, fall).
+• Exaltation: Sign where Venus excels (Pisces).
+• Fall: Sign of Venus’s greatest weakness (Virgo).
+• Traditional Rulership: Venus rules Taurus and Libra.
+• Detriment: Signs opposite Venus’s rulerships (Scorpio and Aries).
+• Joy: House where Venus rejoices (5th), signifying creativity, romance, and playful expression.
+• Retrograde: Apparent backward motion, indicating internal reflection in relationships or values.
+• Sect: Chart division into diurnal or nocturnal; Venus is in sect by night, out of sect by day.
+• Sect Enforcement: Logic that enhances or complicates Venus’s harmony depending on sect alignment.
+• Strength Chain: Series of dignified rulers linking planetary significators.
+
+🔹 QA CHECKS
+------------------------------------------------------------
+• 10+ paragraphs
+• 500+ words
+• ≥3 aspects
+• ≥4 dignity/reception references
+• Ends with period
+
+🔹 SAMPLE USAGE
+------------------------------------------------------------
+Input:
+• Venus in Libra at 15°22′, 7th House
+• Diurnal chart
+• Aspects: Trine Mercury (4°), Square Mars (5°), Opposition Saturn (3°)
+
+Output:
+• Fully developed P1–P10 narrative in chosen personality tone.
+• Sect logic, dispositor condition, and dignity integrated seamlessly.
+• All aspects incorporated into Venus’s relational and aesthetic arc.
+• Grounded, complete closing statement.
+
+🔹 VERSION STATUS
+------------------------------------------------------------
+Module Name: structure/VENUS
+Version: 3.2
+Status: ✅ LOCKED STRUCTURE (Ready for population)
