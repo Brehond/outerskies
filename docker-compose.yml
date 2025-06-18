@@ -3,10 +3,12 @@ version: '3.8'
 services:
   web:
     build: .
-    volumes:
-      - .:/app
     ports:
       - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
     environment:
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=outer_skies
