@@ -73,6 +73,8 @@ Open your browser and go to `http://127.0.0.1:8000/`.
 docker-compose up --build
 ```
 
+# Trigger CI build
+
 ```bash
 git clone https://github.com/YOUR-USERNAME/outer-skies.git
 cd outer-skies
