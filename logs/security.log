@@ -1,0 +1,259 @@
+WARNING 2025-06-18 16:21:38,927 middleware 15476 15928 Request too large: 1048589 bytes from 127.0.0.1
+WARNING 2025-06-18 16:22:37,951 middleware 17416 7192 Too many concurrent requests from 127.0.0.1
+WARNING 2025-06-18 16:22:37,969 middleware 17416 7192 Request too large: 1048589 bytes from 127.0.0.1
+WARNING 2025-06-18 16:22:57,397 middleware 14704 13248 Too many concurrent requests from 127.0.0.1
+WARNING 2025-06-18 16:22:57,417 middleware 14704 13248 Request too large: 1048589 bytes from 127.0.0.1
+WARNING 2025-06-18 16:26:13,195 middleware 9068 5224 Request too large: 1048589 bytes from 127.0.0.1
+WARNING 2025-06-18 16:26:32,475 middleware 7636 148 Too many concurrent requests from 127.0.0.1
+WARNING 2025-06-18 16:26:32,494 middleware 7636 148 Request too large: 1048589 bytes from 127.0.0.1
+WARNING 2025-06-18 16:32:01,466 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,468 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,469 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,470 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,472 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,475 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,476 security 9200 7920 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,481 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,483 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,484 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,485 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,488 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,489 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:32:01,491 security 9200 7920 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,083 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,085 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,087 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,088 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,090 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,093 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,094 security 10988 7972 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,099 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,101 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,102 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,104 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,106 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,108 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:38:27,110 security 10988 7972 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,088 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,091 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,092 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,094 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,095 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,098 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,099 security 16852 13404 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,107 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,109 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,110 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,112 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,113 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,116 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:12,117 security 16852 13404 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,780 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,782 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,784 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,786 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,788 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,791 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,793 security 2940 19296 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,798 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,799 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,802 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,804 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,808 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,810 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:40:48,812 security 2940 19296 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,731 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,734 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,737 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,738 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,740 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,743 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,744 security 15176 18112 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,753 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,754 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,756 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,757 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,759 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,762 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:41:52,764 security 15176 18112 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,054 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,057 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,058 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,060 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,061 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,064 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,066 security 18644 2776 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,072 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,073 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,075 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,076 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,077 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,080 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:44:32,082 security 18644 2776 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,071 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,074 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,077 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,079 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,082 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,085 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,086 security 6008 15928 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,090 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,092 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,094 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,097 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,100 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,102 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:45:12,105 security 6008 15928 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,941 log 12704 1688 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:47:10,944 log 12704 1688 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:47:10,960 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,963 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,965 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,967 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,970 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,973 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,975 security 12704 1688 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,981 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,983 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,985 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,987 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,989 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,992 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:10,994 security 12704 1688 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,328 log 13332 4612 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:47:45,331 log 13332 4612 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:47:45,343 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,345 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,347 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,349 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,350 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,351 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,354 security 13332 4612 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,357 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,359 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,361 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,362 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,364 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,366 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:47:45,368 security 13332 4612 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,673 log 6692 15824 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:48:25,676 log 6692 15824 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:48:25,687 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,689 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,691 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,692 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,694 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,696 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,698 security 6692 15824 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,703 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,705 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,706 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,708 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,709 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,712 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:25,714 security 6692 15824 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,205 log 11460 8436 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:48:56,208 log 11460 8436 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 16:48:56,221 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,223 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,224 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,226 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,227 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,229 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,231 security 11460 8436 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,236 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,239 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,240 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,242 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,243 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,245 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:48:56,248 security 11460 8436 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,254 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,256 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,258 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,260 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,262 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,264 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,266 security 3164 13188 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,270 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,272 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,273 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,275 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,277 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,279 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:03,280 security 3164 13188 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,331 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,333 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,335 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,337 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,338 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,341 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,344 security 992 10432 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,367 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,369 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,371 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,374 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,376 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,383 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:50:45,398 security 992 10432 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,422 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,424 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,426 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,428 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,429 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,431 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,434 security 19248 1764 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,438 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,440 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,442 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,444 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,446 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,448 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 16:51:28,450 security 19248 1764 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,700 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,702 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,704 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,705 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,707 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,709 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,710 security 1968 13356 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,714 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,716 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,717 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,718 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,720 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,722 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:02:57,723 security 1968 13356 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,776 log 5640 12844 Forbidden (Referer checking failed - no Referer.): /api/chart/
+WARNING 2025-06-18 17:03:14,779 log 5640 12844 Forbidden (Referer checking failed - no Referer.): /api/chart/
+WARNING 2025-06-18 17:03:14,795 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,796 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,798 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,800 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,801 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,804 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,806 security 5640 12844 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,811 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,813 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,814 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,816 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,819 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,822 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:14,823 security 5640 12844 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,949 log 7960 10724 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 17:03:28,968 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,970 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,972 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,973 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,974 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,977 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,979 security 7960 10724 SQL injection attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,985 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,987 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,990 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,992 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,994 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,996 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:03:28,999 security 7960 10724 XSS attempt detected from 127.0.0.1
+WARNING 2025-06-18 17:08:05,644 log 2480 1152 Forbidden (CSRF cookie not set.): /api/chart/
+WARNING 2025-06-18 17:08:18,811 log 12484 3436 Forbidden (CSRF cookie not set.): /api/chart/

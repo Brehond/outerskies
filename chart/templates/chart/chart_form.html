@@ -1,0 +1,18 @@
+<!-- chart/templates/chart/chart_form.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chart Form</title>
+</head>
+<body>
+    <h1>Astrology Chart Form</h1>
+    <form method="get" action="/chart/generate/">
+        Date: <input type="date" name="date"><br>
+        Time: <input type="time" name="time"><br>
+        Latitude: <input type="text" name="lat"><br>
+        Longitude: <input type="text" name="lon"><br>
+        Location: <input type="text" name="location"><br>
+        <input type="submit" value="Generate Chart">
+    </form>
+</body>
+</html>
