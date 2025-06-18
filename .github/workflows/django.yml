@@ -1,0 +1,47 @@
+name: Django CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:13
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SECRET_KEY: test_secret_key
+      DEBUG: 'True'
+      DATABASE_URL: postgres://test_user:test_pass@localhost:5432/test_db
+      STRIPE_API_KEY: test_stripe_key
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8'
+    - name: Install pipenv
+      run: pip install pipenv
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    - name: Run migrations
+      run: |
+        python manage.py migrate
+    - name: Run tests
+      run: |
+        python manage.py test 
