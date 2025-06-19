@@ -1,5 +1,53 @@
-*.pyc
-__pycache__/
+# Environment variables
 .env
-ephemeris/
+.env.*
+!env.example
+
+# Database
 db.sqlite3
+*.sqlite3
+
+# Logs
+*.log
+logs/
+debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv311/
+ENV/
+
+# Django
+staticfiles/
+media/
+*.pot
+*.pyc
+local_settings.py
+
+# Backup files
+*_backup.*
+*.bak
+*.swp
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db

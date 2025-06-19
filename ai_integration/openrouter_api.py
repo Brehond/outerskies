@@ -52,6 +52,18 @@ AVAILABLE_MODELS = {
         "max_tokens": 4096,
         "temperature": 0.7,
         "description": "Balanced performance, good for general interpretations"
+    },
+    "mistral-medium": {
+        "id": "mistralai/mistral-medium",
+        "max_tokens": 2048,
+        "temperature": 0.7,
+        "description": "Open source model with good balance of speed and accuracy"
+    },
+    "mistral-7b": {
+        "id": "mistralai/mistral-7b-instruct",
+        "max_tokens": 2048,
+        "temperature": 0.7,
+        "description": "Fast and efficient open source model"
     }
 }
 
@@ -70,7 +82,7 @@ def validate_api_key() -> None:
 
 def get_available_models() -> list:
     """Get list of available AI models."""
-    return ['gpt-4', 'gpt-3.5-turbo', 'claude-3-opus']
+    return ['gpt-4', 'gpt-3.5-turbo', 'claude-3-opus', 'claude-3-sonnet', 'mistral-medium', 'mistral-7b']
 
 def validate_model(model_name: str) -> None:
     """
@@ -130,8 +142,14 @@ def generate_interpretation(
             'X-Title': 'Outer Skies Astrology'  # Replace with your app name
         }
         
+        # Get the correct model ID from AVAILABLE_MODELS
+        if model_name in AVAILABLE_MODELS:
+            model_id = AVAILABLE_MODELS[model_name]["id"]
+        else:
+            model_id = model_name  # Fallback to using the name directly
+        
         data = {
-            'model': model_name,
+            'model': model_id,
             'messages': [{'role': 'user', 'content': prompt}],
             'temperature': temperature,
             'max_tokens': max_tokens

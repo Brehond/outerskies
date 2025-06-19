@@ -19,6 +19,7 @@ import re
 from django.core.cache import cache
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,15 @@ def local_to_utc(date_str: str, time_str: str, tz_str: str) -> Tuple[str, str]:
         logger.error(f"Invalid timezone: {e}")
         raise ValueError(f"Invalid timezone: {e}")
 
+def get_coordinates(location: str) -> Tuple[float, float]:
+    """
+    Extract coordinates from location string or use provided lat/lon.
+    For now, just returns a placeholder - in production, you'd use a geocoding service.
+    """
+    # This is a simplified version - in production you'd integrate with a geocoding API
+    # For now, just return default coordinates if location is provided
+    return 45.5, -64.3  # Default coordinates for testing
+
 def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]:
     """
     Validate input data for chart generation.
@@ -66,11 +76,35 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
         Tuple of (validated data dict, error message if any)
     """
     try:
-        # Required fields
-        required_fields = ['date', 'time', 'location', 'timezone_str', 'zodiac_type', 'house_system', 'model_name', 'temperature', 'max_tokens']
+        # Handle both form data and JSON data
+        if isinstance(data, dict):
+            # Check if we have latitude/longitude directly
+            if 'latitude' in data and 'longitude' in data:
+                try:
+                    lat = float(data['latitude'])
+                    lon = float(data['longitude'])
+                except ValueError:
+                    return {}, "Invalid latitude/longitude values"
+            elif 'location' in data:
+                try:
+                    lat, lon = get_coordinates(data['location'])
+                except Exception as e:
+                    return {}, f"Invalid location: {str(e)}"
+            else:
+                return {}, "Missing location or latitude/longitude"
+        else:
+            return {}, "Invalid data format"
+        
+        # Required fields (adjusted for form data)
+        required_fields = ['date', 'time', 'zodiac_type', 'house_system', 'model_name', 'temperature', 'max_tokens']
         for field in required_fields:
             if field not in data:
                 return {}, f"Missing required field: {field}"
+        
+        # Handle timezone field (can be 'timezone' or 'timezone_str')
+        timezone_str = data.get('timezone_str') or data.get('timezone')
+        if not timezone_str:
+            return {}, "Missing timezone field"
                 
         # Date validation
         try:
@@ -84,15 +118,9 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
         except ValueError:
             return {}, "Invalid time format. Use HH:MM"
             
-        # Location validation
-        try:
-            lat, lon = get_coordinates(data['location'])
-        except Exception as e:
-            return {}, f"Invalid location: {str(e)}"
-            
         # Timezone validation
         try:
-            pytz.timezone(data['timezone_str'])
+            pytz.timezone(timezone_str)
         except pytz.exceptions.UnknownTimeZoneError:
             return {}, "Invalid timezone"
             
@@ -101,12 +129,13 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
             return {}, "Invalid zodiac type. Use 'tropical' or 'sidereal'"
             
         # House system validation
-        if data['house_system'] not in ['placidus', 'koch', 'equal', 'whole']:
-            return {}, "Invalid house system"
+        if data['house_system'] not in ['placidus', 'whole_sign']:
+            return {}, "Invalid house system. Use 'placidus' or 'whole_sign'"
             
         # Model validation
-        if data['model_name'] not in ['gpt-4', 'gpt-3.5-turbo']:
-            return {}, "Invalid model name"
+        available_models = get_available_models()
+        if data['model_name'] not in available_models:
+            return {}, f"Invalid model name. Available models: {', '.join(available_models)}"
             
         # Temperature validation
         try:
@@ -130,8 +159,8 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
             'time': data['time'],
             'latitude': lat,
             'longitude': lon,
-            'location': data['location'],
-            'timezone_str': data['timezone_str'],
+            'location': data.get('location', f"{lat}, {lon}"),
+            'timezone_str': timezone_str,
             'zodiac_type': data['zodiac_type'],
             'house_system': data['house_system'],
             'model_name': data['model_name'],
@@ -187,6 +216,7 @@ def generate_planet_interpretations(
 
     for planet, pos in chart_data['positions'].items():
         try:
+            logger.debug(f"Generating interpretation for {planet}...")
             # Extract position data
             abs_degree = pos.get("absolute_degree", 0.0)
             sign = pos.get("sign", "")
@@ -215,6 +245,7 @@ def generate_planet_interpretations(
                 dignity_status=""   # TODO: Add dignity calculation
             )
 
+            logger.debug(f"Calling AI for {planet} with model {model_name}...")
             # Generate interpretation
             interpretation = generate_interpretation(
                 prompt,
@@ -224,6 +255,7 @@ def generate_planet_interpretations(
             )
             
             planet_results[planet] = interpretation
+            logger.debug(f"Successfully generated interpretation for {planet}")
             
         except Exception as e:
             logger.error(f"Error generating interpretation for {planet}: {e}")
@@ -316,13 +348,17 @@ def generate_master_interpretation(
         if not prompt:
             raise ValueError("Failed to format master prompt")
         
+        logger.debug(f"Calling AI for master interpretation with model {model_name}...")
         # Generate interpretation
-        return generate_interpretation(
+        result = generate_interpretation(
             prompt,
             model_name=model_name,
             temperature=temperature,
             max_tokens=max_tokens
         )
+        
+        logger.debug("Successfully generated master interpretation")
+        return result
         
     except Exception as e:
         logger.error(f"Error generating master interpretation: {e}")
@@ -397,6 +433,7 @@ def chart_form(request):
             logger.debug(f"Calculated chart data: {chart_data}")
             
             # Generate interpretations
+            logger.debug("Starting planet interpretations generation...")
             planet_interpretations = generate_planet_interpretations(
                 chart_data,
                 utc_date,
@@ -408,6 +445,7 @@ def chart_form(request):
             )
             logger.debug("Generated planet interpretations")
             
+            logger.debug("Starting master interpretation generation...")
             master_interpretation = generate_master_interpretation(
                 chart_data,
                 utc_date,
@@ -458,6 +496,15 @@ def generate_chart(request):
     API endpoint for chart generation.
     """
     try:
+        # Check if API key is available
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        if not api_key:
+            logger.error("OpenRouter API key not found in environment variables")
+            return JsonResponse({
+                "success": False,
+                "error": "AI service not configured. Please contact support."
+            }, status=500)
+        
         # Check rate limit
         if check_rate_limit(request):
             logger.warning(f"Rate limit exceeded for IP: {request.META.get('REMOTE_ADDR')}")
@@ -466,7 +513,7 @@ def generate_chart(request):
                 "error": "Rate limit exceeded. Please try again later."
             }, status=429)
             
-        # Parse JSON data
+        # Parse JSON data (not form data)
         data = json.loads(request.body)
         logger.debug(f"Received API request data: {data}")
         
@@ -497,6 +544,7 @@ def generate_chart(request):
         logger.debug(f"Calculated chart data: {chart_data}")
         
         # Generate interpretations
+        logger.debug("Starting planet interpretations generation...")
         planet_interpretations = generate_planet_interpretations(
             chart_data,
             utc_date,
@@ -508,6 +556,7 @@ def generate_chart(request):
         )
         logger.debug("Generated planet interpretations")
         
+        logger.debug("Starting master interpretation generation...")
         master_interpretation = generate_master_interpretation(
             chart_data,
             utc_date,
