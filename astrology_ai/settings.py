@@ -238,7 +238,7 @@ PLUGIN_SETTINGS = {
 # Security Settings for Testing
 API_KEY = os.getenv('API_KEY', 'test-api-key-for-testing')
 API_SECRET = os.getenv('API_SECRET', 'test-api-secret-for-testing')
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'test-encryption-key-for-testing-32-chars-long')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'HCK08Wa6LrMN-3oYjzoy35i23h5duH32ClA9ujkUFyo=')
 ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-for-testing')
 
 # Rate Limiting Settings
