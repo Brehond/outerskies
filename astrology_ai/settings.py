@@ -233,4 +233,26 @@ PLUGIN_SETTINGS = {
 # PLUGIN_SETTINGS['example_plugin'] = {
 #     'api_key': 'your-api-key',
 #     'enabled': True,
-# } 
+# }
+
+# Security Settings for Testing
+API_KEY = os.getenv('API_KEY', 'test-api-key-for-testing')
+API_SECRET = os.getenv('API_SECRET', 'test-api-secret-for-testing')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'test-encryption-key-for-testing-32-chars-long')
+ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-for-testing')
+
+# Rate Limiting Settings
+RATE_LIMIT_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
+RATE_LIMIT_BURST = int(os.getenv('RATE_LIMIT_BURST', '100'))
+
+# File Upload Settings
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_UPLOAD_TYPES = {
+    'image/jpeg', 'image/png', 'image/gif',
+    'application/pdf', 'text/plain', 'text/csv',
+    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+}
+BLOCKED_UPLOAD_EXTENSIONS = {
+    '.exe', '.dll', '.bat', '.cmd', '.sh', '.php', '.asp', '.aspx',
+    '.jsp', '.js', '.vbs', '.ps1', '.py', '.rb', '.pl'
+} 

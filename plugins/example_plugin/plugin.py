@@ -151,4 +151,4 @@ class ExamplePlugin(BasePlugin):
         Validate that the plugin is properly installed
         """
         # Add validation logic here
-        return True, "Example Plugin is properly installed" 
+        return True, "Example Plugin is properly installed"

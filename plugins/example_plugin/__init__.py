@@ -7,4 +7,4 @@ for the Outer Skies astrology application.
 
 from .plugin import ExamplePlugin
 
-Plugin = ExamplePlugin 
+Plugin = ExamplePlugin
