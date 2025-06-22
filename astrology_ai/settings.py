@@ -100,6 +100,18 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
+    # Custom security middleware
+    "chart.middleware.security.EnhancedSecurityMiddleware",
+    "chart.middleware.rate_limit.RateLimitMiddleware",
+    "chart.middleware.auth.APIAuthMiddleware",
+    "chart.middleware.validation.DataValidationMiddleware",
+    "chart.middleware.password.PasswordSecurityMiddleware",
+    "chart.middleware.file_upload.FileUploadSecurityMiddleware",
+    "chart.middleware.error_handling.ErrorHandlingMiddleware",
+    "chart.middleware.session.SessionSecurityMiddleware",
+    "chart.middleware.api_version.APIVersionMiddleware",
+    "chart.middleware.request_signing.RequestSigningMiddleware",
+    "chart.middleware.encryption.EncryptionMiddleware",
 ]
 
 ROOT_URLCONF = "astrology_ai.urls"
