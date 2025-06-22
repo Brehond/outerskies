@@ -1,54 +1,91 @@
-name: Django CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main, develop]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
-        image: postgres:15
+        image: postgres:15-alpine
         env:
-          POSTGRES_DB: outer_skies
+          POSTGRES_DB: outerskies
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
+        ports: ['5432:5432']
         options: >-
-          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       DB_ENGINE: django.db.backends.postgresql
-      DB_NAME: outer_skies
+      DB_NAME: outerskies
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_HOST: localhost
       DB_PORT: 5432
-      SECRET_KEY: test-secret-key
-      DEBUG: 1
-      SENTRY_DSN: ''
+      SECRET_KEY: test-secret
+      DEBUG: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Wait for Postgres
+          # Install plugin requirements if any
+          for req in plugins/*/requirements.txt; do
+            [ -f "$req" ] && pip install -r "$req" || true
+          done
+
+      - name: Lint with flake8
         run: |
-          until pg_isready -h localhost -p 5432; do sleep 1; done
+          pip install flake8
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Lint plugins
+        run: |
+          for plugin in plugins/*; do
+            if [ -d "$plugin" ]; then
+              flake8 $plugin
+            fi
+          done
+
       - name: Run migrations
         run: |
           python manage.py migrate
-      - name: Run tests
+
+      - name: Run all tests
         run: |
           python manage.py test
-      - name: Build Docker image
+
+      - name: Run plugin tests
         run: |
-          docker build . --file Dockerfile --tag outer-skies:latest 
+          for plugin in plugins/*; do
+            if [ -d "$plugin" ] && [ -f "$plugin/tests.py" ]; then
+              echo "Running tests for $plugin"
+              python manage.py test $(basename $plugin)
+            fi
+          done
+
+      - name: List plugins
+        run: |
+          python manage.py manage_plugins list
+
+      - name: Build Docker image
+        run: docker build -t outerskies:ci .
+        # Comment out above if you don't want to build Docker image in CI 

@@ -1,0 +1,337 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Outer Skies</title>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+</head>
+<body class="font-sans bg-dark2 text-white min-h-screen">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Header -->
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-accent drop-shadow">Outer Skies</h1>
+                <h2 class="mt-6 text-2xl font-semibold text-accent">Create your account</h2>
+                <p class="mt-2 text-sm text-plum2">
+                    Already have an account?
+                    <a href="{% url 'auth:login' %}" class="font-medium text-accent hover:text-accent/80">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-lg {% if message.tags == 'error' %}bg-red-500 text-white{% elif message.tags == 'success' %}bg-green-500 text-white{% else %}bg-blue-500 text-white{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Registration Form -->
+            <form class="mt-8 space-y-6 bg-primary rounded-xl shadow p-8 border-l-8 border-accent" method="post" id="registrationForm">
+                {% csrf_token %}
+                
+                <div class="space-y-4">
+                    <!-- Username -->
+                    <div>
+                        <label for="id_username" class="block text-sm font-semibold text-accent">Username *</label>
+                        <input 
+                            id="id_username" 
+                            name="username" 
+                            type="text" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Choose a username"
+                            value="{{ form.username.value|default:'' }}"
+                        >
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-plum2">Letters, numbers, and underscores only. 3-150 characters.</p>
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="id_email" class="block text-sm font-semibold text-accent">Email *</label>
+                        <input 
+                            id="id_email" 
+                            name="email" 
+                            type="email" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Enter your email address"
+                            value="{{ form.email.value|default:'' }}"
+                        >
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="id_password1" class="block text-sm font-semibold text-accent">Password *</label>
+                        <input 
+                            id="id_password1" 
+                            name="password1" 
+                            type="password" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Create a strong password"
+                        >
+                        {% if form.password1.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                        <div class="mt-1 text-xs text-plum2">
+                            {{ form.password1.help_text|safe }}
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div>
+                        <label for="id_password2" class="block text-sm font-semibold text-accent">Confirm Password *</label>
+                        <input 
+                            id="id_password2" 
+                            name="password2" 
+                            type="password" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Confirm your password"
+                        >
+                        {% if form.password2.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Birth Information Section -->
+                    <div class="border-t border-plum2 pt-4">
+                        <h3 class="text-lg font-semibold text-accent mb-4">Birth Information (Optional)</h3>
+                        <p class="text-sm text-plum2 mb-4">Provide your birth details for personalized chart features</p>
+                        
+                        <!-- Birth Date -->
+                        <div>
+                            <label for="id_birth_date" class="block text-sm font-semibold text-accent">Birth Date</label>
+                            <input 
+                                id="id_birth_date" 
+                                name="birth_date" 
+                                type="date" 
+                                class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                                value="{{ form.birth_date.value|default:'' }}"
+                            >
+                            {% if form.birth_date.errors %}
+                                <p class="mt-1 text-sm text-red-400">{{ form.birth_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Birth Time -->
+                        <div class="mt-4">
+                            <label for="id_birth_time" class="block text-sm font-semibold text-accent">Birth Time</label>
+                            <input 
+                                id="id_birth_time" 
+                                name="birth_time" 
+                                type="time" 
+                                class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                                value="{{ form.birth_time.value|default:'' }}"
+                            >
+                            {% if form.birth_time.errors %}
+                                <p class="mt-1 text-sm text-red-400">{{ form.birth_time.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Birth Location -->
+                        <div class="mt-4">
+                            <label for="id_birth_location" class="block text-sm font-semibold text-accent">Birth Location</label>
+                            <input 
+                                id="id_birth_location" 
+                                name="birth_location" 
+                                type="text" 
+                                class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                                placeholder="City, Country"
+                                value="{{ form.birth_location.value|default:'' }}"
+                            >
+                            {% if form.birth_location.errors %}
+                                <p class="mt-1 text-sm text-red-400">{{ form.birth_location.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Timezone -->
+                        <div class="mt-4">
+                            <label for="id_timezone" class="block text-sm font-semibold text-accent">Timezone</label>
+                            <select 
+                                id="id_timezone" 
+                                name="timezone" 
+                                class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm focus:border-accent focus:ring-accent"
+                            >
+                                {% for value, label in form.timezone.field.choices %}
+                                    <option value="{{ value }}" {% if form.timezone.value == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.timezone.errors %}
+                                <p class="mt-1 text-sm text-red-400">{{ form.timezone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Terms and Conditions -->
+                    <div class="flex items-start">
+                        <input 
+                            id="id_agree_to_terms" 
+                            name="agree_to_terms" 
+                            type="checkbox" 
+                            required
+                            class="mt-1 rounded border-plum2 bg-dark2 text-accent focus:ring-accent focus:ring-offset-dark2"
+                        >
+                        <label for="id_agree_to_terms" class="ml-2 block text-sm text-accent">
+                            I agree to the 
+                            <a href="#" class="text-accent hover:text-accent/80 underline">Terms of Service</a> 
+                            and 
+                            <a href="#" class="text-accent hover:text-accent/80 underline">Privacy Policy</a>
+                        </label>
+                    </div>
+                    {% if form.agree_to_terms.errors %}
+                        <p class="text-sm text-red-400">{{ form.agree_to_terms.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button 
+                        type="submit" 
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors"
+                    >
+                        Create Account
+                    </button>
+                </div>
+            </form>
+
+            <!-- Login Link -->
+            <div class="text-center">
+                <p class="text-xs text-plum2">
+                    Already have an account? 
+                    <a href="{% url 'auth:login' %}" class="text-accent hover:text-accent/80">
+                        Sign in here
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus on username field
+        document.getElementById('id_username').focus();
+        
+        // Real-time username availability check
+        let usernameTimeout;
+        document.getElementById('id_username').addEventListener('input', function() {
+            clearTimeout(usernameTimeout);
+            const username = this.value.trim();
+            
+            if (username.length >= 3) {
+                usernameTimeout = setTimeout(() => {
+                    checkUsernameAvailability(username);
+                }, 500);
+            }
+        });
+        
+        // Real-time email availability check
+        let emailTimeout;
+        document.getElementById('id_email').addEventListener('input', function() {
+            clearTimeout(emailTimeout);
+            const email = this.value.trim();
+            
+            if (email && email.includes('@')) {
+                emailTimeout = setTimeout(() => {
+                    checkEmailAvailability(email);
+                }, 500);
+            }
+        });
+        
+        function checkUsernameAvailability(username) {
+            fetch('{% url "auth:check_username" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `username=${encodeURIComponent(username)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const usernameField = document.getElementById('id_username');
+                const errorElement = usernameField.parentNode.querySelector('.text-red-400');
+                
+                if (data.available) {
+                    usernameField.classList.remove('border-red-500');
+                    usernameField.classList.add('border-green-500');
+                    if (errorElement) errorElement.remove();
+                } else {
+                    usernameField.classList.remove('border-green-500');
+                    usernameField.classList.add('border-red-500');
+                    if (!errorElement) {
+                        const error = document.createElement('p');
+                        error.className = 'mt-1 text-sm text-red-400';
+                        error.textContent = data.error || 'Username is not available';
+                        usernameField.parentNode.appendChild(error);
+                    }
+                }
+            });
+        }
+        
+        function checkEmailAvailability(email) {
+            fetch('{% url "auth:check_email" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: `email=${encodeURIComponent(email)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                const emailField = document.getElementById('id_email');
+                const errorElement = emailField.parentNode.querySelector('.text-red-400');
+                
+                if (data.available) {
+                    emailField.classList.remove('border-red-500');
+                    emailField.classList.add('border-green-500');
+                    if (errorElement) errorElement.remove();
+                } else {
+                    emailField.classList.remove('border-green-500');
+                    emailField.classList.add('border-red-500');
+                    if (!errorElement) {
+                        const error = document.createElement('p');
+                        error.className = 'mt-1 text-sm text-red-400';
+                        error.textContent = data.error || 'Email is not available';
+                        emailField.parentNode.appendChild(error);
+                    }
+                }
+            });
+        }
+        
+        // Form validation
+        document.getElementById('registrationForm').addEventListener('submit', function(e) {
+            const password1 = document.getElementById('id_password1').value;
+            const password2 = document.getElementById('id_password2').value;
+            
+            if (password1 !== password2) {
+                e.preventDefault();
+                alert('Passwords do not match.');
+                return false;
+            }
+            
+            if (password1.length < 8) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters long.');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html> 

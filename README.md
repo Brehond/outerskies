@@ -23,7 +23,7 @@ Outer Skies is a modern web application that generates and interprets astrologic
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/outer-skies.git
+   git clone https://github.com/Brehond/outerskies.git
    cd outer-skies
    ```
 
@@ -116,7 +116,7 @@ npm run build
 - All sensitive data must be stored in environment variables
 - Regular security audits are performed
 - See SECURITY_AUDIT_REPORT.md for latest audit results
-- Report security issues to security@outerskies.com
+- Report security issues through GitHub Issues
 
 ## Contributing
 
@@ -128,9 +128,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- Documentation: [docs/](docs/)
+- Documentation: See README.md and CONTRIBUTING.md
 - Issue Tracker: GitHub Issues
-- Email: support@outerskies.com
+- Team Setup: See TEAM_SETUP_INSTRUCTIONS.md
 
 ## Acknowledgments
 

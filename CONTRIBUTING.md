@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Outer Skies! This document provid
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/yourusername/outer-skies.git
+   git clone https://github.com/Brehond/outerskies.git
    cd outer-skies
    ```
 

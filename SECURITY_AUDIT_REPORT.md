@@ -66,7 +66,7 @@ This security audit was conducted on June 19, 2025, covering the Outer Skies app
 
 ## Security Contact
 
-Report security issues to: security@outerskies.com
+Report security issues through GitHub Issues
 
 ## Next Review
 

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profile - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">Your Profile</h1>
+                <p class="text-purple-200">Manage your account settings and preferences</p>
+            </div>
+
+            <!-- Profile Form -->
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
+                <h2 class="text-2xl font-semibold text-white mb-6">Profile Information</h2>
+                
+                <form method="post" enctype="multipart/form-data" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Username -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-purple-200 mb-2">
+                            Username
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-red-400 text-sm mt-1">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-purple-200 mb-2">
+                            Email
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-red-400 text-sm mt-1">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Name -->
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-purple-200 mb-2">
+                            First Name
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="text-red-400 text-sm mt-1">{{ form.first_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-purple-200 mb-2">
+                            Last Name
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="text-red-400 text-sm mt-1">{{ form.last_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Profile Picture -->
+                    <div>
+                        <label for="{{ form.profile_picture.id_for_label }}" class="block text-sm font-medium text-purple-200 mb-2">
+                            Profile Picture
+                        </label>
+                        <div class="flex items-center space-x-4">
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture.url }}" alt="Profile" class="w-16 h-16 rounded-full object-cover">
+                            {% else %}
+                                <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white text-xl font-semibold">{{ user.username|first|upper }}</span>
+                                </div>
+                            {% endif %}
+                            {{ form.profile_picture }}
+                        </div>
+                        {% if form.profile_picture.errors %}
+                            <div class="text-red-400 text-sm mt-1">{{ form.profile_picture.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4">
+                        <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105">
+                            Update Profile
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Success/Error Messages -->
+            {% if messages %}
+                <div class="mb-6">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-xl {% if message.tags == 'success' %}bg-green-500/20 text-green-200 border border-green-500/30{% elif message.tags == 'error' %}bg-red-500/20 text-red-200 border border-red-500/30{% else %}bg-blue-500/20 text-blue-200 border border-blue-500/30{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Additional Actions -->
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Change Password -->
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Change Password</h3>
+                    <p class="text-purple-200 mb-4">Update your account password for enhanced security.</p>
+                    <a href="{% url 'auth:change_password' %}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                        Change Password
+                    </a>
+                </div>
+
+                <!-- Chart History -->
+                <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-4">Chart History</h3>
+                    <p class="text-purple-200 mb-4">View and manage your previous chart readings.</p>
+                    <a href="{% url 'auth:chart_history' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-300">
+                        View History
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

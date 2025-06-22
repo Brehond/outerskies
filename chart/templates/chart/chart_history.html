@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Chart History - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-extrabold text-white">
+                Your Chart History
+            </h2>
+            <p class="mt-2 text-sm text-gray-300">
+                View and manage your previous chart submissions
+            </p>
+        </div>
+        
+        <div class="bg-white/10 backdrop-blur-lg rounded-lg p-8 shadow-xl">
+            {% if charts %}
+            <div class="space-y-4">
+                {% for chart in charts %}
+                <div class="bg-gray-800/30 rounded-lg p-6 border border-gray-600">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-white">
+                                {{ chart.name|default:"Untitled Chart" }}
+                            </h3>
+                            <p class="text-sm text-gray-300 mt-1">
+                                Birth Date: {{ chart.birth_date|date:"F j, Y" }}
+                            </p>
+                            <p class="text-sm text-gray-300">
+                                Birth Time: {{ chart.birth_time|time:"g:i A" }}
+                            </p>
+                            <p class="text-sm text-gray-300">
+                                Location: {{ chart.birth_location }}
+                            </p>
+                            <p class="text-sm text-gray-400 mt-2">
+                                Created: {{ chart.created_at|date:"F j, Y g:i A" }}
+                            </p>
+                            {% if chart.analysis %}
+                            <p class="text-sm text-gray-300 mt-2">
+                                Analysis: {{ chart.analysis|truncatewords:30 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="{% url 'chart:chart_detail' chart.id %}" class="text-purple-400 hover:text-purple-300 text-sm">
+                                View Details
+                            </a>
+                            {% if chart.analysis %}
+                            <a href="{% url 'chart:download_analysis' chart.id %}" class="text-green-400 hover:text-green-300 text-sm">
+                                Download
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if is_paginated %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-2 text-sm text-purple-400 hover:text-purple-300">
+                        Previous
+                    </a>
+                    {% endif %}
+                    
+                    <span class="px-3 py-2 text-sm text-gray-300">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-2 text-sm text-purple-400 hover:text-purple-300">
+                        Next
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-gray-400 mb-4">
+                    <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-white mb-2">No charts yet</h3>
+                <p class="text-gray-300 mb-6">You haven't submitted any charts yet. Create your first chart to get started.</p>
+                <a href="{% url 'chart:chart_form' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors">
+                    Create Your First Chart
+                </a>
+            </div>
+            {% endif %}
+            
+            <div class="mt-8 pt-6 border-t border-gray-600">
+                <div class="flex justify-center space-x-4">
+                    <a href="{% url 'chart:profile' %}" class="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                        Back to Profile
+                    </a>
+                    <a href="{% url 'chart:chart_form' %}" class="text-sm text-purple-400 hover:text-purple-300 transition-colors">
+                        Create New Chart
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

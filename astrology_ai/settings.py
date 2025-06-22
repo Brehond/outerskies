@@ -52,6 +52,42 @@ INSTALLED_APPS = [
     "payments",
     "django_prometheus",
     "tailwind",
+    "plugins",
+]
+
+# Custom User Model
+AUTH_USER_MODEL = 'chart.User'
+
+# Authentication Settings
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/chart/'
+LOGOUT_REDIRECT_URL = '/auth/login/'
+
+# Session Settings
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG  # Only secure in production
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# Password Settings
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
 MIDDLEWARE = [
@@ -66,17 +102,12 @@ MIDDLEWARE = [
     "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
-# Session settings
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1209600  # 2 weeks
-SESSION_COOKIE_HTTPONLY = True
-
 ROOT_URLCONF = "astrology_ai.urls"
 
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -183,4 +214,23 @@ LOGGING = {
             'propagate': True,
         },
     },
-} 
+}
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Plugin System Configuration
+PLUGIN_SETTINGS = {
+    # Global plugin settings
+    'auto_discover': True,
+    'auto_install': False,
+    'plugin_dir': 'plugins',
+    'enabled_plugins': [],  # List of enabled plugins
+    'disabled_plugins': [],  # List of disabled plugins
+}
+
+# Plugin-specific settings can be added here
+# Example:
+# PLUGIN_SETTINGS['example_plugin'] = {
+#     'api_key': 'your-api-key',
+#     'enabled': True,
+# } 

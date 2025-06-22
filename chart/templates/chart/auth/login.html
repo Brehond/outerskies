@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Outer Skies</title>
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+</head>
+<body class="font-sans bg-dark2 text-white min-h-screen">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full space-y-8">
+            <!-- Header -->
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-accent drop-shadow">Outer Skies</h1>
+                <h2 class="mt-6 text-2xl font-semibold text-accent">Sign in to your account</h2>
+                <p class="mt-2 text-sm text-plum2">
+                    Or
+                    <a href="{% url 'auth:register' %}" class="font-medium text-accent hover:text-accent/80">
+                        create a new account
+                    </a>
+                </p>
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                <div class="space-y-2">
+                    {% for message in messages %}
+                        <div class="p-4 rounded-lg {% if message.tags == 'error' %}bg-red-500 text-white{% elif message.tags == 'success' %}bg-green-500 text-white{% else %}bg-blue-500 text-white{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Login Form -->
+            <form class="mt-8 space-y-6 bg-primary rounded-xl shadow p-8 border-l-8 border-accent" method="post">
+                {% csrf_token %}
+                
+                <div class="space-y-4">
+                    <!-- Username -->
+                    <div>
+                        <label for="username" class="block text-sm font-semibold text-accent">Username</label>
+                        <input 
+                            id="username" 
+                            name="username" 
+                            type="text" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Enter your username"
+                            value="{{ form.username.value|default:'' }}"
+                        >
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-accent">Password</label>
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm focus:border-accent focus:ring-accent"
+                            placeholder="Enter your password"
+                        >
+                        {% if form.password.errors %}
+                            <p class="mt-1 text-sm text-red-400">{{ form.password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="flex items-center">
+                        <input 
+                            id="remember_me" 
+                            name="remember_me" 
+                            type="checkbox" 
+                            class="rounded border-plum2 bg-dark2 text-accent focus:ring-accent focus:ring-offset-dark2"
+                        >
+                        <label for="remember_me" class="ml-2 block text-sm text-accent">
+                            Remember me
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button 
+                        type="submit" 
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-accent hover:bg-accent/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent transition-colors"
+                    >
+                        Sign in
+                    </button>
+                </div>
+
+                <!-- Links -->
+                <div class="text-center space-y-2">
+                    <a href="{% url 'auth:password_reset_request' %}" class="text-sm text-accent hover:text-accent/80">
+                        Forgot your password?
+                    </a>
+                </div>
+            </form>
+
+            <!-- Demo Account Info -->
+            <div class="text-center">
+                <p class="text-xs text-plum2">
+                    Don't have an account? 
+                    <a href="{% url 'auth:register' %}" class="text-accent hover:text-accent/80">
+                        Sign up here
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focus on username field
+        document.getElementById('username').focus();
+        
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+            
+            if (!username || !password) {
+                e.preventDefault();
+                alert('Please fill in all required fields.');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html> 

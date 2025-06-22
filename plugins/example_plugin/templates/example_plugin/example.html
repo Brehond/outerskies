@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-dark2 rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold text-accent mb-6">{{ title }}</h1>
+            
+            <div class="bg-dark1 rounded-lg p-4 mb-6">
+                <p class="text-plum2 text-lg">{{ message }}</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-dark1 rounded-lg p-4">
+                    <h2 class="text-xl font-semibold text-accent mb-4">Plugin Information</h2>
+                    <ul class="space-y-2 text-plum2">
+                        <li><strong>Name:</strong> {{ plugin_info.name }}</li>
+                        <li><strong>Version:</strong> {{ plugin_info.version }}</li>
+                        <li><strong>Description:</strong> {{ plugin_info.description }}</li>
+                        <li><strong>Author:</strong> {{ plugin_info.author }}</li>
+                        <li><strong>Website:</strong> <a href="{{ plugin_info.website }}" class="text-accent hover:underline">{{ plugin_info.website }}</a></li>
+                    </ul>
+                </div>
+                
+                <div class="bg-dark1 rounded-lg p-4">
+                    <h2 class="text-xl font-semibold text-accent mb-4">Plugin Features</h2>
+                    <ul class="space-y-2 text-plum2">
+                        <li><strong>Requires Auth:</strong> {{ plugin_info.requires_auth|yesno:"Yes,No" }}</li>
+                        <li><strong>Admin Enabled:</strong> {{ plugin_info.admin_enabled|yesno:"Yes,No" }}</li>
+                        <li><strong>API Enabled:</strong> {{ plugin_info.api_enabled|yesno:"Yes,No" }}</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <a href="{% url 'example_plugin_api' %}" class="inline-block bg-accent text-dark2 px-6 py-3 rounded-lg hover:bg-accent/80 transition-colors">
+                    Test API Endpoint
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
