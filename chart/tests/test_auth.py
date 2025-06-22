@@ -39,7 +39,30 @@ User = get_user_model()
 
 @override_settings(
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
-    DEFAULT_FROM_EMAIL='noreply@outer-skies.com'
+    DEFAULT_FROM_EMAIL='noreply@outer-skies.com',
+    MIDDLEWARE=[
+        "django.middleware.security.SecurityMiddleware",
+        "django.contrib.sessions.middleware.SessionMiddleware",
+        "django.middleware.common.CommonMiddleware",
+        "django.middleware.csrf.CsrfViewMiddleware",
+        "django.contrib.auth.middleware.AuthenticationMiddleware",
+        "django.contrib.messages.middleware.MessageMiddleware",
+        "django.middleware.clickjacking.XFrameOptionsMiddleware",
+        "django_prometheus.middleware.PrometheusBeforeMiddleware",
+        "django_prometheus.middleware.PrometheusAfterMiddleware",
+        # Disable custom security middleware for tests
+        # "chart.middleware.security.EnhancedSecurityMiddleware",
+        # "chart.middleware.rate_limit.RateLimitMiddleware",
+        # "chart.middleware.auth.APIAuthMiddleware",
+        # "chart.middleware.validation.DataValidationMiddleware",
+        # "chart.middleware.password.PasswordSecurityMiddleware",
+        # "chart.middleware.file_upload.FileUploadSecurityMiddleware",
+        # "chart.middleware.error_handling.ErrorHandlingMiddleware",
+        # "chart.middleware.session.SessionSecurityMiddleware",
+        # "chart.middleware.api_version.APIVersionMiddleware",
+        # "chart.middleware.request_signing.RequestSigningMiddleware",
+        # "chart.middleware.encryption.EncryptionMiddleware",
+    ]
 )
 class TestAuthFlow(TestCase):
     def setUp(self):

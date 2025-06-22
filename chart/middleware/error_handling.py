@@ -6,6 +6,7 @@ from django.http import JsonResponse, HttpResponseServerError
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.views.debug import get_exception_reporter_filter
+from django.core.cache import cache
 import hashlib
 import time
 
