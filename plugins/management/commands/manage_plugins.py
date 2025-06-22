@@ -1,4 +1,4 @@
-"""
+﻿"""
 Django management command for managing plugins
 """
 
@@ -78,7 +78,7 @@ class Command(BaseCommand):
 
         for name, plugin in plugins.items():
             info = plugin.get_plugin_info()
-            status = '✅ Active' if name in plugin_manager.registered_plugins else '❌ Inactive'
+            status = 'âœ… Active' if name in plugin_manager.registered_plugins else 'âŒ Inactive'
 
             self.stdout.write(f"\n{self.style.SUCCESS(name)} - {status}")
             self.stdout.write(f"  Version: {info['version']}")
@@ -112,7 +112,7 @@ class Command(BaseCommand):
 
             # Install the plugin
             if plugin.install():
-                self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' installed successfully"))
+                self.stdout.write(self.style.SUCCESS(f"âœ… Plugin '{plugin_name}' installed successfully"))
             else:
                 raise CommandError(f"Failed to install plugin '{plugin_name}'")
 
@@ -135,7 +135,7 @@ class Command(BaseCommand):
                 raise CommandError(f"Plugin '{plugin_name}' not found")
 
             if plugin.uninstall():
-                self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' uninstalled successfully"))
+                self.stdout.write(self.style.SUCCESS(f"âœ… Plugin '{plugin_name}' uninstalled successfully"))
             else:
                 raise CommandError(f"Failed to uninstall plugin '{plugin_name}'")
 
@@ -148,7 +148,7 @@ class Command(BaseCommand):
 
         try:
             plugin_manager.register_plugin(plugin_name)
-            self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' enabled successfully"))
+            self.stdout.write(self.style.SUCCESS(f"âœ… Plugin '{plugin_name}' enabled successfully"))
         except Exception as e:
             raise CommandError(f"Error enabling plugin '{plugin_name}': {e}")
 
@@ -161,7 +161,7 @@ class Command(BaseCommand):
                 plugin_manager.registered_plugins.remove(plugin_name)
                 if plugin_name in plugin_manager.plugins:
                     del plugin_manager.plugins[plugin_name]
-                self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' disabled successfully"))
+                self.stdout.write(self.style.SUCCESS(f"âœ… Plugin '{plugin_name}' disabled successfully"))
             else:
                 self.stdout.write(self.style.WARNING(f"Plugin '{plugin_name}' was not enabled"))
         except Exception as e:
@@ -175,7 +175,7 @@ class Command(BaseCommand):
             # For now, just reinstall the plugin
             self.uninstall_plugin(plugin_manager, plugin_name, True)
             self.install_plugin(plugin_manager, plugin_name, True)
-            self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' updated successfully"))
+            self.stdout.write(self.style.SUCCESS(f"âœ… Plugin '{plugin_name}' updated successfully"))
         except Exception as e:
             raise CommandError(f"Error updating plugin '{plugin_name}': {e}")
 
@@ -215,8 +215,8 @@ class Command(BaseCommand):
 
             # Validate installation
             is_valid, message = plugin.validate_installation()
-            self.stdout.write(f"Installation Status: {'✅ Valid' if is_valid else '❌ Invalid'}")
+            self.stdout.write(f"Installation Status: {'âœ… Valid' if is_valid else 'âŒ Invalid'}")
             self.stdout.write(f"Validation Message: {message}")
 
         except Exception as e:
-            raise CommandError(f"Error showing plugin info for '{plugin_name}': {e}") 
+            raise CommandError(f"Error showing plugin info for '{plugin_name}': {e}")
