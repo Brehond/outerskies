@@ -55,13 +55,13 @@ jobs:
       - name: Lint with flake8
         run: |
           pip install flake8
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv311,.venv,venv,env,.env,node_modules,.git,__pycache__,.pytest_cache,migrations,static/admin,static/rest_framework,ephemeris,.github,logs
 
       - name: Lint plugins
         run: |
           for plugin in plugins/*; do
             if [ -d "$plugin" ]; then
-              flake8 $plugin
+              flake8 $plugin --exclude=venv311,.venv,venv,env,.env,node_modules,.git,__pycache__,.pytest_cache
             fi
           done
 
