@@ -7,4 +7,4 @@ Copy this entire directory and rename it to your plugin name.
 
 from .plugin import PluginTemplate
 
-Plugin = PluginTemplate 
+Plugin = PluginTemplate
