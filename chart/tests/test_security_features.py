@@ -297,8 +297,12 @@ class SecurityFeaturesTest(TestCase):
         print('TEST ENCRYPTION: Response content:', response.content)
         
         self.assertEqual(response.status_code, 200)
-        # Expect application/json since the middleware returns JsonResponse
-        self.assertEqual(response['Content-Type'], 'application/json')
+        # Expect application/octet-stream since the middleware encrypts the response
+        self.assertEqual(response['Content-Type'], 'application/octet-stream')
+        
+        # Verify the response is actually encrypted
+        decrypted_response = self.fernet.decrypt(response.content)
+        self.assertEqual(decrypted_response, b'{"ok": true}')
         
     def test_encryption_middleware(self):
         """Test the encryption middleware directly."""
