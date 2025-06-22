@@ -244,6 +244,7 @@ ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-for-testing')
 # Rate Limiting Settings
 RATE_LIMIT_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
 RATE_LIMIT_BURST = int(os.getenv('RATE_LIMIT_BURST', '100'))
+RATE_LIMIT_REQUESTS_PER_MINUTE = int(os.getenv('RATE_LIMIT_REQUESTS_PER_MINUTE', '60'))
 
 # File Upload Settings
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB

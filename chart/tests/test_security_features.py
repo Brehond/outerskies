@@ -125,9 +125,9 @@ class SecurityFeaturesTest(TestCase):
             'password': 'weak',
             'email': 'test@example.com'
         }).encode()
-        headers = self._get_auth_headers('POST', '/register/', data)
+        headers = self._get_auth_headers('POST', '/auth/register/', data)
         response = self.client.post(
-            reverse('register'),
+            reverse('auth:register'),
             data=data,
             content_type='application/json',
             **headers
@@ -136,9 +136,9 @@ class SecurityFeaturesTest(TestCase):
         
         # Test password history
         data = json.dumps(self.test_user).encode()
-        headers = self._get_auth_headers('POST', '/register/', data)
+        headers = self._get_auth_headers('POST', '/auth/register/', data)
         response = self.client.post(
-            reverse('register'),
+            reverse('auth:register'),
             data=data,
             content_type='application/json',
             **headers
@@ -150,9 +150,9 @@ class SecurityFeaturesTest(TestCase):
             'old_password': self.test_user['password'],
             'new_password': self.test_user['password']
         }).encode()
-        headers = self._get_auth_headers('POST', '/change_password/', data)
+        headers = self._get_auth_headers('POST', '/auth/change-password/', data)
         response = self.client.post(
-            reverse('change_password'),
+            reverse('auth:change_password'),
             data=data,
             content_type='application/json',
             **headers
@@ -210,24 +210,24 @@ class SecurityFeaturesTest(TestCase):
         
     def test_request_signing(self):
         """Test request signing features."""
-        # Test missing signature
-        response = self.api_client.get('/api/data/')
+        # Test missing signature - use an endpoint that exists
+        response = self.api_client.get('/auth/profile/')
         self.assertEqual(response.status_code, 400)
         
         # Test invalid signature
-        response = self.api_client.get('/api/data/', HTTP_X_SIGNATURE='invalid')
+        response = self.api_client.get('/auth/profile/', HTTP_X_SIGNATURE='invalid')
         self.assertEqual(response.status_code, 400)
         
         # Test valid signature
         data = b''  # Empty body for GET request
-        headers = self._get_auth_headers('GET', '/api/data/', data)
-        response = self.api_client.get('/api/data/', **headers)
+        headers = self._get_auth_headers('GET', '/auth/profile/', data)
+        response = self.api_client.get('/auth/profile/', **headers)
         self.assertEqual(response.status_code, 200)
         
     def test_encryption(self):
         """Test encryption features."""
-        # Test unencrypted request
-        response = self.api_client.post('/api/data/', {'data': 'test'})
+        # Test unencrypted request - use an endpoint that exists
+        response = self.api_client.post('/auth/profile/', {'data': 'test'})
         self.assertEqual(response.status_code, 400)
         
         # Use a payload that matches the validation schema: {"data": [{"value": 1}]}
@@ -236,13 +236,13 @@ class SecurityFeaturesTest(TestCase):
         print('TEST ENCRYPTION: type(encrypted_data):', type(encrypted_data), 'repr:', repr(encrypted_data))
         
         # Generate signature using the raw encrypted bytes
-        headers = self._get_auth_headers('POST', '/api/data/', encrypted_data)
+        headers = self._get_auth_headers('POST', '/auth/profile/', encrypted_data)
         headers['HTTP_X_ENCRYPTION'] = 'true'
-        print('TEST ENCRYPTION DEBUG: Sending encrypted POST to /api/data/ with headers:', headers)
+        print('TEST ENCRYPTION DEBUG: Sending encrypted POST to /auth/profile/ with headers:', headers)
         
         # Create a request with the encrypted data
         request = self.factory.post(
-            '/api/data/',
+            '/auth/profile/',
             data=encrypted_data,
             content_type='application/octet-stream',
             **headers
@@ -306,7 +306,7 @@ class SecurityFeaturesTest(TestCase):
         middleware = RequestSigningMiddleware(get_response)
         
         # Test missing signature
-        request = self.factory.get('/api/data/')
+        request = self.factory.get('/auth/profile/')
         response = middleware(request)
         self.assertEqual(response.status_code, 400)
         
@@ -317,7 +317,7 @@ class SecurityFeaturesTest(TestCase):
             'HTTP_X_TIMESTAMP': str(int(time.time())),
             'HTTP_X_NONCE': 'test_nonce'
         }
-        request = self.factory.get('/api/data/', **headers)
+        request = self.factory.get('/auth/profile/', **headers)
         response = middleware(request)
         self.assertEqual(response.status_code, 400)
         
@@ -325,7 +325,7 @@ class SecurityFeaturesTest(TestCase):
         data = {'test': 'data'}
         body = json.dumps(data).encode()
         timestamp = str(int(time.time()))
-        signature = self._generate_signature('POST', '/api/data/', '', timestamp, 'test_nonce', body)
+        signature = self._generate_signature('POST', '/auth/profile/', '', timestamp, 'test_nonce', body)
         headers = {
             'HTTP_X_API_KEY': settings.API_KEY,
             'HTTP_X_SIGNATURE': signature,
@@ -333,7 +333,7 @@ class SecurityFeaturesTest(TestCase):
             'HTTP_X_NONCE': 'test_nonce',
             'CONTENT_TYPE': 'application/json'
         }
-        request = self.factory.post('/api/data/', data=body, content_type='application/json', **headers)
+        request = self.factory.post('/auth/profile/', data=body, content_type='application/json', **headers)
         response = middleware(request)
         self.assertEqual(response.status_code, 200)
         
@@ -349,7 +349,7 @@ class SecurityFeaturesTest(TestCase):
         
         # Test rate limit exceeded
         for _ in range(settings.RATE_LIMIT_REQUESTS_PER_MINUTE + 1):
-            request = self.factory.get('/api/data/')
+            request = self.factory.get('/auth/profile/')
             response = middleware(request)
             
         # The response should be a 429 with a JSON error message
@@ -358,7 +358,7 @@ class SecurityFeaturesTest(TestCase):
         
         # Test rate limit reset
         time.sleep(61)  # Wait for rate limit to reset
-        request = self.factory.get('/api/data/')
+        request = self.factory.get('/auth/profile/')
         response = middleware(request)
         self.assertEqual(response.status_code, 200)
         
