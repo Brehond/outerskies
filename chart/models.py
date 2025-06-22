@@ -52,7 +52,7 @@ class User(AbstractUser):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     
     class Meta:
-        db_table = 'auth_user'
+        db_table = 'chart_user'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
     
