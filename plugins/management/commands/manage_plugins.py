@@ -8,6 +8,7 @@ from plugins import get_plugin_manager
 import os
 import sys
 
+
 class Command(BaseCommand):
     help = 'Manage Outer Skies plugins'
 
@@ -66,19 +67,19 @@ class Command(BaseCommand):
         """List all available plugins"""
         self.stdout.write(self.style.SUCCESS('Available Plugins:'))
         self.stdout.write('=' * 50)
-        
+
         # Discover plugins first
         plugin_manager.discover_plugins()
-        
+
         plugins = plugin_manager.get_all_plugins()
         if not plugins:
             self.stdout.write(self.style.WARNING('No plugins found'))
             return
-        
+
         for name, plugin in plugins.items():
             info = plugin.get_plugin_info()
             status = '✅ Active' if name in plugin_manager.registered_plugins else '❌ Inactive'
-            
+
             self.stdout.write(f"\n{self.style.SUCCESS(name)} - {status}")
             self.stdout.write(f"  Version: {info['version']}")
             self.stdout.write(f"  Description: {info['description']}")
@@ -90,17 +91,17 @@ class Command(BaseCommand):
     def install_plugin(self, plugin_manager, plugin_name, force):
         """Install a plugin"""
         self.stdout.write(f"Installing plugin: {plugin_name}")
-        
+
         try:
             plugin = plugin_manager.get_plugin(plugin_name)
             if not plugin:
                 # Try to register the plugin first
                 plugin_manager.register_plugin(plugin_name)
                 plugin = plugin_manager.get_plugin(plugin_name)
-            
+
             if not plugin:
                 raise CommandError(f"Plugin '{plugin_name}' not found")
-            
+
             # Check dependencies
             dependencies = plugin.get_dependencies()
             if dependencies:
@@ -108,13 +109,13 @@ class Command(BaseCommand):
                 for dep in dependencies:
                     if not plugin_manager.get_plugin(dep):
                         raise CommandError(f"Dependency '{dep}' not found")
-            
+
             # Install the plugin
             if plugin.install():
                 self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' installed successfully"))
             else:
                 raise CommandError(f"Failed to install plugin '{plugin_name}'")
-                
+
         except Exception as e:
             raise CommandError(f"Error installing plugin '{plugin_name}': {e}")
 
@@ -125,26 +126,26 @@ class Command(BaseCommand):
             if confirm.lower() != 'y':
                 self.stdout.write("Uninstall cancelled")
                 return
-        
+
         self.stdout.write(f"Uninstalling plugin: {plugin_name}")
-        
+
         try:
             plugin = plugin_manager.get_plugin(plugin_name)
             if not plugin:
                 raise CommandError(f"Plugin '{plugin_name}' not found")
-            
+
             if plugin.uninstall():
                 self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' uninstalled successfully"))
             else:
                 raise CommandError(f"Failed to uninstall plugin '{plugin_name}'")
-                
+
         except Exception as e:
             raise CommandError(f"Error uninstalling plugin '{plugin_name}': {e}")
 
     def enable_plugin(self, plugin_manager, plugin_name):
         """Enable a plugin"""
         self.stdout.write(f"Enabling plugin: {plugin_name}")
-        
+
         try:
             plugin_manager.register_plugin(plugin_name)
             self.stdout.write(self.style.SUCCESS(f"✅ Plugin '{plugin_name}' enabled successfully"))
@@ -154,7 +155,7 @@ class Command(BaseCommand):
     def disable_plugin(self, plugin_manager, plugin_name):
         """Disable a plugin"""
         self.stdout.write(f"Disabling plugin: {plugin_name}")
-        
+
         try:
             if plugin_name in plugin_manager.registered_plugins:
                 plugin_manager.registered_plugins.remove(plugin_name)
@@ -169,7 +170,7 @@ class Command(BaseCommand):
     def update_plugin(self, plugin_manager, plugin_name, force):
         """Update a plugin"""
         self.stdout.write(f"Updating plugin: {plugin_name}")
-        
+
         try:
             # For now, just reinstall the plugin
             self.uninstall_plugin(plugin_manager, plugin_name, True)
@@ -186,12 +187,12 @@ class Command(BaseCommand):
                 # Try to register the plugin first
                 plugin_manager.register_plugin(plugin_name)
                 plugin = plugin_manager.get_plugin(plugin_name)
-            
+
             if not plugin:
                 raise CommandError(f"Plugin '{plugin_name}' not found")
-            
+
             info = plugin.get_plugin_info()
-            
+
             self.stdout.write(self.style.SUCCESS(f"Plugin Information: {plugin_name}"))
             self.stdout.write('=' * 50)
             self.stdout.write(f"Name: {info['name']}")
@@ -202,20 +203,20 @@ class Command(BaseCommand):
             self.stdout.write(f"Requires Auth: {info['requires_auth']}")
             self.stdout.write(f"Admin Enabled: {info['admin_enabled']}")
             self.stdout.write(f"API Enabled: {info['api_enabled']}")
-            
+
             # Show additional information
             requirements = plugin.get_requirements()
             if requirements:
                 self.stdout.write(f"\nRequirements: {', '.join(requirements)}")
-            
+
             dependencies = plugin.get_dependencies()
             if dependencies:
                 self.stdout.write(f"Dependencies: {', '.join(dependencies)}")
-            
+
             # Validate installation
             is_valid, message = plugin.validate_installation()
             self.stdout.write(f"Installation Status: {'✅ Valid' if is_valid else '❌ Invalid'}")
             self.stdout.write(f"Validation Message: {message}")
-            
+
         except Exception as e:
             raise CommandError(f"Error showing plugin info for '{plugin_name}': {e}") 
