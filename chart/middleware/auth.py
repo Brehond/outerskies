@@ -100,8 +100,11 @@ class APIAuthMiddleware:
             '/api/v1/auth/login/',
             '/api/v1/auth/refresh/',
             '/api/v1/auth/logout/',
+            '/chat/',
+            '/chat/new/',
+            '/chat/session/',
         }
-        return request.path in public_paths
+        return request.path in public_paths or request.path.startswith('/chat/')
     
     def _is_protected_endpoint(self, request):
         """Check if the endpoint requires JWT authentication."""

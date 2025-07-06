@@ -32,3 +32,10 @@ plugin_manager = get_plugin_manager()
 plugin_urls = plugin_manager.get_plugin_urls()
 if plugin_urls:
     urlpatterns.extend(plugin_urls)
+
+# Add plugin API URLs
+for plugin in plugin_manager.get_all_plugins().values():
+    if hasattr(plugin, 'get_api_urls'):
+        api_urls = plugin.get_api_urls()
+        if api_urls:
+            urlpatterns.extend(api_urls)
