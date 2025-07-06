@@ -65,7 +65,7 @@ def upload(request):
     return JsonResponse({'status': 'error'}, status=400)
 
 @api_view(['GET'])
-def test_view(request):
+def api_test_view(request):
     # Ensure session is created
     if not request.session.session_key:
         request.session.create()
@@ -104,6 +104,6 @@ urlpatterns = [
     path('register/', register, name='register'),
     path('change_password/', change_password, name='change_password'),
     path('upload/', upload, name='upload'),
-    path('api/v1.0/test/', test_view, name='test'),
+    path('api/v1.0/test/', api_test_view, name='test'),
     path('api/data/', data_view, name='data'),
 ] 
