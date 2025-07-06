@@ -161,12 +161,12 @@ class AstrologyChatPlugin(BasePlugin):
         
         try:
             session = ChatSession.objects.get(id=session_id, user=request.user)
-            messages = ChatMessage.objects.filter(session=session).order_by('created_at')
+            chat_messages = ChatMessage.objects.filter(session=session).order_by('created_at')
             form = ChatMessageForm()
             
             return render(request, 'astrology_chat/session.html', {
                 'session': session,
-                'messages': messages,
+                'messages': chat_messages,
                 'form': form,
             })
         except ChatSession.DoesNotExist:
@@ -346,7 +346,7 @@ class AstrologyChatPlugin(BasePlugin):
         
         try:
             session = ChatSession.objects.get(id=session_id, user=request.user)
-            messages = ChatMessage.objects.filter(session=session).order_by('created_at')
+            chat_messages = ChatMessage.objects.filter(session=session).order_by('created_at')
             data = [{
                 'id': msg.id,
                 'content': msg.content,

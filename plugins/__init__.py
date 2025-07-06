@@ -55,6 +55,10 @@ class PluginManager:
             plugin_module = importlib.import_module(f'plugins.{plugin_name}')
             if hasattr(plugin_module, 'Plugin'):
                 plugin_class = plugin_module.Plugin
+                # Handle both direct class and lazy loading function
+                if callable(plugin_class) and not hasattr(plugin_class, '__bases__'):
+                    # It's a function, call it to get the class
+                    plugin_class = plugin_class()
                 plugin_instance = plugin_class()
                 self.plugins[plugin_name] = plugin_instance
                 self.registered_plugins.append(plugin_name)

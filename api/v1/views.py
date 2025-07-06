@@ -37,8 +37,12 @@ from monitoring.health_checks import get_system_health, get_quick_health_status
 from monitoring.performance_monitor import get_performance_summary
 
 # Import chat models if they exist
-try:
+def get_chat_models():
     from plugins.astrology_chat.models import ChatSession, ChatMessage, KnowledgeDocument
+    return ChatSession, ChatMessage, KnowledgeDocument
+
+try:
+    ChatSession, ChatMessage, KnowledgeDocument = get_chat_models()
     CHAT_AVAILABLE = True
 except ImportError:
     CHAT_AVAILABLE = False

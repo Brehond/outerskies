@@ -147,7 +147,6 @@ INSTALLED_APPS = [
     "django_prometheus",
     "tailwind",
     "plugins",
-    "plugins.astrology_chat",
     "monitoring",
 ]
 

@@ -5,8 +5,12 @@ from payments.models import SubscriptionPlan, UserSubscription, Payment, Coupon
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 # Import chat models if they exist
-try:
+def get_chat_models():
     from plugins.astrology_chat.models import ChatSession, ChatMessage, KnowledgeDocument
+    return ChatSession, ChatMessage, KnowledgeDocument
+
+try:
+    ChatSession, ChatMessage, KnowledgeDocument = get_chat_models()
     CHAT_AVAILABLE = True
 except ImportError:
     CHAT_AVAILABLE = False
