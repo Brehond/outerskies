@@ -29,7 +29,8 @@ def test_celery_utils():
     
     # Test health check
     health_status = health_check_celery()
-    print(f"Health status: {health_status['overall_status']}")
+    print(f"Health status: {health_status}")
+    print(f"Celery available: {health_status.get('celery_available', 'Unknown')}")
     
     # Test synchronous task execution
     try:

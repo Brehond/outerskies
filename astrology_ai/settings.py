@@ -147,6 +147,7 @@ INSTALLED_APPS = [
     "django_prometheus",
     "tailwind",
     "plugins",
+    "plugins.astrology_chat",  # Add back for database migrations
     "monitoring",
 ]
 

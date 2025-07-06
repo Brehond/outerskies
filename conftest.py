@@ -24,6 +24,7 @@ def pytest_configure():
     settings.DATABASES['default'] = {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': ':memory:',
+        'ATOMIC_REQUESTS': False,  # Disable atomic requests for tests
     }
     
     # Disable migrations for faster tests
