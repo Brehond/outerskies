@@ -81,8 +81,12 @@ class StripeService:
                     'status': subscription.status,
                     'current_period_start': datetime.fromtimestamp(
                         subscription.current_period_start, tz=dt_timezone.utc
+                    ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
+                        subscription.current_period_start, tz=dt_timezone.utc
                     ),
                     'current_period_end': datetime.fromtimestamp(
+                        subscription.current_period_end, tz=dt_timezone.utc
+                    ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
                         subscription.current_period_end, tz=dt_timezone.utc
                     ),
                 }
@@ -94,8 +98,12 @@ class StripeService:
                 user_subscription.status = subscription.status
                 user_subscription.current_period_start = datetime.fromtimestamp(
                     subscription.current_period_start, tz=dt_timezone.utc
+                ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
+                    subscription.current_period_start, tz=dt_timezone.utc
                 )
                 user_subscription.current_period_end = datetime.fromtimestamp(
+                    subscription.current_period_end, tz=dt_timezone.utc
+                ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
                     subscription.current_period_end, tz=dt_timezone.utc
                 )
                 user_subscription.save()
@@ -243,14 +251,20 @@ class WebhookHandler:
             user_subscription.status = subscription_data.status
             user_subscription.current_period_start = datetime.fromtimestamp(
                 subscription_data.current_period_start, tz=dt_timezone.utc
+            ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
+                subscription_data.current_period_start, tz=dt_timezone.utc
             )
             user_subscription.current_period_end = datetime.fromtimestamp(
+                subscription_data.current_period_end, tz=dt_timezone.utc
+            ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
                 subscription_data.current_period_end, tz=dt_timezone.utc
             )
             user_subscription.cancel_at_period_end = subscription_data.cancel_at_period_end
             
             if subscription_data.canceled_at:
                 user_subscription.canceled_at = datetime.fromtimestamp(
+                    subscription_data.canceled_at, tz=dt_timezone.utc
+                ).replace(tzinfo=None) if not settings.USE_TZ else datetime.fromtimestamp(
                     subscription_data.canceled_at, tz=dt_timezone.utc
                 )
             

@@ -95,14 +95,18 @@ class TestDeploymentScripts(unittest.TestCase):
             
     def test_deploy_script_permissions(self):
         """Test deployment script permissions"""
+        # Check if scripts exist
+        self.assertTrue(self.deploy_script_linux.exists())
+        self.assertTrue(self.backup_script.exists())
+        
         # Check if scripts are executable (Unix-like systems)
         if os.name != 'nt':  # Not Windows
             self.assertTrue(os.access(self.deploy_script_linux, os.X_OK))
             self.assertTrue(os.access(self.backup_script, os.X_OK))
         else:
-            # On Windows, just check that files exist
-            self.assertTrue(self.deploy_script_linux.exists())
-            self.assertTrue(self.backup_script.exists())
+            # On Windows, just check that files exist and have correct extensions
+            self.assertEqual(self.deploy_script_linux.suffix, '.sh')
+            self.assertEqual(self.backup_script.suffix, '.sh')
             
     def test_deploy_script_structure(self):
         """Test deployment script structure"""
@@ -165,25 +169,26 @@ class TestCICDPipeline(unittest.TestCase):
         
         # Check jobs
         jobs = config['jobs']
-        self.assertIn('deploy', jobs)
+        self.assertIn('test', jobs)
+        self.assertIn('deploy-production', jobs)
         
     def test_github_workflow_jobs(self):
         """Test GitHub workflow jobs"""
         with open(self.github_workflow, 'r') as f:
             config = yaml.safe_load(f)
             
-        deploy_job = config['jobs']['deploy']
+        test_job = config['jobs']['test']
         
         # Check job configuration
         required_job_keys = ['runs-on', 'steps']
         for key in required_job_keys:
-            self.assertIn(key, deploy_job)
+            self.assertIn(key, test_job)
             
         # Check runner
-        self.assertIn('ubuntu', deploy_job['runs-on'])
+        self.assertIn('ubuntu', test_job['runs-on'])
         
         # Check steps
-        steps = deploy_job['steps']
+        steps = test_job['steps']
         self.assertTrue(isinstance(steps, list))
         self.assertGreater(len(steps), 0)
         
@@ -192,7 +197,7 @@ class TestCICDPipeline(unittest.TestCase):
         with open(self.github_workflow, 'r') as f:
             config = yaml.safe_load(f)
             
-        steps = config['jobs']['deploy']['steps']
+        steps = config['jobs']['test']['steps']
         step_names = [step.get('name', '') for step in steps]
         
         # Check for required steps
@@ -200,8 +205,7 @@ class TestCICDPipeline(unittest.TestCase):
             'Checkout',
             'Setup Python',
             'Install dependencies',
-            'Run tests',
-            'Deploy'
+            'Run tests'
         ]
         
         for step in required_steps:
@@ -221,8 +225,8 @@ class TestCICDPipeline(unittest.TestCase):
         # Should use secrets for sensitive data
         secrets_usage = [
             '${{ secrets.',
-            'secrets.DATABASE_URL',
-            'secrets.SECRET_KEY'
+            'secrets.DOCKER_USERNAME',
+            'secrets.DOCKER_PASSWORD'
         ]
         
         for secret in secrets_usage:

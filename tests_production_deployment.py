@@ -213,9 +213,11 @@ class TestHealthChecks(unittest.TestCase):
             content = f.read()
             
         # Check for required imports
+        self.assertIn('import os', content)
+        self.assertIn('import sys', content)
+        self.assertIn('import json', content)
+        self.assertIn('import time', content)
         self.assertIn('import requests', content)
-        self.assertIn('import redis', content)
-        self.assertIn('import psycopg2', content)
         
         # Check for main function
         self.assertIn('def main():', content)
@@ -264,9 +266,15 @@ class TestBackupSystem(unittest.TestCase):
             
     def test_backup_script_permissions(self):
         """Test that backup script is executable"""
+        # Check if script exists
+        self.assertTrue(self.backup_script.exists())
+        
         # Check if script is executable (Unix-like systems)
         if os.name != 'nt':  # Not Windows
             self.assertTrue(os.access(self.backup_script, os.X_OK))
+        else:
+            # On Windows, just check that file exists and has correct extension
+            self.assertEqual(self.backup_script.suffix, '.sh')
             
     @patch('subprocess.run')
     def test_backup_script_execution(self, mock_run):
@@ -377,9 +385,10 @@ class TestCICDPipeline(unittest.TestCase):
         
         # Check for deployment job
         jobs = config['jobs']
-        self.assertIn('deploy', jobs)
+        self.assertIn('test', jobs)
+        self.assertIn('deploy-production', jobs)
         
-        deploy_job = jobs['deploy']
+        deploy_job = jobs['deploy-production']
         self.assertIn('runs-on', deploy_job)
         self.assertIn('steps', deploy_job)
         
@@ -388,14 +397,14 @@ class TestCICDPipeline(unittest.TestCase):
         with open(self.github_workflow, 'r') as f:
             config = yaml.safe_load(f)
             
-        steps = config['jobs']['deploy']['steps']
+        steps = config['jobs']['deploy-production']['steps']
         step_names = [step['name'] for step in steps]
         
         required_steps = [
             'Checkout code',
-            'Set up Python',
-            'Install dependencies',
-            'Run tests',
+            'Set up Docker Buildx',
+            'Login to Docker Hub',
+            'Build and push Docker images',
             'Deploy to production'
         ]
         

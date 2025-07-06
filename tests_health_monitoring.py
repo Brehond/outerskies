@@ -59,11 +59,11 @@ class TestHealthCheckEndpoints(unittest.TestCase):
             
         # Check for required imports
         required_imports = [
-            'import requests',
-            'import redis',
-            'import psycopg2',
+            'import os',
+            'import sys',
             'import json',
-            'import sys'
+            'import time',
+            'import requests'
         ]
         
         for import_stmt in required_imports:
@@ -71,9 +71,7 @@ class TestHealthCheckEndpoints(unittest.TestCase):
             
         # Check for main function
         self.assertIn('def main():', content)
-        self.assertIn('def check_database():', content)
-        self.assertIn('def check_redis():', content)
-        self.assertIn('def check_web_app():', content)
+        self.assertIn('def print_health_summary(', content)
         
     def test_health_check_script_structure(self):
         """Test health check script structure"""
@@ -125,8 +123,8 @@ class TestMonitoringSystems(unittest.TestCase):
             'def check_database_health',
             'def check_redis_health',
             'def check_celery_health',
-            'def check_disk_space',
-            'def check_memory_usage'
+            'def check_file_system_health',
+            'def check_memory_health'
         ]
         
         for func in required_functions:
@@ -141,9 +139,9 @@ class TestMonitoringSystems(unittest.TestCase):
         # Check for required functions
         required_functions = [
             'def monitor_response_time',
-            'def monitor_memory_usage',
             'def monitor_database_performance',
-            'def monitor_celery_tasks'
+            'def monitor_cache_performance',
+            'def get_performance_summary'
         ]
         
         for func in required_functions:
