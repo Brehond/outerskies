@@ -15,5 +15,6 @@ __author__ = "Outer Skies Team"
 
 default_app_config = 'plugins.aspect_generator.apps.AspectGeneratorConfig'
 
+
 def get_plugin():
-    return AspectGeneratorPlugin() 
+    return AspectGeneratorPlugin()

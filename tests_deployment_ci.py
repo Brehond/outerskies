@@ -155,13 +155,16 @@ class TestCICDPipeline(unittest.TestCase):
         # Check for required top-level keys
         required_keys = ['name', 'on', 'jobs']
         for key in required_keys:
-            self.assertIn(key, config)
+            if key == 'on':
+                self.assertTrue('on' in config or True in config)
+            else:
+                self.assertIn(key, config)
             
         # Check workflow name
         self.assertIn('deploy', config['name'].lower())
         
         # Check trigger events
-        trigger_events = config['on']
+        trigger_events = config.get('on') or config.get(True)
         self.assertTrue(isinstance(trigger_events, (dict, list)))
         
         # Check jobs
