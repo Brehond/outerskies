@@ -470,4 +470,28 @@ def get_quick_health_status() -> str:
         
         return "healthy"
     except:
-        return "unhealthy" 
+        return "unhealthy"
+
+
+def check_disk_space() -> Dict[str, Any]:
+    """Check disk space usage"""
+    try:
+        disk_usage = psutil.disk_usage('/')
+        return {
+            'total_gb': round(disk_usage.total / (1024**3), 2),
+            'used_gb': round(disk_usage.used / (1024**3), 2),
+            'free_gb': round(disk_usage.free / (1024**3), 2),
+            'percent_used': disk_usage.percent
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def monitor_response_time() -> Dict[str, Any]:
+    """Monitor response time metrics"""
+    try:
+        # This would typically integrate with the performance monitor
+        from monitoring.performance_monitor import performance_monitor
+        return performance_monitor.get_request_performance(minutes=5)
+    except Exception as e:
+        return {'error': str(e)} 

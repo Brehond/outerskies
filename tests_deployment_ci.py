@@ -99,6 +99,10 @@ class TestDeploymentScripts(unittest.TestCase):
         if os.name != 'nt':  # Not Windows
             self.assertTrue(os.access(self.deploy_script_linux, os.X_OK))
             self.assertTrue(os.access(self.backup_script, os.X_OK))
+        else:
+            # On Windows, just check that files exist
+            self.assertTrue(self.deploy_script_linux.exists())
+            self.assertTrue(self.backup_script.exists())
             
     def test_deploy_script_structure(self):
         """Test deployment script structure"""

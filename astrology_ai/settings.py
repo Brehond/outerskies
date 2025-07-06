@@ -262,6 +262,7 @@ DATABASES = {
         "HOST": os.getenv("DB_HOST", ""),
         "PORT": os.getenv("DB_PORT", ""),
         "CONN_MAX_AGE": 600,  # 10 minutes
+        "ATOMIC_REQUESTS": False,  # Disable atomic requests for better performance
         "OPTIONS": {
             "timeout": 20,  # 20 seconds
         } if db_engine == "django.db.backends.sqlite3" else {},

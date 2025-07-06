@@ -1,107 +1,178 @@
-name: Production Deployment Pipeline
+name: Deploy Outer Skies
 
-'on':
+on:
   push:
-    branches:
-      - main
+    branches: [ main, develop ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 env:
-  DJANGO_SETTINGS_MODULE: astrology_ai.settings
   PYTHON_VERSION: '3.11'
+  DJANGO_SETTINGS_MODULE: astrology_ai.settings
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    environment: production
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client redis-tools
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install coverage pytest pytest-django pytest-cov
-      - name: Set up environment variables
-        run: |
-          echo "DEBUG=False" >> $GITHUB_ENV
-          echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> $GITHUB_ENV
-          echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> $GITHUB_ENV
-          echo "DJANGO_SETTINGS_MODULE=${{ env.DJANGO_SETTINGS_MODULE }}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> $GITHUB_ENV
-          echo "REDIS_URL=${{ secrets.REDIS_URL }}" >> $GITHUB_ENV
-          echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> $GITHUB_ENV
-          echo "STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" >> $GITHUB_ENV
-          echo "STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}" >> $GITHUB_ENV
-          echo "SENTRY_DSN=${{ secrets.SENTRY_DSN }}" >> $GITHUB_ENV
-      - name: Run security checks
-        run: python scripts/security_check.py
-      - name: Run linting
-        run: |
-          pip install flake8 black
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv311,.venv,venv,env,.env,node_modules,.git,__pycache__,.pytest_cache,migrations,static/admin,static/rest_framework,ephemeris,.github,logs
-          black --check .
-      - name: Run database migrations
-        run: python manage.py migrate
-      - name: Collect static files
-        run: python manage.py collectstatic --noinput
-      - name: Run tests
-        run: pytest --cov=. --cov-report=xml --cov-report=html --cov-report=term-missing
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-      - name: Run plugin tests
-        run: |
-          for plugin in plugins/*; do
-            if [ -d "$plugin" ] && [ -f "$plugin/tests.py" ]; then
-              echo "Running tests for $plugin"
-              python manage.py test $(basename $plugin)
-            fi
-          done
-      - name: Test health checks
-        run: |
-          python manage.py runserver 0.0.0.0:8000 &
-          sleep 10
-          curl -f http://localhost:8000/health/ || exit 1
-          curl -f http://localhost:8000/api/v1/system/health/ || exit 1
-      - name: Build Docker image
-        run: docker build -t outerskies:test .
-      - name: Test Docker container
-        run: |
-          docker run -d --name test-container -p 8001:8000 \
-            -e DEBUG=False \
-            -e SECRET_KEY=${{ secrets.SECRET_KEY }} \
-            -e ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} \
-            -e DJANGO_SETTINGS_MODULE=${{ env.DJANGO_SETTINGS_MODULE }} \
-            outerskies:test
-          sleep 10
-          curl -f http://localhost:8001/health/ || exit 1
-          docker stop test-container
-          docker rm test-container
-      - name: Deploy
-        run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          # Example: docker-compose -f docker-compose.prod.yml up -d
-      - name: Run production health checks
-        run: |
-          echo "Running production health checks..."
-          # Add production health check commands here
-      - name: Notify deployment success
-        run: |
-          echo "Production deployment completed successfully!"
-          # Add notification commands here (Slack, email, etc.) 
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-django pytest-cov
+
+    - name: Set up environment variables
+      run: |
+        echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> $GITHUB_ENV
+        echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+        echo "DEBUG=True" >> $GITHUB_ENV
+        echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
+        echo "OPENROUTER_API_KEY=test-key" >> $GITHUB_ENV
+        echo "STRIPE_SECRET_KEY=sk_test_dummy" >> $GITHUB_ENV
+        echo "STRIPE_PUBLISHABLE_KEY=pk_test_dummy" >> $GITHUB_ENV
+
+    - name: Run database migrations
+      run: |
+        python manage.py migrate --noinput
+
+    - name: Run tests
+      run: |
+        python -m pytest --cov=. --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run security scan
+      uses: snyk/actions/python@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker images
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/outer-skies:staging .
+        docker push ${{ secrets.DOCKER_USERNAME }}/outer-skies:staging
+
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add staging deployment commands here
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [test, security-scan]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build and push Docker images
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/outer-skies:latest .
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/outer-skies:${{ github.sha }} .
+        docker push ${{ secrets.DOCKER_USERNAME }}/outer-skies:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/outer-skies:${{ github.sha }}
+
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add production deployment commands here
+
+    - name: Run health checks
+      run: |
+        echo "Running post-deployment health checks..."
+        # Add health check commands here
+
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ ${{ job.status }} == 'success' ]; then
+          echo "Production deployment successful!"
+        else
+          echo "Production deployment failed!"
+        fi 

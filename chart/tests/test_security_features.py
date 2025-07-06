@@ -4,6 +4,7 @@ import hmac
 import hashlib
 import base64
 from django.test import TestCase, Client, RequestFactory, override_settings
+from rest_framework.test import APIClient
 from django.urls import reverse
 from django.conf import settings
 from django.core.cache import cache

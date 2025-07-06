@@ -440,4 +440,28 @@ def get_performance_summary(minutes: int = 60) -> Dict[str, Any]:
 
 def record_metric(name: str, value: float, unit: str = "ms", metadata: Dict[str, Any] = None):
     """Record a performance metric"""
-    performance_monitor.record_metric(name, value, unit, metadata) 
+    performance_monitor.record_metric(name, value, unit, metadata)
+
+
+def monitor_response_time() -> Dict[str, Any]:
+    """Monitor response time metrics"""
+    try:
+        return performance_monitor.get_request_performance(minutes=5)
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def monitor_database_performance() -> Dict[str, Any]:
+    """Monitor database performance metrics"""
+    try:
+        return performance_monitor.get_database_performance(minutes=5)
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def monitor_cache_performance() -> Dict[str, Any]:
+    """Monitor cache performance metrics"""
+    try:
+        return performance_monitor.get_cache_performance()
+    except Exception as e:
+        return {'error': str(e)} 

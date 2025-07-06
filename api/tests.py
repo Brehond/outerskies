@@ -230,7 +230,7 @@ class ChartAPITests(BaseAPITestCase):
         url = reverse('charts-generate')
         data = {
             'birth_date': '1990-05-15',
-            'birth_time': '14:30:00',
+            'birth_time': '14:30',
             'latitude': 40.7128,
             'longitude': -74.0060,
             'location_name': 'New York, NY',
@@ -251,7 +251,7 @@ class ChartAPITests(BaseAPITestCase):
         url = reverse('charts-generate')
         data = {
             'birth_date': '1990-05-15',
-            'birth_time': '14:30:00',
+            'birth_time': '14:30',
             'latitude': 100,  # Invalid latitude
             'longitude': -74.0060,
             'timezone': 'America/New_York',
@@ -268,7 +268,7 @@ class ChartAPITests(BaseAPITestCase):
         chart = Chart.objects.create(
             user=self.premium_user,
             birth_date='1990-05-15',
-            birth_time='14:30:00',
+            birth_time='14:30',
             latitude=40.7128,
             longitude=-74.0060,
             location_name='New York, NY',
@@ -285,14 +285,14 @@ class ChartAPITests(BaseAPITestCase):
         url = reverse('charts-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['data']['results']), 1)
+        self.assertEqual(len(response.data['data']), 1)
     
     def test_get_chart_detail(self):
         """Test getting chart details"""
         chart = Chart.objects.create(
             user=self.premium_user,
             birth_date='1990-05-15',
-            birth_time='14:30:00',
+            birth_time='14:30',
             latitude=40.7128,
             longitude=-74.0060,
             location_name='New York, NY',

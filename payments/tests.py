@@ -409,8 +409,8 @@ class StripeUtilsTests(TestCase):
             plan=self.plan,
             stripe_subscription_id='sub_test123',
             status='active',
-            current_period_start=timezone.now(),
-            current_period_end=timezone.now() + timedelta(days=30)
+            current_period_start=timezone.now().replace(tzinfo=None),
+            current_period_end=(timezone.now() + timedelta(days=30)).replace(tzinfo=None)
         )
         
         result = StripeService.cancel_subscription(self.user)
