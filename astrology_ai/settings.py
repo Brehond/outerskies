@@ -212,6 +212,13 @@ MIDDLEWARE = [
     "monitoring.performance_monitor.PerformanceMonitoringMiddleware",
 ]
 
+# Internationalization
+LANGUAGE_CODE = "en-us"
+TIME_ZONE = "UTC"
+USE_I18N = True
+USE_L10N = True
+USE_TZ = False  # Set to False to maintain current behavior
+
 ROOT_URLCONF = "astrology_ai.urls"
 
 # Build plugin template directories

@@ -393,44 +393,66 @@ class DatabaseQueryMonitor:
     """Monitor database query performance"""
     
     def __init__(self):
-        self.original_execute = connection.cursor().execute
+        self.original_execute = None
+        self.installed = False
     
     def install(self):
         """Install database query monitoring"""
-        def monitored_execute(cursor, sql, params=None):
-            start_time = time.time()
-            try:
-                result = self.original_execute(cursor, sql, params)
-                duration = (time.time() - start_time) * 1000
-                
-                # Extract table name from SQL (simplified)
-                table = None
-                sql_upper = sql.upper()
-                if 'FROM ' in sql_upper:
-                    table = sql_upper.split('FROM ')[1].split()[0]
-                elif 'UPDATE ' in sql_upper:
-                    table = sql_upper.split('UPDATE ')[1].split()[0]
-                elif 'INSERT INTO ' in sql_upper:
-                    table = sql_upper.split('INSERT INTO ')[1].split()[0]
-                
-                performance_monitor.record_database_query(sql, duration, table)
-                return result
-            except Exception as e:
-                duration = (time.time() - start_time) * 1000
-                performance_monitor.record_database_query(sql, duration, 
-                                                        metadata={'error': str(e)})
-                raise
-        
-        # Replace the execute method
-        connection.cursor().execute = monitored_execute
+        if self.installed:
+            return
+            
+        try:
+            # Get the original execute method
+            cursor = connection.cursor()
+            self.original_execute = cursor.execute
+            
+            def monitored_execute(cursor, sql, params=None):
+                start_time = time.time()
+                try:
+                    result = self.original_execute(cursor, sql, params)
+                    duration = (time.time() - start_time) * 1000
+                    
+                    # Extract table name from SQL (simplified)
+                    table = None
+                    sql_upper = sql.upper()
+                    if 'FROM ' in sql_upper:
+                        table = sql_upper.split('FROM ')[1].split()[0]
+                    elif 'UPDATE ' in sql_upper:
+                        table = sql_upper.split('UPDATE ')[1].split()[0]
+                    elif 'INSERT INTO ' in sql_upper:
+                        table = sql_upper.split('INSERT INTO ')[1].split()[0]
+                    
+                    performance_monitor.record_database_query(sql, duration, table)
+                    return result
+                except Exception as e:
+                    duration = (time.time() - start_time) * 1000
+                    performance_monitor.record_database_query(sql, duration, 
+                                                            metadata={'error': str(e)})
+                    raise
+            
+            # Replace the execute method
+            cursor.execute = monitored_execute
+            self.installed = True
+            
+        except Exception as e:
+            logger.warning(f"Could not install database monitoring: {e}")
+            self.installed = False
 
 
-# Initialize database monitoring
-db_monitor = DatabaseQueryMonitor()
-try:
-    db_monitor.install()
-except Exception as e:
-    logger.warning(f"Could not install database monitoring: {e}")
+# Initialize database monitoring lazily
+db_monitor = None
+
+def get_db_monitor():
+    """Get or create database monitor instance"""
+    global db_monitor
+    if db_monitor is None:
+        try:
+            db_monitor = DatabaseQueryMonitor()
+            # Don't install immediately - let it be installed when needed
+        except Exception as e:
+            logger.warning(f"Could not create database monitor: {e}")
+            db_monitor = None
+    return db_monitor
 
 
 def get_performance_summary(minutes: int = 60) -> Dict[str, Any]:
@@ -441,6 +463,13 @@ def get_performance_summary(minutes: int = 60) -> Dict[str, Any]:
 def record_metric(name: str, value: float, unit: str = "ms", metadata: Dict[str, Any] = None):
     """Record a performance metric"""
     performance_monitor.record_metric(name, value, unit, metadata)
+
+
+def ensure_db_monitoring():
+    """Ensure database monitoring is installed"""
+    monitor = get_db_monitor()
+    if monitor and not monitor.installed:
+        monitor.install()
 
 
 def monitor_response_time() -> Dict[str, Any]:
