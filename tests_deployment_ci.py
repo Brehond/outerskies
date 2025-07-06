@@ -15,6 +15,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock, mock_open
 import subprocess
 import tempfile
+import platform
 
 # Add project root to path
 project_root = Path(__file__).parent
@@ -95,18 +96,14 @@ class TestDeploymentScripts(unittest.TestCase):
             
     def test_deploy_script_permissions(self):
         """Test deployment script permissions"""
-        # Check if scripts exist
-        self.assertTrue(self.deploy_script_linux.exists())
-        self.assertTrue(self.backup_script.exists())
-        
-        # Check if scripts are executable (Unix-like systems)
-        if os.name != 'nt':  # Not Windows
+        if platform.system() == 'Windows':
+            # On Windows, check if files exist and are readable
+            self.assertTrue(self.deploy_script_windows.exists())
+            self.assertTrue(os.access(self.deploy_script_windows, os.R_OK))
+        else:
+            # On Unix-like systems, check executable permissions
             self.assertTrue(os.access(self.deploy_script_linux, os.X_OK))
             self.assertTrue(os.access(self.backup_script, os.X_OK))
-        else:
-            # On Windows, just check that files exist and have correct extensions
-            self.assertEqual(self.deploy_script_linux.suffix, '.sh')
-            self.assertEqual(self.backup_script.suffix, '.sh')
             
     def test_deploy_script_structure(self):
         """Test deployment script structure"""
@@ -200,10 +197,10 @@ class TestCICDPipeline(unittest.TestCase):
         steps = config['jobs']['test']['steps']
         step_names = [step.get('name', '') for step in steps]
         
-        # Check for required steps
+        # Check for required steps (using partial matches)
         required_steps = [
             'Checkout',
-            'Setup Python',
+            'Set up Python',
             'Install dependencies',
             'Run tests'
         ]

@@ -122,7 +122,7 @@ def analyze_log_file():
         log_message("✅ SUCCESS PATTERNS FOUND")
         log_message("   - Some tests are passing successfully")
 
-def test_endpoint(name, method, path, data=None, expected_status=[200, 202]):
+def run_endpoint_test(name, method, path, data=None, expected_status=[200, 202]):
     """Test a single endpoint and log detailed results."""
     log_message(f"\n=== TESTING {name.upper()} ===")
     log_message(f"Method: {method}")
@@ -182,10 +182,10 @@ def main():
     log_message("Starting comprehensive API testing...")
     
     # Test 1: System Health (Public)
-    test1_passed = test_endpoint("System Health", "GET", "/api/v1/system/health/")
+    test1_passed = run_endpoint_test("System Health", "GET", "/api/v1/system/health/")
     
     # Test 2: Celery Health (Signed)
-    test2_passed = test_endpoint("Celery Health", "GET", "/api/v1/system/celery_health/")
+    test2_passed = run_endpoint_test("Celery Health", "GET", "/api/v1/system/celery_health/")
     
     # Test 3: Background Task (Signed)
     test_data = {
@@ -197,7 +197,7 @@ def main():
         "zodiac_type": "tropical",
         "house_system": "placidus"
     }
-    test3_passed = test_endpoint("Background Task", "POST", "/api/v1/background-charts/calculate_ephemeris/", test_data)
+    test3_passed = run_endpoint_test("Background Task", "POST", "/api/v1/background-charts/calculate_ephemeris/", test_data)
     
     # Final summary
     log_message("\n=== FINAL TEST SUMMARY ===")

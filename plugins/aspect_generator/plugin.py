@@ -13,6 +13,11 @@ from django.template.loader import render_to_string
 from django.urls import path
 from plugins.base import BasePlugin
 from ai_integration.openrouter_api import generate_interpretation
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
+from django.db.models import Q
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +44,7 @@ class AspectGeneratorPlugin(BasePlugin):
     
     def __init__(self):
         super().__init__()
-        self.default_orb = 8.0  # Default orb in degrees
+        self.default_orb = 5.0
         self.aspects_enabled = True
         
     def install(self):
@@ -79,9 +84,9 @@ class AspectGeneratorPlugin(BasePlugin):
         return [
             {
                 'name': 'Aspect Generator',
-                'url': '/aspects/settings/',
+                'url': '/aspects/generate/',
                 'icon': 'aspects',
-                'permission': None,
+                'order': 300,
             }
         ]
         
@@ -92,19 +97,20 @@ class AspectGeneratorPlugin(BasePlugin):
                 'name': 'Aspect Generator',
                 'template': 'aspect_generator/widget.html',
                 'context': self.get_context(request),
+                'order': 3,
             }
         ]
         
     def get_settings_form(self):
         """Return a form class for plugin settings"""
-        from .forms import AspectGeneratorSettingsForm
-        return AspectGeneratorSettingsForm
+        from .forms import AspectConfigurationForm
+        return AspectConfigurationForm
         
     def get_requirements(self):
         """Return plugin requirements"""
         return [
             'django>=4.2.0',
-            'ai_integration',  # Requires the AI integration module
+            'ai_integration>=1.0.0',
         ]
         
     def get_dependencies(self):
@@ -119,9 +125,9 @@ class AspectGeneratorPlugin(BasePlugin):
         try:
             # Check if required modules are available
             import ai_integration.openrouter_api
-            return True, "Plugin installed successfully"
-        except ImportError as e:
-            return False, f"Missing dependency: {str(e)}"
+            return True
+        except ImportError:
+            return False
             
     def get_plugin_info(self):
         """Return plugin information"""
@@ -168,7 +174,7 @@ class AspectGeneratorPlugin(BasePlugin):
         
         # Get planet names (excluding asteroids for now)
         planets = [p for p in positions.keys() if p in [
-            'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 
+            'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
             'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'
         ]]
         
@@ -378,59 +384,58 @@ FORMAT: Two well-developed paragraphs that provide meaningful astrological insig
         })
         return HttpResponse(html_content)
         
+    @csrf_exempt
+    @require_http_methods(["POST"])
     def generate_aspects_api(self, request):
         """API endpoint for generating aspects"""
         try:
-            # Get chart data from request
-            chart_data = request.POST.get('chart_data')
-            if not chart_data:
-                return self.json_response({'error': 'No chart data provided'}, 400)
-                
-            # Parse chart data
-            import json
-            chart_data = json.loads(chart_data)
-            
-            # Get orb from request or use default
-            orb = float(request.POST.get('orb', self.default_orb))
+            data = json.loads(request.body.decode('utf-8'))
+            chart_data = data.get('chart_data', {})
+            orb = data.get('orb', self.default_orb)
             
             # Calculate aspects
             aspects = self.calculate_aspects(chart_data, orb)
             
-            # Generate interpretations if enabled
-            if self.aspects_enabled:
-                for aspect in aspects:
-                    aspect['interpretation'] = self.generate_aspect_interpretation(aspect, chart_data)
-                    
-            return self.json_response({
-                'aspects': aspects,
-                'orb_used': orb,
-                'total_aspects': len(aspects),
+            # Generate interpretations for each aspect
+            interpretations = []
+            for aspect in aspects:
+                interpretation = self.generate_aspect_interpretation(aspect, chart_data)
+                interpretations.append({
+                    'aspect': aspect,
+                    'interpretation': interpretation,
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'aspects': interpretations,
+                'total_aspects': len(interpretations),
             })
             
         except Exception as e:
             logger.error(f"Error generating aspects: {e}")
-            return self.json_response({'error': str(e)}, 500)
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+            }, status=500)
             
+    @csrf_exempt
+    @require_http_methods(["POST"])
     def aspect_settings_api(self, request):
         """API endpoint for aspect settings"""
         try:
-            if request.method == 'POST':
-                # Update settings
-                self.default_orb = float(request.POST.get('orb', self.default_orb))
-                self.aspects_enabled = request.POST.get('enabled', 'false').lower() == 'true'
-                
-                return self.json_response({
-                    'success': True,
-                    'orb': self.default_orb,
-                    'enabled': self.aspects_enabled,
-                })
-            else:
-                # Get current settings
-                return self.json_response({
-                    'orb': self.default_orb,
-                    'enabled': self.aspects_enabled,
-                })
-                
+            data = json.loads(request.body.decode('utf-8'))
+            self.default_orb = data.get('orb', self.default_orb)
+            self.aspects_enabled = data.get('enabled', self.aspects_enabled)
+            
+            return JsonResponse({
+                'success': True,
+                'orb': self.default_orb,
+                'enabled': self.aspects_enabled,
+            })
+            
         except Exception as e:
             logger.error(f"Error updating aspect settings: {e}")
-            return self.json_response({'error': str(e)}, 500) 
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+            }, status=500) 

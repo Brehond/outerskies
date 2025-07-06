@@ -7,6 +7,7 @@ from ai_integration.openrouter_api import generate_interpretation, get_available
 from .knowledge_service import KnowledgeService
 from ..models import ChatSession, ChatMessage, ChatAnalytics
 import json
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -284,7 +285,7 @@ class ChatService:
         try:
             # Update session totals
             session.total_tokens_used += int(tokens)
-            session.total_cost += cost
+            session.total_cost += Decimal(str(cost))
             session.save(update_fields=['total_tokens_used', 'total_cost'])
             
             # Update daily analytics
@@ -295,7 +296,7 @@ class ChatService:
                 defaults={
                     'ai_responses_received': 0,
                     'total_tokens_used': 0,
-                    'total_cost': 0,
+                    'total_cost': Decimal('0'),
                     'avg_response_time': 0,
                 }
             )
@@ -303,7 +304,7 @@ class ChatService:
             # Update analytics
             analytics.ai_responses_received += 1
             analytics.total_tokens_used += int(tokens)
-            analytics.total_cost += cost
+            analytics.total_cost += Decimal(str(cost))
             
             # Update average response time
             if analytics.ai_responses_received > 1:

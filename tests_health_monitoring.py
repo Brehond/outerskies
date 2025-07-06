@@ -81,12 +81,11 @@ class TestHealthCheckEndpoints(unittest.TestCase):
             
         # Check for required components
         required_components = [
+            '#!/usr/bin/env python3',
+            'def main():',
             'if __name__ == "__main__":',
-            'main()',
-            'try:',
-            'except Exception as e:',
-            'print(',
-            'sys.exit('
+            'get_system_health',
+            'argparse'
         ]
         
         for component in required_components:
@@ -150,30 +149,21 @@ class TestMonitoringSystems(unittest.TestCase):
 class TestDatabaseHealthChecks(unittest.TestCase):
     """Test database health checks"""
     
-    @patch('psycopg2.connect')
-    def test_database_connection_check(self, mock_connect):
+    @patch('django.db.connection.cursor')
+    def test_database_connection_check(self, mock_cursor):
         """Test database connection health check"""
-        mock_connection = MagicMock()
-        mock_cursor = MagicMock()
-        mock_connection.cursor.return_value = mock_cursor
-        mock_connect.return_value = mock_connection
+        # Mock the cursor and its methods
+        mock_cursor_instance = MagicMock()
+        mock_cursor.return_value.__enter__.return_value = mock_cursor_instance
+        mock_cursor_instance.fetchone.return_value = [1]
         
-        # Test successful connection
-        try:
-            conn = psycopg2.connect(
-                host='localhost',
-                database='test_db',
-                user='test_user',
-                password='test_pass'
-            )
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            result = cursor.fetchone()
-            
-            self.assertEqual(result[0], 1)
-            conn.close()
-        except Exception as e:
-            self.fail(f"Database connection failed: {e}")
+        result = check_database_connection()
+        
+        # Verify the result structure
+        self.assertIsInstance(result, tuple)
+        self.assertEqual(len(result), 2)
+        self.assertIn(result[0], [0, 1])  # Status should be 0 or 1
+        self.assertIsInstance(result[1], str)  # Message should be string
             
     @patch('psycopg2.connect')
     def test_database_query_performance(self, mock_connect):

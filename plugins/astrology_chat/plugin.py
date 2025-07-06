@@ -17,6 +17,78 @@ from .services.knowledge_service import KnowledgeService
 
 logger = logging.getLogger(__name__)
 
+# Create a plugin instance for view functions
+_plugin_instance = None
+
+def get_plugin_instance():
+    """Get the plugin instance for view functions"""
+    global _plugin_instance
+    if _plugin_instance is None:
+        _plugin_instance = AstrologyChatPlugin()
+    return _plugin_instance
+
+# Wrapper functions for view methods
+@login_required
+def chat_dashboard_view(request):
+    """Wrapper for chat dashboard view"""
+    return get_plugin_instance().chat_dashboard(request)
+
+@login_required
+def chat_session_view(request, session_id):
+    """Wrapper for chat session view"""
+    return get_plugin_instance().chat_session(request, session_id)
+
+@login_required
+def new_chat_session_view(request):
+    """Wrapper for new chat session view"""
+    return get_plugin_instance().new_chat_session(request)
+
+@login_required
+@require_http_methods(["POST"])
+def send_message_view(request, session_id):
+    """Wrapper for send message view"""
+    return get_plugin_instance().send_message(request, session_id)
+
+@login_required
+def delete_session_view(request, session_id):
+    """Wrapper for delete session view"""
+    return get_plugin_instance().delete_session(request, session_id)
+
+@login_required
+def knowledge_base_view(request):
+    """Wrapper for knowledge base view"""
+    return get_plugin_instance().knowledge_base(request)
+
+@login_required
+def upload_document_view(request):
+    """Wrapper for upload document view"""
+    return get_plugin_instance().upload_document(request)
+
+@login_required
+def view_document_view(request, doc_id):
+    """Wrapper for view document view"""
+    return get_plugin_instance().view_document(request, doc_id)
+
+@login_required
+def api_sessions_view(request):
+    """Wrapper for API sessions view"""
+    return get_plugin_instance().api_sessions(request)
+
+@login_required
+def api_messages_view(request, session_id):
+    """Wrapper for API messages view"""
+    return get_plugin_instance().api_messages(request, session_id)
+
+@login_required
+def api_send_message_view(request, session_id):
+    """Wrapper for API send message view"""
+    return get_plugin_instance().api_send_message(request, session_id)
+
+@login_required
+def api_knowledge_search_view(request):
+    """Wrapper for API knowledge search view"""
+    return get_plugin_instance().api_knowledge_search(request)
+
 class AstrologyChatPlugin(BasePlugin):
     name = "Astrology Chat"
     version = "1.0.0"
@@ -60,14 +132,14 @@ class AstrologyChatPlugin(BasePlugin):
     def get_urls(self):
         """Return URL patterns for the astrology chat"""
         return [
-            path('chat/', self.chat_dashboard, name='astrology_chat_dashboard'),
-            path('chat/session/<uuid:session_id>/', self.chat_session, name='astrology_chat_session'),
-            path('chat/new/', self.new_chat_session, name='new_chat_session'),
-            path('chat/session/<uuid:session_id>/send/', self.send_message, name='send_chat_message'),
-            path('chat/session/<uuid:session_id>/delete/', self.delete_session, name='delete_chat_session'),
-            path('chat/knowledge/', self.knowledge_base, name='knowledge_base'),
-            path('chat/knowledge/upload/', self.upload_document, name='upload_knowledge_document'),
-            path('chat/knowledge/<int:doc_id>/', self.view_document, name='view_knowledge_document'),
+            path('chat/', chat_dashboard_view, name='astrology_chat_dashboard'),
+            path('chat/session/<uuid:session_id>/', chat_session_view, name='astrology_chat_session'),
+            path('chat/new/', new_chat_session_view, name='new_chat_session'),
+            path('chat/session/<uuid:session_id>/send/', send_message_view, name='send_chat_message'),
+            path('chat/session/<uuid:session_id>/delete/', delete_session_view, name='delete_chat_session'),
+            path('chat/knowledge/', knowledge_base_view, name='knowledge_base'),
+            path('chat/knowledge/upload/', upload_document_view, name='upload_knowledge_document'),
+            path('chat/knowledge/<int:doc_id>/', view_document_view, name='view_knowledge_document'),
         ]
     
     def get_admin_urls(self):
@@ -81,10 +153,10 @@ class AstrologyChatPlugin(BasePlugin):
     def get_api_urls(self):
         """Return API URL patterns"""
         return [
-            path('api/chat/sessions/', self.api_sessions, name='api_chat_sessions'),
-            path('api/chat/session/<uuid:session_id>/messages/', self.api_messages, name='api_chat_messages'),
-            path('api/chat/session/<uuid:session_id>/send/', self.api_send_message, name='api_send_message'),
-            path('api/chat/knowledge/search/', self.api_knowledge_search, name='api_knowledge_search'),
+            path('api/chat/sessions/', api_sessions_view, name='api_chat_sessions'),
+            path('api/chat/session/<uuid:session_id>/messages/', api_messages_view, name='api_chat_messages'),
+            path('api/chat/session/<uuid:session_id>/send/', api_send_message_view, name='api_send_message'),
+            path('api/chat/knowledge/search/', api_knowledge_search_view, name='api_knowledge_search'),
         ]
     
     def get_navigation_items(self, request):
@@ -135,7 +207,6 @@ class AstrologyChatPlugin(BasePlugin):
         ]
     
     # View Methods
-    @login_required
     def chat_dashboard(self, request):
         """Main chat dashboard"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -152,7 +223,6 @@ class AstrologyChatPlugin(BasePlugin):
             'total_sessions': sessions.count(),
         })
     
-    @login_required
     def chat_session(self, request, session_id):
         """Individual chat session view"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -173,7 +243,6 @@ class AstrologyChatPlugin(BasePlugin):
             messages.error(request, "Chat session not found.")
             return redirect('astrology_chat_dashboard')
     
-    @login_required
     def new_chat_session(self, request):
         """Create a new chat session"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -186,8 +255,6 @@ class AstrologyChatPlugin(BasePlugin):
         
         return redirect('astrology_chat_session', session_id=session.id)
     
-    @login_required
-    @require_http_methods(["POST"])
     def send_message(self, request, session_id):
         """Send a message in a chat session"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -237,7 +304,6 @@ class AstrologyChatPlugin(BasePlugin):
             logger.error(f"Error sending message: {str(e)}")
             return JsonResponse({'error': 'Internal server error'}, status=500)
     
-    @login_required
     def delete_session(self, request, session_id):
         """Delete a chat session"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -252,7 +318,6 @@ class AstrologyChatPlugin(BasePlugin):
             messages.error(request, "Chat session not found.")
             return redirect('astrology_chat_dashboard')
     
-    @login_required
     def knowledge_base(self, request):
         """Knowledge base view"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -278,7 +343,6 @@ class AstrologyChatPlugin(BasePlugin):
             'search_query': search_query,
         })
     
-    @login_required
     def upload_document(self, request):
         """Upload a knowledge document"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -305,7 +369,6 @@ class AstrologyChatPlugin(BasePlugin):
         
         return render(request, 'astrology_chat/upload_document.html', {'form': form})
     
-    @login_required
     def view_document(self, request, doc_id):
         """View a knowledge document"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -322,7 +385,6 @@ class AstrologyChatPlugin(BasePlugin):
             return redirect('knowledge_base')
     
     # API Methods
-    @login_required
     def api_sessions(self, request):
         """API endpoint for chat sessions"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -338,7 +400,6 @@ class AstrologyChatPlugin(BasePlugin):
         
         return JsonResponse({'sessions': data})
     
-    @login_required
     def api_messages(self, request, session_id):
         """API endpoint for chat messages"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -352,18 +413,16 @@ class AstrologyChatPlugin(BasePlugin):
                 'content': msg.content,
                 'is_ai': msg.is_ai,
                 'created_at': msg.created_at.isoformat(),
-            } for msg in messages]
+            } for msg in chat_messages]
             
             return JsonResponse({'messages': data})
         except ChatSession.DoesNotExist:
             return JsonResponse({'error': 'Session not found'}, status=404)
     
-    @login_required
     def api_send_message(self, request, session_id):
         """API endpoint for sending messages"""
         return self.send_message(request, session_id)
     
-    @login_required
     def api_knowledge_search(self, request):
         """API endpoint for knowledge base search"""
         if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
@@ -376,4 +435,17 @@ class AstrologyChatPlugin(BasePlugin):
         knowledge_service = KnowledgeService()
         results = knowledge_service.search(query, limit=10)
         
-        return JsonResponse({'results': results}) 
+        return JsonResponse({'results': results})
+    
+    # Admin methods (placeholder implementations)
+    def admin_dashboard(self, request):
+        """Admin dashboard view"""
+        return JsonResponse({'message': 'Admin dashboard'})
+    
+    def admin_sessions(self, request):
+        """Admin sessions view"""
+        return JsonResponse({'message': 'Admin sessions'})
+    
+    def admin_knowledge(self, request):
+        """Admin knowledge view"""
+        return JsonResponse({'message': 'Admin knowledge'}) 

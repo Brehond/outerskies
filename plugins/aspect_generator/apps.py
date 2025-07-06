@@ -13,3 +13,6 @@ class AspectGeneratorConfig(AppConfig):
             # Plugin will be automatically discovered by the plugin manager
         except ImportError:
             pass 
+
+        # Import signals or perform any initialization
+        pass 
