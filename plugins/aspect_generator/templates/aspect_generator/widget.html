@@ -1,0 +1,25 @@
+<div class="bg-primary rounded-lg shadow p-4 border-l-4 border-accent">
+    <h3 class="text-lg font-semibold text-accent mb-2">Aspect Generator</h3>
+    
+    <div class="text-sm text-plum2 mb-3">
+        <p><strong>Status:</strong> 
+            {% if aspect_generator_enabled %}
+                <span class="text-green-500">Active</span>
+            {% else %}
+                <span class="text-red-500">Disabled</span>
+            {% endif %}
+        </p>
+        <p><strong>Default Orb:</strong> {{ default_orb }}°</p>
+    </div>
+    
+    <div class="space-y-2">
+        <a href="/aspects/generate/" 
+           class="block w-full bg-accent text-white text-center py-2 px-4 rounded-md hover:bg-accent-dark transition-colors text-sm">
+            Generate Aspects
+        </a>
+        <a href="/aspects/settings/" 
+           class="block w-full bg-plum2 text-white text-center py-2 px-4 rounded-md hover:bg-plum2-dark transition-colors text-sm">
+            Settings
+        </a>
+    </div>
+</div> 

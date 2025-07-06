@@ -30,31 +30,31 @@ OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 # Available models and their configurations
 AVAILABLE_MODELS = {
     "gpt-4": {
-        "id": "openai/gpt-4",
+        "id": "openai/gpt-4o-mini",
         "max_tokens": 4096,
         "temperature": 0.7,
         "description": "Most capable model, best for complex interpretations"
     },
     "gpt-3.5-turbo": {
-        "id": "openai/gpt-3.5-turbo",
+        "id": "openai/gpt-4o-mini",  # Use gpt-4o-mini as fallback for gpt-3.5-turbo
         "max_tokens": 2048,
         "temperature": 0.7,
         "description": "Fast and efficient, good for basic interpretations"
     },
     "claude-3-opus": {
-        "id": "anthropic/claude-3-opus",
+        "id": "anthropic/claude-3-haiku",
         "max_tokens": 4096,
         "temperature": 0.7,
         "description": "Strong analytical capabilities, good for detailed interpretations"
     },
     "claude-3-sonnet": {
-        "id": "anthropic/claude-3-sonnet",
+        "id": "anthropic/claude-3-haiku",
         "max_tokens": 4096,
         "temperature": 0.7,
         "description": "Balanced performance, good for general interpretations"
     },
     "mistral-medium": {
-        "id": "mistralai/mistral-medium",
+        "id": "mistralai/mistral-7b-instruct",
         "max_tokens": 2048,
         "temperature": 0.7,
         "description": "Open source model with good balance of speed and accuracy"
@@ -111,7 +111,7 @@ def generate_interpretation(
     timeout: int = 30
 ) -> str:
     """
-    Generate interpretation using OpenRouter API with retry logic.
+    Generate interpretation using OpenRouter API with retry logic and fallback models.
     
     Args:
         prompt: The prompt to send to the AI
@@ -128,6 +128,40 @@ def generate_interpretation(
         AIRateLimitError: If rate limit is exceeded
         AIServiceError: For other AI service errors
     """
+    # Define fallback models in order of preference (only use available models)
+    fallback_models = [
+        "openai/gpt-4o-mini", 
+        "anthropic/claude-3-haiku",
+        "mistralai/mistral-7b-instruct"
+    ]
+    
+    # Get the primary model ID
+    if model_name in AVAILABLE_MODELS:
+        primary_model_id = AVAILABLE_MODELS[model_name]["id"]
+    else:
+        primary_model_id = model_name
+    
+    # Try primary model first, then fallbacks
+    models_to_try = [primary_model_id] + fallback_models
+    
+    for model_id in models_to_try:
+        try:
+            return _make_ai_request(prompt, model_id, temperature, max_tokens, timeout)
+        except AIServiceError as e:
+            if "404" in str(e) and "No endpoints found" in str(e):
+                logger.warning(f"Model {model_id} not available, trying next fallback")
+                continue
+            else:
+                raise e
+        except Exception as e:
+            logger.warning(f"Error with model {model_id}: {e}, trying next fallback")
+            continue
+    
+    # If all models fail, raise an error
+    raise AIServiceError("All AI models failed. Please check your API key and try again.")
+
+def _make_ai_request(prompt: str, model_id: str, temperature: float, max_tokens: int, timeout: int) -> str:
+    """Make a single AI request to OpenRouter."""
     try:
         # Get API key from environment
         api_key = os.getenv('OPENROUTER_API_KEY')
@@ -141,12 +175,6 @@ def generate_interpretation(
             'HTTP-Referer': 'https://outer-skies.com',  # Replace with your domain
             'X-Title': 'Outer Skies Astrology'  # Replace with your app name
         }
-        
-        # Get the correct model ID from AVAILABLE_MODELS
-        if model_name in AVAILABLE_MODELS:
-            model_id = AVAILABLE_MODELS[model_name]["id"]
-        else:
-            model_id = model_name  # Fallback to using the name directly
         
         data = {
             'model': model_id,

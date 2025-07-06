@@ -32,7 +32,14 @@ class APIAuthMiddleware:
         self.public_paths = {
             '/api/chart/public/',
             '/api/data/public/',
-            '/api/health/'
+            '/api/health/',
+            '/api/v1/system/health/',
+            '/api/v1/system/ai_models/',
+            '/api/v1/system/themes/',
+            '/api/v1/auth/register/',
+            '/api/v1/auth/login/',
+            '/api/v1/auth/refresh/',
+            '/api/v1/auth/logout/',
         }
         
         self.admin_paths = {
@@ -46,34 +53,67 @@ class APIAuthMiddleware:
         # Skip authentication for static/media files and test requests
         if request.path.startswith(('/static/', '/media/')) or settings.DEBUG:
             return self.get_response(request)
+        
+        # Skip API key validation for public endpoints
+        if self._is_public_endpoint(request):
+            return self.get_response(request)
+        
+        # For protected endpoints, check JWT authentication first
+        if self._is_protected_endpoint(request):
+            # Check JWT token
+            try:
+                auth_header = request.headers.get('Authorization')
+                if auth_header and auth_header.startswith('Bearer '):
+                    token = auth_header.split(' ')[1]
+                    validated_token = self.jwt_auth.get_validated_token(token)
+                    request.user = self.jwt_auth.get_user(validated_token)
+                    return self.get_response(request)
+                else:
+                    # No JWT token provided for protected endpoint
+                    return JsonResponse({'error': 'Authentication required'}, status=401)
+            except (InvalidToken, TokenError) as e:
+                logger.warning(f"Invalid JWT token: {str(e)}")
+                return JsonResponse({'error': 'Invalid token'}, status=401)
             
-        # Check API key
+        # For API endpoints that require API key (not JWT)
         api_key = request.headers.get('X-API-Key')
         if not api_key or api_key != settings.API_KEY:
             logger.warning(f"Invalid API key: {api_key}")
             return HttpResponse('Invalid API key', status=400)
-            
-        # Check request signature
-        if not self._verify_signature(request):
-            logger.warning("Invalid request signature")
-            return HttpResponse('Invalid signature', status=400)
-            
-        # Check JWT token
-        try:
-            auth_header = request.headers.get('Authorization')
-            if auth_header and auth_header.startswith('Bearer '):
-                token = auth_header.split(' ')[1]
-                validated_token = self.jwt_auth.get_validated_token(token)
-                request.user = self.jwt_auth.get_user(validated_token)
-        except (InvalidToken, TokenError) as e:
-            logger.warning(f"Invalid JWT token: {str(e)}")
-            return HttpResponse('Invalid token', status=400)
             
         # Check path-based access control
         if not self._check_path_access(request):
             return JsonResponse({'error': 'Access denied'}, status=403)
             
         return self.get_response(request)
+    
+    def _is_public_endpoint(self, request):
+        """Check if the endpoint is public and should skip API key validation."""
+        public_paths = {
+            '/api/chart/public/',
+            '/api/data/public/',
+            '/api/health/',
+            '/api/v1/system/health/',
+            '/api/v1/system/ai_models/',
+            '/api/v1/system/themes/',
+            '/api/v1/auth/register/',
+            '/api/v1/auth/login/',
+            '/api/v1/auth/refresh/',
+            '/api/v1/auth/logout/',
+        }
+        return request.path in public_paths
+    
+    def _is_protected_endpoint(self, request):
+        """Check if the endpoint requires JWT authentication."""
+        protected_paths = {
+            '/api/v1/users/',
+            '/api/v1/charts/',
+            '/api/v1/subscriptions/',
+            '/api/v1/payments/',
+            '/api/v1/coupons/',
+            '/api/v1/chat/',
+        }
+        return any(request.path.startswith(path) for path in protected_paths)
         
     def _validate_jwt(self, token):
         """Validate JWT token."""
@@ -85,8 +125,11 @@ class APIAuthMiddleware:
             )
             
             # Check if token is blacklisted
-            if cache.get(f'blacklisted_token_{token}'):
-                return False
+            try:
+                if cache.get(f'blacklisted_token_{token}'):
+                    return False
+            except Exception as e:
+                logger.warning(f"Failed to check token blacklist: {e}")
                 
             # Add user info to request
             request.user = payload.get('user')
@@ -102,9 +145,14 @@ class APIAuthMiddleware:
             
     def _validate_api_key(self, api_key):
         """Validate API key."""
-        # Check if API key exists and is active
-        if not cache.get(f'api_key_{api_key}'):
-            return False
+        try:
+            # Check if API key exists and is active
+            if not cache.get(f'api_key_{api_key}'):
+                return False
+        except Exception as e:
+            logger.warning(f"Failed to validate API key: {e}")
+            # If cache fails, assume API key is valid (fail open)
+            pass
             
         # Add API key info to request
         request.api_key = api_key
@@ -129,8 +177,11 @@ class APIAuthMiddleware:
             exp = payload.get('exp', 0)
             ttl = exp - int(time.time())
             if ttl > 0:
-                cache.set(f'blacklisted_token_{token}', True, ttl)
-                return True
+                try:
+                    cache.set(f'blacklisted_token_{token}', True, ttl)
+                    return True
+                except Exception as e:
+                    logger.warning(f"Failed to blacklist token: {e}")
         except:
             pass
         return False

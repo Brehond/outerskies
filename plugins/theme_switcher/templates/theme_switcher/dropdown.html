@@ -1,0 +1,154 @@
+{% load static %}
+
+<!-- Theme Switcher Dropdown -->
+<div id="theme-dropdown" class="theme-dropdown">
+    <button class="theme-dropdown-trigger" style="
+        background: var(--accent-color);
+        color: var(--primary-color);
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+    ">
+        <span style="font-size: 1.2em;">🎨</span>
+        <span>Theme</span>
+        <span style="font-size: 0.8em;">▼</span>
+    </button>
+    
+    <div class="theme-dropdown-content">
+        {% for theme_key, theme in themes.items %}
+        <div class="theme-option {% if theme_key == current_theme %}active{% endif %}" 
+             data-theme="{{ theme_key }}"
+             onclick="switchTheme('{{ theme_key }}')">
+            <div class="theme-color-preview" style="background: {{ theme.colors.accent }}"></div>
+            <div>
+                <div style="color: var(--text-primary-color); font-weight: 600;">{{ theme.name }}</div>
+                <div style="color: var(--text-secondary-color); font-size: 0.8em;">{{ theme.description }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.theme-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.theme-dropdown-trigger:hover {
+    background: var(--accent-secondary-color) !important;
+    transform: translateY(-1px);
+}
+
+.theme-dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: var(--secondary-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 220px;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.theme-dropdown:hover .theme-dropdown-content {
+    display: block;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease;
+    margin-bottom: 0.25rem;
+}
+
+.theme-option:last-child {
+    margin-bottom: 0;
+}
+
+.theme-option:hover {
+    background-color: var(--border-color);
+}
+
+.theme-option.active {
+    background-color: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.theme-option.active div {
+    color: var(--primary-color) !important;
+}
+
+.theme-color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    border: 2px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .theme-dropdown-content {
+        right: auto;
+        left: 0;
+        min-width: 200px;
+    }
+    
+    .theme-dropdown-trigger span:not(:first-child) {
+        display: none;
+    }
+}
+</style>
+
+<script>
+function switchTheme(themeName) {
+    fetch('/theme/switch/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ theme: themeName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            console.error('Error switching theme:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Update active state when theme changes
+document.addEventListener('DOMContentLoaded', function() {
+    const currentTheme = '{{ current_theme }}';
+    const options = document.querySelectorAll('.theme-option');
+    
+    options.forEach(option => {
+        if (option.dataset.theme === currentTheme) {
+            option.classList.add('active');
+        } else {
+            option.classList.remove('active');
+        }
+    });
+});
+</script> 

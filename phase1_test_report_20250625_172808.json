@@ -1,0 +1,18 @@
+{
+  "caching_tests": {
+    "ephemeris_caching": "FAILED",
+    "cache_statistics": "PASSED",
+    "user_session_caching": "PASSED"
+  },
+  "background_task_tests": {
+    "celery_availability": "PASSED",
+    "system_health": "PASSED",
+    "task_creation": "PASSED"
+  },
+  "rate_limiting_tests": {
+    "usage_analytics": "PASSED",
+    "cost_estimation": "PASSED",
+    "user_usage_summary": "PASSED"
+  },
+  "overall_status": "DEGRADED"
+}

@@ -1,524 +1,527 @@
 <!-- chart/templates/chart/chart_form.html -->
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outer Skies - Astrological Chart Generator</title>
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
-    <style>
-        .model-description {
-            font-size: 0.9em;
-            color: #666;
-            margin-top: 0.25rem;
-        }
-        .advanced-options {
-            margin-top: 1rem;
-            padding: 1rem;
-            border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-        }
-        .nav-tabs .nav-link {
-            color: #495057;
-        }
-        .nav-tabs .nav-link.active {
-            font-weight: bold;
-        }
-        .tab-content {
-            padding: 1rem;
-            border: 1px solid #dee2e6;
-            border-top: none;
-            border-radius: 0 0 0.25rem 0.25rem;
-        }
-        #loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-    </style>
-</head>
-<body class="font-sans bg-dark2 text-white min-h-screen">
-    <div class="container mx-auto py-8">
-        <h1 class="text-4xl font-extrabold mb-6 text-accent drop-shadow">Outer Skies</h1>
-        <h2 class="text-2xl mb-8 text-accent font-semibold">Generate Your Astrological Chart</h2>
 
-        <form id="chartForm" class="space-y-4 bg-primary rounded-xl shadow p-8 mb-10 border-l-8 border-accent text-accent">
-            {% csrf_token %}
-            <!-- Error Message Display -->
-            <div id="errorMessage" class="hidden bg-red-500 text-white p-4 rounded-lg mb-4"></div>
-            
-            <!-- Success Message Display -->
-            <div id="successMessage" class="hidden bg-green-500 text-white p-4 rounded-lg mb-4"></div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Basic Information -->
-                <div>
-                    <label for="date" class="block text-sm font-semibold text-accent">Birth Date</label>
-                    <input type="date" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="date" name="date" required>
+{% block title %}Outer Skies - Astrological Chart Generator{% endblock %}
+
+{% block extra_head %}
+<style>
+    .model-description {
+        font-size: 0.9em;
+        color: var(--text-muted-color);
+        margin-top: 0.25rem;
+    }
+    .advanced-options {
+        margin-top: 1rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.25rem;
+        background-color: var(--secondary-color);
+    }
+    .nav-tabs .nav-link {
+        color: var(--text-secondary-color);
+    }
+    .nav-tabs .nav-link.active {
+        font-weight: bold;
+        color: var(--accent-color);
+    }
+    .tab-content {
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-top: none;
+        border-radius: 0 0 0.25rem 0.25rem;
+        background-color: var(--secondary-color);
+    }
+    #loading.is-hidden {
+        display: none;
+    }
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-4xl font-extrabold mb-6 text-accent drop-shadow">Outer Skies</h1>
+    <h2 class="text-2xl mb-8 text-accent font-semibold">Generate Your Astrological Chart</h2>
+
+    <form id="chartForm" class="space-y-4 bg-secondary rounded-xl shadow p-8 mb-10 border-l-8 border-accent text-accent">
+        {% csrf_token %}
+        <!-- Error Message Display -->
+        <div id="errorMessage" class="hidden bg-error-color text-white p-4 rounded-lg mb-4"></div>
+        
+        <!-- Success Message Display -->
+        <div id="successMessage" class="hidden bg-success-color text-white p-4 rounded-lg mb-4"></div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Basic Information -->
+            <div>
+                <label for="date" class="block text-sm font-semibold text-accent">Birth Date</label>
+                <input type="date" class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent placeholder-text-muted shadow-sm" id="date" name="date" required>
+            </div>
+
+            <div>
+                <label for="time" class="block text-sm font-semibold text-accent">Birth Time</label>
+                <input type="time" class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent placeholder-text-muted shadow-sm" id="time" name="time" required>
+            </div>
+
+            <div>
+                <label for="latitude" class="block text-sm font-semibold text-accent">Latitude</label>
+                <input type="number" class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent placeholder-text-muted shadow-sm" id="latitude" name="latitude" step="0.000001" required>
+            </div>
+
+            <div>
+                <label for="longitude" class="block text-sm font-semibold text-accent">Longitude</label>
+                <input type="number" class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent placeholder-text-muted shadow-sm" id="longitude" name="longitude" step="0.000001" required>
+            </div>
+
+            <div>
+                <label for="location" class="block text-sm font-semibold text-accent">Location Name</label>
+                <input type="text" class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent placeholder-text-muted shadow-sm" id="location" name="location" placeholder="City, Country">
+            </div>
+
+            <div>
+                <label for="timezone" class="block text-sm font-semibold text-accent">Timezone</label>
+                <div class="relative">
+                    <select class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent shadow-sm" id="timezone" name="timezone" required>
+                        <option value="">Select timezone...</option>
+                        <!-- North America -->
+                        <optgroup label="North America">
+                            <option value="America/New_York">Eastern Time (ET) - New York</option>
+                            <option value="America/Chicago">Central Time (CT) - Chicago</option>
+                            <option value="America/Denver">Mountain Time (MT) - Denver</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
+                            <option value="America/Anchorage">Alaska Time (AKT) - Anchorage</option>
+                            <option value="Pacific/Honolulu">Hawaii Time (HST) - Honolulu</option>
+                            <option value="America/Toronto">Eastern Time (ET) - Toronto</option>
+                            <option value="America/Vancouver">Pacific Time (PT) - Vancouver</option>
+                            <option value="America/Halifax" selected>Atlantic Time (AT) - Halifax</option>
+                            <option value="America/St_Johns">Newfoundland Time (NT) - St. John's</option>
+                        </optgroup>
+                        <!-- Europe -->
+                        <optgroup label="Europe">
+                            <option value="Europe/London">Greenwich Mean Time (GMT) - London</option>
+                            <option value="Europe/Paris">Central European Time (CET) - Paris</option>
+                            <option value="Europe/Berlin">Central European Time (CET) - Berlin</option>
+                            <option value="Europe/Rome">Central European Time (CET) - Rome</option>
+                            <option value="Europe/Madrid">Central European Time (CET) - Madrid</option>
+                            <option value="Europe/Amsterdam">Central European Time (CET) - Amsterdam</option>
+                            <option value="Europe/Stockholm">Central European Time (CET) - Stockholm</option>
+                            <option value="Europe/Vienna">Central European Time (CET) - Vienna</option>
+                            <option value="Europe/Zurich">Central European Time (CET) - Zurich</option>
+                            <option value="Europe/Dublin">Greenwich Mean Time (GMT) - Dublin</option>
+                            <option value="Europe/Lisbon">Western European Time (WET) - Lisbon</option>
+                            <option value="Europe/Athens">Eastern European Time (EET) - Athens</option>
+                            <option value="Europe/Bucharest">Eastern European Time (EET) - Bucharest</option>
+                            <option value="Europe/Helsinki">Eastern European Time (EET) - Helsinki</option>
+                            <option value="Europe/Kiev">Eastern European Time (EET) - Kiev</option>
+                            <option value="Europe/Moscow">Moscow Time (MSK) - Moscow</option>
+                        </optgroup>
+                        <!-- Asia -->
+                        <optgroup label="Asia">
+                            <option value="Asia/Tokyo">Japan Standard Time (JST) - Tokyo</option>
+                            <option value="Asia/Shanghai">China Standard Time (CST) - Shanghai</option>
+                            <option value="Asia/Hong_Kong">Hong Kong Time (HKT) - Hong Kong</option>
+                            <option value="Asia/Singapore">Singapore Time (SGT) - Singapore</option>
+                            <option value="Asia/Seoul">Korea Standard Time (KST) - Seoul</option>
+                            <option value="Asia/Bangkok">Indochina Time (ICT) - Bangkok</option>
+                            <option value="Asia/Jakarta">Western Indonesian Time (WIB) - Jakarta</option>
+                            <option value="Asia/Manila">Philippine Time (PHT) - Manila</option>
+                            <option value="Asia/Kolkata">India Standard Time (IST) - Mumbai</option>
+                            <option value="Asia/Dhaka">Bangladesh Time (BDT) - Dhaka</option>
+                            <option value="Asia/Karachi">Pakistan Time (PKT) - Karachi</option>
+                            <option value="Asia/Dubai">Gulf Standard Time (GST) - Dubai</option>
+                            <option value="Asia/Riyadh">Arabia Standard Time (AST) - Riyadh</option>
+                            <option value="Asia/Tehran">Iran Standard Time (IRST) - Tehran</option>
+                            <option value="Asia/Jerusalem">Israel Standard Time (IST) - Jerusalem</option>
+                        </optgroup>
+                        <!-- Australia & Pacific -->
+                        <optgroup label="Australia & Pacific">
+                            <option value="Australia/Sydney">Australian Eastern Time (AET) - Sydney</option>
+                            <option value="Australia/Melbourne">Australian Eastern Time (AET) - Melbourne</option>
+                            <option value="Australia/Brisbane">Australian Eastern Time (AET) - Brisbane</option>
+                            <option value="Australia/Perth">Australian Western Time (AWT) - Perth</option>
+                            <option value="Australia/Adelaide">Australian Central Time (ACT) - Adelaide</option>
+                            <option value="Pacific/Auckland">New Zealand Standard Time (NZST) - Auckland</option>
+                            <option value="Pacific/Fiji">Fiji Time (FJT) - Suva</option>
+                            <option value="Pacific/Guam">Chamorro Standard Time (ChST) - Guam</option>
+                        </optgroup>
+                        <!-- South America -->
+                        <optgroup label="South America">
+                            <option value="America/Sao_Paulo">Brasilia Time (BRT) - São Paulo</option>
+                            <option value="America/Argentina/Buenos_Aires">Argentina Time (ART) - Buenos Aires</option>
+                            <option value="America/Santiago">Chile Time (CLT) - Santiago</option>
+                            <option value="America/Lima">Peru Time (PET) - Lima</option>
+                            <option value="America/Bogota">Colombia Time (COT) - Bogotá</option>
+                            <option value="America/Caracas">Venezuela Time (VET) - Caracas</option>
+                            <option value="America/Mexico_City">Central Time (CT) - Mexico City</option>
+                        </optgroup>
+                        <!-- Africa -->
+                        <optgroup label="Africa">
+                            <option value="Africa/Cairo">Eastern European Time (EET) - Cairo</option>
+                            <option value="Africa/Johannesburg">South Africa Standard Time (SAST) - Johannesburg</option>
+                            <option value="Africa/Lagos">West Africa Time (WAT) - Lagos</option>
+                            <option value="Africa/Nairobi">East Africa Time (EAT) - Nairobi</option>
+                            <option value="Africa/Casablanca">Western European Time (WET) - Casablanca</option>
+                            <option value="Africa/Algiers">Central European Time (CET) - Algiers</option>
+                        </optgroup>
+                    </select>
+                    <div class="text-sm text-text-muted mt-1" id="timezoneInfo"></div>
                 </div>
+            </div>
 
-                <div>
-                    <label for="time" class="block text-sm font-semibold text-accent">Birth Time</label>
-                    <input type="time" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="time" name="time" required>
-                </div>
+            <div>
+                <label for="zodiac_type" class="block text-sm font-semibold text-accent">Zodiac Type</label>
+                <select class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent shadow-sm" id="zodiac_type" name="zodiac_type" required>
+                    <option value="tropical" selected>Tropical</option>
+                    <option value="sidereal">Sidereal</option>
+                </select>
+            </div>
+            <div>
+                <label for="house_system" class="block text-sm font-semibold text-accent">House System</label>
+                <select class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent shadow-sm" id="house_system" name="house_system" required>
+                    <option value="placidus" selected>Placidus</option>
+                    <option value="whole_sign">Whole Sign</option>
+                </select>
+            </div>
 
-                <div>
-                    <label for="latitude" class="block text-sm font-semibold text-accent">Latitude</label>
-                    <input type="number" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="latitude" name="latitude" step="0.000001" required>
-                </div>
+            <!-- Model Selection -->
+            <div>
+                <label for="model_name" class="block text-sm font-semibold text-accent">AI Model</label>
+                <select class="mt-1 block w-full rounded-md border border-primary bg-primary text-accent shadow-sm" id="model_name" name="model_name" required>
+                    <option value="gpt-4" selected>GPT-4</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    <option value="claude-3-opus">Claude 3 Opus</option>
+                    <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                    <option value="mistral-medium">Mistral Medium</option>
+                    <option value="mistral-7b">Mistral 7B</option>
+                </select>
+                <div class="model-description">Choose the AI model for chart interpretation</div>
+            </div>
 
-                <div>
-                    <label for="longitude" class="block text-sm font-semibold text-accent">Longitude</label>
-                    <input type="number" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="longitude" name="longitude" step="0.000001" required>
-                </div>
+            <!-- Hidden interpretation type field with default value -->
+            <input type="hidden" name="interpretation_type" value="comprehensive">
+        </div>
 
-                <div>
-                    <label for="location" class="block text-sm font-semibold text-accent">Location Name</label>
-                    <input type="text" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="location" name="location" placeholder="City, Country">
-                </div>
-
-                <div>
-                    <label for="timezone" class="block text-sm font-semibold text-accent">Timezone</label>
-                    <div class="relative">
-                        <select class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm" id="timezone" name="timezone" required>
-                            <option value="">Select timezone...</option>
-                            <!-- North America -->
-                            <optgroup label="North America">
-                                <option value="America/New_York">Eastern Time (ET) - New York</option>
-                                <option value="America/Chicago">Central Time (CT) - Chicago</option>
-                                <option value="America/Denver">Mountain Time (MT) - Denver</option>
-                                <option value="America/Los_Angeles">Pacific Time (PT) - Los Angeles</option>
-                                <option value="America/Anchorage">Alaska Time (AKT) - Anchorage</option>
-                                <option value="Pacific/Honolulu">Hawaii Time (HST) - Honolulu</option>
-                                <option value="America/Toronto">Eastern Time (ET) - Toronto</option>
-                                <option value="America/Vancouver">Pacific Time (PT) - Vancouver</option>
-                                <option value="America/Halifax" selected>Atlantic Time (AT) - Halifax</option>
-                                <option value="America/St_Johns">Newfoundland Time (NT) - St. John's</option>
-                            </optgroup>
-                            <!-- Europe -->
-                            <optgroup label="Europe">
-                                <option value="Europe/London">Greenwich Mean Time (GMT) - London</option>
-                                <option value="Europe/Paris">Central European Time (CET) - Paris</option>
-                                <option value="Europe/Berlin">Central European Time (CET) - Berlin</option>
-                                <option value="Europe/Rome">Central European Time (CET) - Rome</option>
-                                <option value="Europe/Madrid">Central European Time (CET) - Madrid</option>
-                                <option value="Europe/Amsterdam">Central European Time (CET) - Amsterdam</option>
-                                <option value="Europe/Stockholm">Central European Time (CET) - Stockholm</option>
-                                <option value="Europe/Vienna">Central European Time (CET) - Vienna</option>
-                                <option value="Europe/Zurich">Central European Time (CET) - Zurich</option>
-                                <option value="Europe/Dublin">Greenwich Mean Time (GMT) - Dublin</option>
-                                <option value="Europe/Lisbon">Western European Time (WET) - Lisbon</option>
-                                <option value="Europe/Athens">Eastern European Time (EET) - Athens</option>
-                                <option value="Europe/Bucharest">Eastern European Time (EET) - Bucharest</option>
-                                <option value="Europe/Helsinki">Eastern European Time (EET) - Helsinki</option>
-                                <option value="Europe/Kiev">Eastern European Time (EET) - Kiev</option>
-                                <option value="Europe/Moscow">Moscow Time (MSK) - Moscow</option>
-                            </optgroup>
-                            <!-- Asia -->
-                            <optgroup label="Asia">
-                                <option value="Asia/Tokyo">Japan Standard Time (JST) - Tokyo</option>
-                                <option value="Asia/Shanghai">China Standard Time (CST) - Shanghai</option>
-                                <option value="Asia/Hong_Kong">Hong Kong Time (HKT) - Hong Kong</option>
-                                <option value="Asia/Singapore">Singapore Time (SGT) - Singapore</option>
-                                <option value="Asia/Seoul">Korea Standard Time (KST) - Seoul</option>
-                                <option value="Asia/Bangkok">Indochina Time (ICT) - Bangkok</option>
-                                <option value="Asia/Jakarta">Western Indonesian Time (WIB) - Jakarta</option>
-                                <option value="Asia/Manila">Philippine Time (PHT) - Manila</option>
-                                <option value="Asia/Kolkata">India Standard Time (IST) - Mumbai</option>
-                                <option value="Asia/Dhaka">Bangladesh Time (BDT) - Dhaka</option>
-                                <option value="Asia/Karachi">Pakistan Time (PKT) - Karachi</option>
-                                <option value="Asia/Dubai">Gulf Standard Time (GST) - Dubai</option>
-                                <option value="Asia/Riyadh">Arabia Standard Time (AST) - Riyadh</option>
-                                <option value="Asia/Tehran">Iran Standard Time (IRST) - Tehran</option>
-                                <option value="Asia/Jerusalem">Israel Standard Time (IST) - Jerusalem</option>
-                            </optgroup>
-                            <!-- Australia & Pacific -->
-                            <optgroup label="Australia & Pacific">
-                                <option value="Australia/Sydney">Australian Eastern Time (AET) - Sydney</option>
-                                <option value="Australia/Melbourne">Australian Eastern Time (AET) - Melbourne</option>
-                                <option value="Australia/Brisbane">Australian Eastern Time (AET) - Brisbane</option>
-                                <option value="Australia/Perth">Australian Western Time (AWT) - Perth</option>
-                                <option value="Australia/Adelaide">Australian Central Time (ACT) - Adelaide</option>
-                                <option value="Pacific/Auckland">New Zealand Standard Time (NZST) - Auckland</option>
-                                <option value="Pacific/Fiji">Fiji Time (FJT) - Suva</option>
-                                <option value="Pacific/Guam">Chamorro Standard Time (ChST) - Guam</option>
-                            </optgroup>
-                            <!-- South America -->
-                            <optgroup label="South America">
-                                <option value="America/Sao_Paulo">Brasilia Time (BRT) - São Paulo</option>
-                                <option value="America/Argentina/Buenos_Aires">Argentina Time (ART) - Buenos Aires</option>
-                                <option value="America/Santiago">Chile Time (CLT) - Santiago</option>
-                                <option value="America/Lima">Peru Time (PET) - Lima</option>
-                                <option value="America/Bogota">Colombia Time (COT) - Bogotá</option>
-                                <option value="America/Caracas">Venezuela Time (VET) - Caracas</option>
-                                <option value="America/Mexico_City">Central Time (CT) - Mexico City</option>
-                            </optgroup>
-                            <!-- Africa -->
-                            <optgroup label="Africa">
-                                <option value="Africa/Cairo">Eastern European Time (EET) - Cairo</option>
-                                <option value="Africa/Johannesburg">South Africa Standard Time (SAST) - Johannesburg</option>
-                                <option value="Africa/Lagos">West Africa Time (WAT) - Lagos</option>
-                                <option value="Africa/Nairobi">East Africa Time (EAT) - Nairobi</option>
-                                <option value="Africa/Casablanca">Western European Time (WET) - Casablanca</option>
-                                <option value="Africa/Algiers">Central European Time (CET) - Algiers</option>
-                            </optgroup>
-                        </select>
-                        <div class="text-sm text-plum2 mt-1" id="timezoneInfo"></div>
+        <!-- Plugin Controls -->
+        <div class="mt-6 space-y-4">
+            <!-- Aspect Generator Controls -->
+            <div class="bg-primary/50 p-4 rounded-lg border border-accent/30">
+                <h3 class="text-lg font-semibold text-accent mb-3 border-b border-accent/30 pb-2">Aspect Generator</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="aspect_orb" class="block text-sm font-semibold text-accent">
+                            Aspect Orb: <span id="aspectOrbValue">8.0</span>°
+                        </label>
+                        <input type="range" 
+                               id="aspect_orb" 
+                               name="aspect_orb" 
+                               min="0" 
+                               max="15" 
+                               step="0.5" 
+                               value="8.0" 
+                               class="mt-1 block w-full accent-accent"
+                               oninput="updateAspectOrbValue(this.value)">
+                        <div class="text-sm text-text-muted">Maximum orb in degrees for aspect calculations.</div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <label class="flex items-center">
+                            <input type="checkbox" 
+                                   id="aspects_enabled" 
+                                   name="aspects_enabled" 
+                                   checked
+                                   class="mr-2">
+                            <span class="text-sm font-semibold text-accent">Include Aspect Interpretations</span>
+                        </label>
+                        <div class="text-sm text-text-muted ml-2">Generate AI interpretations for aspects.</div>
                     </div>
                 </div>
-
-                <div>
-                    <label for="zodiac_type" class="block text-sm font-semibold text-accent">Zodiac Type</label>
-                    <select class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm" id="zodiac_type" name="zodiac_type" required>
-                        <option value="tropical" selected>Tropical</option>
-                        <option value="sidereal">Sidereal</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="house_system" class="block text-sm font-semibold text-accent">House System</label>
-                    <select class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm" id="house_system" name="house_system" required>
-                        <option value="placidus" selected>Placidus</option>
-                        <option value="whole_sign">Whole Sign</option>
-                    </select>
-                </div>
-
-                <!-- Model Selection -->
-                <div>
-                    <label for="model_name" class="block text-sm font-semibold text-accent">AI Model</label>
-                    <select class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm" id="model_name" name="model_name" required>
-                        <option value="">Select a model...</option>
-                    </select>
-                    <div class="text-sm text-plum2" id="modelDescription"></div>
-                </div>
-
-                <!-- Advanced Options -->
-                <div>
-                    <label for="temperature" class="block text-sm font-semibold text-accent">Temperature: <span id="temperatureValue">0.7</span></label>
-                    <input type="range" class="mt-1 block w-full accent-accent" id="temperature" name="temperature" min="0" max="1" step="0.1" value="0.7">
-                    <div class="text-sm text-plum2">Higher values make the output more creative but less focused.</div>
-                </div>
-
-                <div>
-                    <label for="max_tokens" class="block text-sm font-semibold text-accent">Max Tokens</label>
-                    <input type="number" class="mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm" id="max_tokens" name="max_tokens" min="100" max="4000" value="1000">
-                    <div class="text-sm text-plum2">Maximum length of the generated interpretation.</div>
-                </div>
-
-                <div class="col-span-2">
-                    <button type="submit" id="submitButton" class="bg-accent text-white px-4 py-2 rounded-md hover:bg-accent/80 font-bold flex items-center justify-center">
-                        <span id="buttonText">Generate Chart</span>
-                        <svg id="loadingSpinner" class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
-                </div>
             </div>
-        </form>
 
-        <!-- Results Section -->
-        <div id="results" class="mt-10 hidden">
-            <div class="bg-dark p-8 rounded-2xl shadow-2xl border border-plum2 max-w-3xl mx-auto text-accent">
-                <h3 class="text-3xl font-extrabold mb-8 text-accent tracking-wide border-b-2 border-plum2 pb-2">Chart Results</h3>
-                <div class="bg-primary p-6 rounded-xl shadow border border-plum2 mb-8">
-                    <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">Master Chart Interpretation</h4>
-                    <div id="masterInterpretation" class="mt-2 text-gray-100 font-bold"></div>
+            <!-- House Generator Controls -->
+            <div class="bg-primary/50 p-4 rounded-lg border border-accent/30">
+                <h3 class="text-lg font-semibold text-accent mb-3 border-b border-accent/30 pb-2">House Generator</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center">
+                        <label class="flex items-center">
+                            <input type="checkbox" 
+                                   id="houses_enabled" 
+                                   name="houses_enabled" 
+                                   checked
+                                   class="mr-2">
+                            <span class="text-sm font-semibold text-accent">Include House Interpretations</span>
+                        </label>
+                        <div class="text-sm text-text-muted ml-2">Generate AI interpretations for all 12 houses.</div>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <label class="flex items-center">
+                            <input type="checkbox" 
+                                   id="include_house_planets" 
+                                   name="include_house_planets" 
+                                   checked
+                                   class="mr-2">
+                            <span class="text-sm font-semibold text-accent">Include Planets in Houses</span>
+                        </label>
+                        <div class="text-sm text-text-muted ml-2">Mention planets present in each house.</div>
+                    </div>
                 </div>
-                <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">Planetary Interpretations</h4>
-                <div id="planetInterpretations" class="mt-2"></div>
             </div>
         </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-center pt-6">
+            <button type="submit" class="btn-primary px-8 py-3 rounded-lg font-semibold text-lg hover:scale-105 transition-transform">
+                🌟 Generate Astrological Chart
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Results Section -->
+{% if master_interpretation and planet_interpretations %}
+<div class="mt-10">
+    <div class="bg-secondary p-8 rounded-2xl shadow-2xl border border-primary max-w-3xl mx-auto text-accent">
+        <h3 class="text-3xl font-extrabold mb-8 text-accent tracking-wide border-b-2 border-primary pb-2">Chart Results</h3>
+        
+        <!-- Master Interpretation -->
+        <div class="bg-primary p-6 rounded-xl shadow border border-primary mb-8">
+            <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">Master Chart Interpretation</h4>
+            <div class="mt-2 text-text-primary font-bold whitespace-pre-line">{{ master_interpretation }}</div>
+        </div>
+        
+        <!-- Planetary Interpretations -->
+        <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">Planetary Interpretations</h4>
+        <div class="space-y-6">
+            {% for planet, interpretation in planet_interpretations.items %}
+            <div class="bg-primary p-6 rounded-xl shadow border border-primary">
+                <h5 class="text-xl font-bold mb-4 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">{{ planet }}</h5>
+                <div class="text-gray-100 font-bold whitespace-pre-line">{{ interpretation }}</div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
+</div>
+{% endif %}
 
-    <script>
-        console.log('JS loaded: chart_form.html');
-        // Initialize model options
-        const models = {
-            'gpt-4': {
-                name: 'GPT-4',
-                description: 'Most capable model, best for detailed interpretations',
-                max_tokens: 4000,
-                temperature: 0.7
-            },
-            'gpt-3.5-turbo': {
-                name: 'GPT-3.5 Turbo',
-                description: 'Fast and efficient, good for quick interpretations',
-                max_tokens: 2000,
-                temperature: 0.7
-            },
-            'claude-3-opus': {
-                name: 'Claude 3 Opus',
-                description: 'Advanced model with deep understanding of astrology',
-                max_tokens: 4000,
-                temperature: 0.7
-            },
-            'claude-3-sonnet': {
-                name: 'Claude 3 Sonnet',
-                description: 'Balanced model with good accuracy and speed',
-                max_tokens: 2000,
-                temperature: 0.7
-            },
-            'mistral-medium': {
-                name: 'Mistral Medium',
-                description: 'Open source model with good balance of speed and accuracy',
-                max_tokens: 2048,
-                temperature: 0.7
+<!-- Error Message Display -->
+{% if error_message %}
+<div class="mt-6 bg-red-600 text-white p-4 rounded-lg">
+    <strong>Error:</strong> {{ error_message }}
+</div>
+{% endif %}
+
+<!-- Loading Overlay -->
+<div id="loading" class="is-hidden">
+    <div class="spinner-border border-accent border-t-transparent rounded-full animate-spin"></div>
+    <div class="ml-3 text-accent text-lg">Generating your chart...</div>
+</div>
+
+<!-- Plugin Data for JavaScript -->
+{% if aspects %}
+<script>
+    window.aspectsData = {{ aspects|safe }};
+</script>
+{% endif %}
+
+{% if houses %}
+<script>
+    window.housesData = {{ houses|safe }};
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Aspect orb slider
+    function updateAspectOrbValue(value) {
+        document.getElementById('aspectOrbValue').textContent = value;
+    }
+
+    // Display aspects function
+    function displayAspects(aspects) {
+        // Remove any existing aspects section first
+        const existingAspectsSection = document.querySelector('[id*="aspects"]');
+        if (existingAspectsSection) {
+            existingAspectsSection.remove();
+        }
+        
+        const resultsDiv = document.querySelector('.bg-secondary.p-8');
+        if (!resultsDiv) return;
+        
+        const aspectsContainer = document.createElement('div');
+        aspectsContainer.className = 'bg-primary p-6 rounded-xl shadow border border-primary mb-8';
+        aspectsContainer.innerHTML = `
+            <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">
+                Aspect Interpretations (${aspects.length} aspects found)
+            </h4>
+            <div id="aspectsList"></div>
+        `;
+        
+        // Insert aspects section after planet interpretations
+        const planetInterpretations = resultsDiv.querySelector('.space-y-6');
+        if (planetInterpretations) {
+            planetInterpretations.parentNode.insertBefore(aspectsContainer, planetInterpretations.nextSibling);
+        }
+        
+        const aspectsList = document.getElementById('aspectsList');
+        aspects.forEach(aspect => {
+            const aspectDiv = document.createElement('div');
+            aspectDiv.className = 'mb-6 p-4 border border-primary rounded-lg';
+            aspectDiv.innerHTML = `
+                <h5 class="text-lg font-semibold text-accent mb-2">
+                    ${aspect.planet1} ${aspect.aspect.toUpperCase()} ${aspect.planet2}
+                </h5>
+                <div class="text-sm text-text-muted mb-2">
+                    <strong>Orb:</strong> ${aspect.orb.toFixed(1)}° | 
+                    <strong>Angle:</strong> ${aspect.angle}° | 
+                    <strong>Distance:</strong> ${aspect.actual_distance.toFixed(1)}°
+                </div>
+                ${aspect.interpretation ? `
+                    <div class="text-accent mt-3">
+                        <strong>Interpretation:</strong><br>
+                        ${aspect.interpretation.replace(/\n/g, '<br>')}
+                    </div>
+                ` : ''}
+            `;
+            aspectsList.appendChild(aspectDiv);
+        });
+    }
+
+    // Display houses function
+    function displayHouses(houses) {
+        // Remove any existing houses section first
+        const existingHousesSection = document.querySelector('[id*="houses"]');
+        if (existingHousesSection) {
+            existingHousesSection.remove();
+        }
+        
+        const resultsDiv = document.querySelector('.bg-secondary.p-8');
+        if (!resultsDiv) return;
+        
+        const housesContainer = document.createElement('div');
+        housesContainer.className = 'bg-primary p-6 rounded-xl shadow border border-primary mb-8';
+        housesContainer.innerHTML = `
+            <h4 class="text-2xl font-bold mb-6 text-accent uppercase tracking-wider border-b-2 border-accent pb-2">
+                House Interpretations (12 Houses)
+            </h4>
+            <div id="housesList"></div>
+        `;
+        
+        // Insert houses section after aspects (if they exist) or after planet interpretations
+        const aspectsSection = document.querySelector('[id*="aspects"]');
+        const planetInterpretations = resultsDiv.querySelector('.space-y-6');
+        const insertAfter = aspectsSection || planetInterpretations;
+        if (insertAfter) {
+            insertAfter.parentNode.insertBefore(housesContainer, insertAfter.nextSibling);
+        }
+        
+        const housesList = document.getElementById('housesList');
+        houses.forEach(house => {
+            const houseDiv = document.createElement('div');
+            houseDiv.className = 'mb-6 p-4 border border-primary rounded-lg';
+            
+            const houseNumber = house.house_number;
+            const ordinal = houseNumber === 1 ? 'st' : houseNumber === 2 ? 'nd' : houseNumber === 3 ? 'rd' : 'th';
+            
+            let planetsHtml = '';
+            if (house.planets && house.planets.length > 0) {
+                const planetNames = house.planets.map(p => `${p.name} in ${p.sign}`).join(', ');
+                planetsHtml = `<div class="text-sm text-text-muted mb-2"><strong>Planets:</strong> ${planetNames}</div>`;
+            } else {
+                planetsHtml = '<div class="text-sm text-text-muted mb-2"><strong>Planets:</strong> None</div>';
             }
-        };
-
-        // Populate model options
-        const modelSelect = document.getElementById('model_name');
-        Object.entries(models).forEach(([key, model]) => {
-            const option = document.createElement('option');
-            option.value = key;
-            option.textContent = model.name;
-            modelSelect.appendChild(option);
+            
+            houseDiv.innerHTML = `
+                <h5 class="text-lg font-semibold text-accent mb-2">
+                    ${houseNumber}${ordinal} House: ${house.sign}
+                </h5>
+                <div class="text-sm text-text-muted mb-2">
+                    <strong>Cusp:</strong> ${house.cusp.toFixed(2)}° ${house.sign} | 
+                    <strong>Planets:</strong> ${house.planets.length > 0 ? house.planets.join(', ') : 'None'}
+                </div>
+                ${planetsHtml}
+                ${house.interpretation ? `
+                    <div class="text-accent mt-3">
+                        <strong>Interpretation:</strong><br>
+                        ${house.interpretation.replace(/\n/g, '<br>')}
+                    </div>
+                ` : ''}
+            `;
+            housesList.appendChild(houseDiv);
         });
+    }
 
-        // Update model description
-        modelSelect.addEventListener('change', () => {
-            const model = models[modelSelect.value];
-            document.getElementById('modelDescription').textContent = model.description;
-        });
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('chartForm');
+        const loadingOverlay = document.getElementById('loading');
 
-        // Temperature slider
-        const temperatureSlider = document.getElementById('temperature');
-        const temperatureValue = document.getElementById('temperatureValue');
-        temperatureSlider.addEventListener('input', () => {
-            temperatureValue.textContent = temperatureSlider.value;
-        });
-
-        // Form validation functions
-        function validateDate(date) {
-            const selectedDate = new Date(date);
-            const today = new Date();
-            return selectedDate <= today;
-        }
-
-        function validateTime(time) {
-            return /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time);
-        }
-
-        function validateCoordinates(lat, lon) {
-            return !isNaN(lat) && !isNaN(lon) && 
-                   lat >= -90 && lat <= 90 && 
-                   lon >= -180 && lon <= 180;
-        }
-
-        function validateLocation(location) {
-            return location.length >= 2 && location.length <= 100 && 
-                   /^[a-zA-Z0-9\s,.-]+$/.test(location);
-        }
-
-        // Add real-time validation
-        document.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', function() {
-                const errorDiv = this.parentElement.querySelector('.field-error') || 
-                               document.createElement('div');
-                errorDiv.className = 'field-error text-red-500 text-sm mt-1';
+        if (form && loadingOverlay) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                let error = '';
+                // Show the loading overlay when the form is submitted
+                loadingOverlay.classList.remove('is-hidden');
                 
-                switch(this.id) {
-                    case 'date':
-                        if (!validateDate(this.value)) {
-                            error = 'Date cannot be in the future';
-                        }
-                        break;
-                    case 'time':
-                        if (!validateTime(this.value)) {
-                            error = 'Invalid time format (HH:MM)';
-                        }
-                        break;
-                    case 'latitude':
-                        if (!validateCoordinates(parseFloat(this.value), 0)) {
-                            error = 'Latitude must be between -90 and 90';
-                        }
-                        break;
-                    case 'longitude':
-                        if (!validateCoordinates(0, parseFloat(this.value))) {
-                            error = 'Longitude must be between -180 and 180';
-                        }
-                        break;
-                    case 'location':
-                        if (!validateLocation(this.value)) {
-                            error = 'Location must be 2-100 characters and contain only letters, numbers, spaces, and basic punctuation';
-                        }
-                        break;
-                }
-                
-                if (error) {
-                    errorDiv.textContent = error;
-                    if (!this.parentElement.querySelector('.field-error')) {
-                        this.parentElement.appendChild(errorDiv);
+                try {
+                    // Get form data
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+                    
+                    // Add missing fields with default values
+                    data.temperature = data.temperature || 0.7;
+                    data.max_tokens = data.max_tokens || 1000;
+                    
+                    // Send request to generate endpoint
+                    const response = await fetch('/chart/generate/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Redirect to results page or show results
+                        window.location.href = '/chart/?date=' + encodeURIComponent(data.date) + 
+                                             '&time=' + encodeURIComponent(data.time) + 
+                                             '&latitude=' + encodeURIComponent(data.latitude) + 
+                                             '&longitude=' + encodeURIComponent(data.longitude) + 
+                                             '&location=' + encodeURIComponent(data.location) + 
+                                             '&timezone=' + encodeURIComponent(data.timezone) + 
+                                             '&zodiac_type=' + encodeURIComponent(data.zodiac_type) + 
+                                             '&house_system=' + encodeURIComponent(data.house_system) + 
+                                             '&model_name=' + encodeURIComponent(data.model_name);
+                    } else {
+                        // Show error message
+                        alert('Error: ' + (result.error || 'An error occurred while generating the chart.'));
+                        loadingOverlay.classList.add('is-hidden');
                     }
-                    this.classList.add('border-red-500');
-                } else {
-                    if (this.parentElement.querySelector('.field-error')) {
-                        this.parentElement.querySelector('.field-error').remove();
-                    }
-                    this.classList.remove('border-red-500');
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('An error occurred while generating the chart.');
+                    loadingOverlay.classList.add('is-hidden');
                 }
             });
-        });
-
-        // Add tooltips
-        const tooltips = {
-            'date': 'Enter birth date (cannot be in the future)',
-            'time': 'Enter birth time in 24-hour format (HH:MM)',
-            'latitude': 'Enter latitude between -90 and 90 degrees',
-            'longitude': 'Enter longitude between -180 and 180 degrees',
-            'location': 'Enter city and country (2-100 characters)',
-            'timezone': 'Enter timezone (e.g., America/New_York)',
-            'zodiac_type': 'Choose between Tropical (Western) or Sidereal (Vedic)',
-            'house_system': 'Choose between Placidus (Western) or Whole Sign (Vedic)',
-            'model_name': 'Select AI model for interpretation',
-            'temperature': 'Higher values (0.7-1.0) make output more creative but less focused',
-            'max_tokens': 'Maximum length of interpretation (100-4000)'
-        };
-
-        // Add tooltips to labels
-        document.querySelectorAll('label').forEach(label => {
-            const fieldId = label.getAttribute('for');
-            if (tooltips[fieldId]) {
-                label.title = tooltips[fieldId];
-                label.classList.add('cursor-help');
-            }
-        });
-
-        // Form submission with validation
-        document.getElementById('chartForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            // Reset messages
-            document.getElementById('errorMessage').classList.add('hidden');
-            document.getElementById('successMessage').classList.add('hidden');
-            document.getElementById('results').classList.add('hidden');
-            
-            // Validate all fields before submission
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            
-            let hasErrors = false;
-            
-            // Validate date
-            if (!validateDate(data.date)) {
-                hasErrors = true;
-                document.getElementById('date').classList.add('border-red-500');
-            }
-            
-            // Validate time
-            if (!validateTime(data.time)) {
-                hasErrors = true;
-                document.getElementById('time').classList.add('border-red-500');
-            }
-            
-            // Validate coordinates
-            if (!validateCoordinates(parseFloat(data.latitude), parseFloat(data.longitude))) {
-                hasErrors = true;
-                document.getElementById('latitude').classList.add('border-red-500');
-                document.getElementById('longitude').classList.add('border-red-500');
-            }
-            
-            // Validate location
-            if (!validateLocation(data.location)) {
-                hasErrors = true;
-                document.getElementById('location').classList.add('border-red-500');
-            }
-            
-            if (hasErrors) {
-                const errorMessage = document.getElementById('errorMessage');
-                errorMessage.textContent = 'Please correct the errors in the form before submitting.';
-                errorMessage.classList.remove('hidden');
-                return;
-            }
-            
-            // Show loading state
-            const submitButton = document.getElementById('submitButton');
-            const buttonText = document.getElementById('buttonText');
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            submitButton.disabled = true;
-            buttonText.textContent = 'Generating...';
-            loadingSpinner.classList.remove('hidden');
-
-            try {
-                const response = await fetch('/chart/generate/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const result = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(result.error || 'Network response was not ok');
-                }
-
-                if (result.success) {
-                    // Show success message
-                    const successMessage = document.getElementById('successMessage');
-                    successMessage.textContent = 'Chart generated successfully!';
-                    successMessage.classList.remove('hidden');
-                    
-                    // Update results
-                    document.getElementById('masterInterpretation').innerHTML = formatInterpretation(result.interpretation.master);
-                    document.getElementById('planetInterpretations').innerHTML = Object.entries(result.interpretation.planets).map(
-                        ([planet, interp], idx) => `
-                            <div class="mb-8 p-6 bg-plum2 bg-opacity-10 rounded-xl shadow border-l-8 border-accent text-black">
-                                <h5 class="font-extrabold text-2xl mb-4 text-accent uppercase tracking-widest border-b-2 border-accent pb-2">${planet}</h5>
-                                <div class="text-black font-bold">${formatInterpretation(interp, true)}</div>
-                            </div>
-                        `
-                    ).join('');
-                    document.getElementById('results').classList.remove('hidden');
-                } else {
-                    throw new Error(result.error || 'Unknown error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                const errorMessage = document.getElementById('errorMessage');
-                errorMessage.textContent = error.message || 'An error occurred while generating the chart. Please try again.';
-                errorMessage.classList.remove('hidden');
-            } finally {
-                // Reset loading state
-                submitButton.disabled = false;
-                buttonText.textContent = 'Generate Chart';
-                loadingSpinner.classList.add('hidden');
-            }
-        });
-
-        // Format interpretation text into paragraphs with Tailwind styling
-        function formatInterpretation(text, fineSplit = false) {
-            if (!text) return '';
-            if (fineSplit) {
-                // Split on single or double newlines for more breaks
-                return text
-                    .split(/\n+/)
-                    .map(p => `<p class="mb-3 text-gray-900 font-bold">${p.trim()}</p>`)
-                    .join('');
-            }
-            return text
-                .split(/\n\n+/)
-                .map(p => `<p class="mb-4 text-gray-100">${p.trim()}</p>`)
-                .join('');
         }
-    </script>
 
-    
-</body>
-</html>
+        // Display plugin results if they exist in the page context
+        // Check if aspects data is available in the global scope
+        if (typeof window.aspectsData !== 'undefined' && window.aspectsData && window.aspectsData.length > 0) {
+            displayAspects(window.aspectsData);
+        }
+        
+        if (typeof window.housesData !== 'undefined' && window.housesData && window.housesData.length > 0) {
+            displayHouses(window.housesData);
+        }
+    });
+</script>
+{% endblock %}

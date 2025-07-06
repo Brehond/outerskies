@@ -1,7 +1,6 @@
 # from chart.middleware.auth import APIAuthMiddleware
 from django.test import TestCase, RequestFactory, Client, override_settings
 from django.http import HttpResponse
-from rest_framework_simplejwt.tokens import AccessToken
 from datetime import datetime, timedelta
 import json
 from django.urls import reverse

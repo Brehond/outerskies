@@ -2,16 +2,34 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 import sentry_sdk
+import platform
 
 load_dotenv()
 
 # Initialize Sentry only if DSN is provided
 sentry_dsn = os.getenv("SENTRY_DSN")
 if sentry_dsn and sentry_dsn != "your_sentry_dsn_here":
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.celery import CeleryIntegration
+    from sentry_sdk.integrations.redis import RedisIntegration
+    
     sentry_sdk.init(
         dsn=sentry_dsn,
-        traces_sample_rate=1.0,
-        send_default_pii=False,  # Changed to False for better security
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        traces_sample_rate=0.1,  # Adjust based on traffic
+        send_default_pii=False,
+        environment=os.getenv("ENVIRONMENT", "development"),
+        # Performance monitoring
+        profiles_sample_rate=0.1,
+        # Session tracking
+        auto_session_tracking=True,
+        # Release tracking
+        release=os.getenv("GIT_COMMIT_SHA", "unknown"),
     )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +42,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # Parse ALLOWED_HOSTS from environment variable
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
 
 # Security Headers
 SECURE_BROWSER_XSS_FILTER = True
@@ -40,6 +58,77 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
+# Stripe API Keys
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        'chart_generation': '10/hour',
+        'ai_interpretation': '50/hour',
+    },
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': 'v1',
+    'ALLOWED_VERSIONS': ['v1'],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'api.utils.custom_exception_handler',
+}
+
+# JWT Settings
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+    'JTI_CLAIM': 'jti',
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(hours=1),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -48,11 +137,18 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "drf_spectacular",
+    "django_celery_results",
+    "django_celery_beat",
+    "api",
     "chart",
     "payments",
     "django_prometheus",
     "tailwind",
     "plugins",
+    "plugins.astrology_chat",
+    "monitoring",
 ]
 
 # Custom User Model
@@ -112,14 +208,34 @@ MIDDLEWARE = [
     "chart.middleware.api_version.APIVersionMiddleware",
     "chart.middleware.request_signing.RequestSigningMiddleware",
     "chart.middleware.encryption.EncryptionMiddleware",
+    # Performance monitoring middleware
+    "monitoring.performance_monitor.PerformanceMonitoringMiddleware",
 ]
 
 ROOT_URLCONF = "astrology_ai.urls"
 
+# Build plugin template directories
+plugin_template_dirs = []
+plugins_dir = os.path.join(BASE_DIR, "plugins")
+if os.path.exists(plugins_dir):
+    for item in os.listdir(plugins_dir):
+        plugin_path = os.path.join(plugins_dir, item)
+        if os.path.isdir(plugin_path) and not item.startswith('_'):
+            # Skip management directory
+            if item == 'management':
+                continue
+            # Add template directory if it exists
+            template_dir = os.path.join(plugin_path, 'templates')
+            if os.path.exists(template_dir):
+                plugin_template_dirs.append(template_dir)
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        "DIRS": [
+            os.path.join(BASE_DIR, "templates"),
+            *plugin_template_dirs,  # Add plugin template directories
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -127,6 +243,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "astrology_ai.context_processors.theme_context",
             ],
         },
     },
@@ -268,4 +385,229 @@ ALLOWED_UPLOAD_TYPES = {
 BLOCKED_UPLOAD_EXTENSIONS = {
     '.exe', '.dll', '.bat', '.cmd', '.sh', '.php', '.asp', '.aspx',
     '.jsp', '.js', '.vbs', '.ps1', '.py', '.rb', '.pl'
-} 
+}
+
+# DRF Spectacular Settings for API Documentation
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Outer Skies API',
+    'DESCRIPTION': '''
+    # Outer Skies - AI-Powered Astrology Chart Analysis API
+    
+    This API provides comprehensive astrology chart generation and interpretation services.
+    
+    ## Features
+    - Birth chart calculation using Swiss Ephemeris
+    - AI-powered chart interpretation
+    - User authentication and profile management
+    - Subscription and payment management
+    - Theme system with 75+ color palettes
+    
+    ## Authentication
+    This API uses JWT (JSON Web Token) authentication. Include the token in the Authorization header:
+    ```
+    Authorization: Bearer <your_token>
+    ```
+    
+    ## Rate Limiting
+    - Anonymous users: 100 requests/hour
+    - Authenticated users: 1000 requests/hour
+    - Chart generation: 10 requests/hour
+    - AI interpretation: 50 requests/hour
+    
+    ## Getting Started
+    1. Register a new account using `/api/v1/auth/register/`
+    2. Login to get your access token using `/api/v1/auth/login/`
+    3. Use the token to access protected endpoints
+    ''',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': '/api/v1/',
+    'CONTACT': {
+        'name': 'Outer Skies Support',
+        'email': 'support@outerskies.com',
+    },
+    'LICENSE': {
+        'name': 'MIT License',
+        'url': 'https://opensource.org/licenses/MIT',
+    },
+    'TAGS': [
+        {'name': 'authentication', 'description': 'User authentication and authorization'},
+        {'name': 'charts', 'description': 'Astrological chart generation and management'},
+        {'name': 'interpretations', 'description': 'AI-powered chart interpretations'},
+        {'name': 'subscriptions', 'description': 'Subscription and payment management'},
+        {'name': 'system', 'description': 'System information and health checks'},
+        {'name': 'users', 'description': 'User profile and account management'},
+    ],
+    'SECURITY': [
+        {
+            'Bearer': []
+        }
+    ],
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+    },
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': True,
+        'hideHostname': False,
+        'hideLoading': False,
+    },
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://127.0.0.1:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+# Windows-specific Celery settings
+if platform.system() == 'Windows':
+    # Windows-specific broker settings
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        'visibility_timeout': 3600,
+        'fanout_prefix': True,
+        'fanout_patterns': True,
+        'socket_connect_timeout': 10,
+        'socket_timeout': 10,
+        'retry_on_timeout': True,
+        'max_connections': 20,
+        'connection_pool': {
+            'max_connections': 20,
+            'retry_on_timeout': True,
+        }
+    }
+    
+    # Windows-specific worker settings
+    CELERY_WORKER_POOL = 'solo'  # Use solo pool on Windows
+    CELERY_WORKER_CONCURRENCY = 1
+    CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+    
+    # Disable some features that cause issues on Windows
+    CELERY_WORKER_DISABLE_RATE_LIMITS = True
+    CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+    
+    # Windows-specific result backend settings
+    CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+        'visibility_timeout': 3600,
+        'socket_connect_timeout': 10,
+        'socket_timeout': 10,
+        'retry_on_timeout': True,
+    }
+else:
+    # Linux/Unix settings
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        'visibility_timeout': 3600,
+        'fanout_prefix': True,
+        'fanout_patterns': True,
+        'socket_connect_timeout': 5,
+        'socket_timeout': 5,
+        'retry_on_timeout': True,
+    }
+    
+    CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+    CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Celery Broker Connection Settings
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+
+# Celery Task Settings
+CELERY_TASK_ROUTES = {
+    'chart.tasks.generate_chart_task': {'queue': 'chart_generation'},
+    'chart.tasks.generate_interpretation_task': {'queue': 'ai_processing'},
+    'chart.tasks.calculate_ephemeris_task': {'queue': 'ephemeris'},
+}
+
+# Celery Beat Settings (for periodic tasks)
+CELERY_BEAT_SCHEDULE = {
+    'cleanup-old-tasks': {
+        'task': 'chart.tasks.cleanup_old_tasks',
+        'schedule': 3600.0,  # Every hour
+    },
+    'health-check': {
+        'task': 'chart.tasks.health_check',
+        'schedule': 300.0,  # Every 5 minutes
+    },
+}
+
+# Celery Task Timeouts
+CELERY_TASK_SOFT_TIME_LIMIT = 300  # 5 minutes
+CELERY_TASK_TIME_LIMIT = 600  # 10 minutes
+
+# Development environment detection
+CELERY_ALWAYS_EAGER = os.getenv('CELERY_ALWAYS_EAGER', 'False').lower() == 'true'
+CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+
+# Redis Configuration
+REDIS_HOST = os.getenv('REDIS_HOST', '127.0.0.1')
+REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+REDIS_DB = int(os.getenv('REDIS_DB', 0))
+REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+
+# Cache Configuration with Redis fallback
+def get_cache_config():
+    """Get cache configuration with fallback to local memory if Redis is unavailable."""
+    try:
+        import redis
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
+        r.ping()
+        # Redis is available, use it
+        return {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
+                'OPTIONS': {
+                    'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                    'PASSWORD': REDIS_PASSWORD,
+                    'CONNECTION_POOL_KWARGS': {
+                        'max_connections': 50,
+                        'retry_on_timeout': True,
+                        'socket_connect_timeout': 5,
+                        'socket_timeout': 5,
+                    },
+                    'SOCKET_CONNECT_TIMEOUT': 5,
+                    'SOCKET_TIMEOUT': 5,
+                    'RETRY_ON_TIMEOUT': True,
+                    'MAX_CONNECTIONS': 50,
+                }
+            }
+        }
+    except Exception:
+        # Redis is not available, use local memory cache
+        return {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'LOCATION': 'unique-snowflake',
+                'TIMEOUT': 300,  # 5 minutes
+                'OPTIONS': {
+                    'MAX_ENTRIES': 1000,
+                    'CULL_FREQUENCY': 3,
+                }
+            }
+        }
+
+CACHES = get_cache_config()
+
+# Email Configuration (for development)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'localhost'
+EMAIL_PORT = 1025
+EMAIL_HOST_USER = ''
+EMAIL_HOST_PASSWORD = ''
+EMAIL_USE_TLS = False
+DEFAULT_FROM_EMAIL = 'noreply@outerskies.com'
+
+# For production, use SMTP:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+# EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+# EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@outerskies.com') 

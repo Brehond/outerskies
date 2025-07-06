@@ -3,13 +3,15 @@ import logging
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from .services.ephemeris import (
     get_julian_day,
     get_planet_positions,
     get_ascendant_and_houses,
+    get_chart_data,
     SIGN_NAMES
 )
+from .services.caching import ephemeris_cache, ai_cache, user_cache
 from ai_integration.openrouter_api import generate_interpretation, get_available_models
 from .prompts import prompt_manager
 import pytz
@@ -20,6 +22,10 @@ from django.core.cache import cache
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
 import os
+import hashlib
+from django.contrib.admin.views.decorators import staff_member_required
+from monitoring.health_checks import get_system_health
+from monitoring.performance_monitor import get_performance_summary
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +112,9 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
         if not timezone_str:
             return {}, "Missing timezone field"
                 
+        # Set default interpretation type if not provided
+        interpretation_type = data.get('interpretation_type', 'comprehensive')
+        
         # Date validation
         try:
             datetime.strptime(data['date'], '%Y-%m-%d')
@@ -165,40 +174,51 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
             'house_system': data['house_system'],
             'model_name': data['model_name'],
             'temperature': temp,
-            'max_tokens': tokens
+            'max_tokens': tokens,
+            'interpretation_type': interpretation_type
         }, None
         
     except Exception as e:
         logger.error(f"Validation error: {str(e)}")
         return {}, f"Validation error: {str(e)}"
 
-def calculate_chart_data(utc_date: str, utc_time: str, lat: float, lon: float, zodiac_type: str, house_system: str) -> Tuple[Dict[str, Any], Optional[str]]:
+def calculate_chart_data_with_caching(utc_date: str, utc_time: str, lat: float, lon: float, 
+                                    zodiac_type: str, house_system: str, timezone_str: str) -> Tuple[Dict[str, Any], Optional[str]]:
     """
-    Calculate chart data using ephemeris.
+    Calculate chart data using ephemeris with caching support.
     
     Returns:
         Tuple of (chart data dict, error message if any)
     """
     try:
-        jd = get_julian_day(utc_date, utc_time)
-        positions = get_planet_positions(jd, lat, lon, zodiac_type=zodiac_type)
-        asc, houses, house_signs = get_ascendant_and_houses(jd, lat, lon, house_system=house_system)
-
-        return {
-            'julian_day': jd,
-            'positions': positions,
-            'ascendant': asc,
-            'houses': houses,
-            'house_signs': house_signs,
-            'birth_date': utc_date,
-            'birth_time': utc_time,
-            'location': lon
-        }, None
+        # Create birth data for caching
+        birth_data = {
+            'date': utc_date,
+            'time': utc_time,
+            'latitude': lat,
+            'longitude': lon,
+            'timezone': timezone_str,
+            'zodiac_type': zodiac_type,
+            'house_system': house_system
+        }
+        
+        # Try to get from cache first
+        cached_result = ephemeris_cache.get_ephemeris_calculation(birth_data)
+        if cached_result:
+            logger.info(f"Using cached chart data for {utc_date} {utc_time}")
+            return cached_result, None
+        
+        # Calculate if not in cache
+        logger.info(f"Calculating chart data for {utc_date} {utc_time}")
+        chart_data = get_chart_data(utc_date, utc_time, lat, lon, timezone_str, zodiac_type, house_system)
+        
+        return chart_data, None
+        
     except Exception as e:
-        logger.error(f"Chart calculation failed: {e}")
-        return {}, f"Chart calculation failed: {str(e)}"
+        logger.error(f"Error calculating chart data: {e}")
+        return {}, str(e)
 
-def generate_planet_interpretations(
+def generate_planet_interpretations_with_caching(
     chart_data: Dict[str, Any],
     utc_date: str,
     utc_time: str,
@@ -208,62 +228,98 @@ def generate_planet_interpretations(
     max_tokens: int
 ) -> Dict[str, str]:
     """
-    Generate interpretations for each planet.
+    Generate planet interpretations with caching support.
     """
-    planet_results = {}
-    asc_sign = chart_data['ascendant'].get("sign", "")
-    asc_sign_index = SIGN_NAMES.index(asc_sign) if asc_sign in SIGN_NAMES else 0
+    try:
+        # Create cache key for interpretations
+        interpretation_key = {
+            'chart_data': chart_data,
+            'model_name': model_name,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+            'interpretation_type': 'planetary'
+        }
+        
+        # Try to get from cache
+        cached_interpretations = ai_cache.get_interpretation(
+            interpretation_key, model_name, temperature
+        )
+        if cached_interpretations:
+            logger.info("Using cached planet interpretations")
+            return cached_interpretations
+        
+        # Generate if not in cache
+        logger.info("Generating planet interpretations")
+        interpretations = {}
+        
+        # Get planetary positions
+        positions = chart_data.get('planetary_positions', {})
+        
+        for planet, pos in positions.items():
+            if planet in ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']:
+                try:
+                    # Get aspects for this planet
+                    planet_aspects = pos.get('aspects', [])
+                    aspect_summary = ""
+                    
+                    if planet_aspects:
+                        aspect_descriptions = []
+                        for aspect in planet_aspects:
+                            aspect_type = aspect.get('type', '')
+                            aspect_planet = aspect.get('planet', '')
+                            aspect_orb = aspect.get('orb', 0)
+                            if aspect_type and aspect_planet:
+                                aspect_descriptions.append(f"{aspect_type} {aspect_planet} (orb: {aspect_orb:.1f}°)")
+                        aspect_summary = "; ".join(aspect_descriptions)
+                    
+                    # Get dignity status
+                    dignity_status = pos.get('dignity', 'Neutral')
+                    
+                    # Debug logging for planet house positions
+                    planet_house = pos.get('house', 1)
+                    logger.debug(f"Planet {planet} - house: {planet_house}, sign: {pos.get('sign', '')}, position: {pos.get('absolute_degree', 0.0)}")
+                    
+                    # Get planet-specific prompt
+                    prompt = prompt_manager.format_planet_prompt(
+                        planet,
+                        date=utc_date,
+                        time=utc_time,
+                        location=location,
+                        sign=pos.get('sign', ''),
+                        house=planet_house,
+                        position=pos.get('absolute_degree', 0.0),
+                        retrograde_status=pos.get('retrograde', ''),
+                        aspect_summary=aspect_summary,
+                        dignity_status=dignity_status
+                    )
+                    
+                    # Check if prompt is empty or None
+                    if not prompt:
+                        logger.warning(f"Empty prompt generated for {planet}, using fallback")
+                        interpretations[planet] = f"Unable to generate interpretation for {planet} due to missing prompt data."
+                        continue
+                    
+                    # Generate interpretation
+                    interpretation = generate_interpretation(
+                        prompt, model_name, temperature, max_tokens
+                    )
+                    
+                    interpretations[planet] = interpretation
+                    
+                except Exception as e:
+                    logger.error(f"Error generating interpretation for {planet}: {e}")
+                    interpretations[planet] = f"Error generating interpretation for {planet}: {str(e)}"
+        
+        # Cache the interpretations
+        ai_cache.cache_interpretation(interpretation_key, interpretations, model_name, temperature)
+        
+        return interpretations
+        
+    except Exception as e:
+        logger.error(f"Error in generate_planet_interpretations_with_caching: {e}")
+        return {"error": f"Failed to generate interpretations: {str(e)}"}
 
-    for planet, pos in chart_data['positions'].items():
-        try:
-            logger.debug(f"Generating interpretation for {planet}...")
-            # Extract position data
-            abs_degree = pos.get("absolute_degree", 0.0)
-            sign = pos.get("sign", "")
-            degree_in_sign = pos.get("degree_in_sign", 0.0)
-            retrograde_status = pos.get("retrograde", "")
-            
-            # Calculate house
-            sign_index = SIGN_NAMES.index(sign) if sign in SIGN_NAMES else 0
-            house = ((int(abs_degree) // 30 - asc_sign_index) % 12) + 1
-
-            # Get and format prompt
-            prompt_template = prompt_manager.get_planet_prompt(planet)
-            if not prompt_template:
-                logger.warning(f"No prompt template found for {planet}")
-                continue
-
-            prompt = prompt_template.format(
-                date=utc_date,
-                time=utc_time,
-                location=location,
-                sign=sign,
-                house=house,
-                position=abs_degree,
-                retrograde_status=retrograde_status,
-                aspect_summary="",  # TODO: Add aspect calculation
-                dignity_status=""   # TODO: Add dignity calculation
-            )
-
-            logger.debug(f"Calling AI for {planet} with model {model_name}...")
-            # Generate interpretation
-            interpretation = generate_interpretation(
-                prompt,
-                model_name=model_name,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-            
-            planet_results[planet] = interpretation
-            logger.debug(f"Successfully generated interpretation for {planet}")
-            
-        except Exception as e:
-            logger.error(f"Error generating interpretation for {planet}: {e}")
-            planet_results[planet] = f"Failed to generate interpretation: {str(e)}"
-
-    return planet_results
-
-def generate_master_interpretation(
+def generate_master_interpretation_with_caching(
     chart_data: Dict[str, Any],
     utc_date: str,
     utc_time: str,
@@ -273,96 +329,149 @@ def generate_master_interpretation(
     max_tokens: int
 ) -> str:
     """
-    Generate master chart interpretation.
+    Generate master interpretation with caching support.
     """
     try:
-        # Extract planetary positions
-        positions = chart_data['positions']
-        ascendant = chart_data['ascendant']
-        houses = chart_data['houses']
-        
-        # Format planetary positions
-        planet_data = {}
-        for planet in ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']:
-            pos = positions.get(planet, {})
-            sign = pos.get('sign', '')
-            house = pos.get('house', 1)
-            planet_data[f'{planet.lower()}_sign'] = sign
-            planet_data[f'{planet.lower()}_house'] = house
-        
-        # Format ascendant and midheaven
-        asc_sign = ascendant.get('sign', '')
-        asc_degree = ascendant.get('degree_in_sign', 0)
-        
-        # Compute MC from the 10th house cusp (index 9)
-        mc_degree = houses[9]
-        mc_sign = chart_data['house_signs'][9]
-        
-        # Format aspects and dignities (placeholders for now)
-        aspects = "No major aspects"  # TODO: Add aspect calculation
-        dignities = "No special dignities"  # TODO: Add dignity calculation
-        
-        # Prepare all required keys for the master prompt
-        master_prompt_data = {
-            'date': utc_date,
-            'time': utc_time,
-            'location': location,
-            'sun_sign': planet_data['sun_sign'],
-            'sun_house': planet_data['sun_house'],
-            'moon_sign': planet_data['moon_sign'],
-            'moon_house': planet_data['moon_house'],
-            'mercury_sign': planet_data['mercury_sign'],
-            'mercury_house': planet_data['mercury_house'],
-            'venus_sign': planet_data['venus_sign'],
-            'venus_house': planet_data['venus_house'],
-            'mars_sign': planet_data['mars_sign'],
-            'mars_house': planet_data['mars_house'],
-            'jupiter_sign': planet_data['jupiter_sign'],
-            'jupiter_house': planet_data['jupiter_house'],
-            'saturn_sign': planet_data['saturn_sign'],
-            'saturn_house': planet_data['saturn_house'],
-            'uranus_sign': planet_data['uranus_sign'],
-            'uranus_house': planet_data['uranus_house'],
-            'neptune_sign': planet_data['neptune_sign'],
-            'neptune_house': planet_data['neptune_house'],
-            'pluto_sign': planet_data['pluto_sign'],
-            'pluto_house': planet_data['pluto_house'],
-            'ascendant': f"{asc_sign} {asc_degree}°",
-            'midheaven': f"{mc_sign} {mc_degree}°",
-            'aspects': aspects,
-            'dignities': dignities
+        # Create cache key for master interpretation
+        interpretation_key = {
+            'chart_data': chart_data,
+            'model_name': model_name,
+            'temperature': temperature,
+            'max_tokens': max_tokens,
+            'interpretation_type': 'master'
         }
+        
+        # Try to get from cache
+        cached_interpretation = ai_cache.get_interpretation(
+            interpretation_key, model_name, temperature
+        )
+        if cached_interpretation:
+            logger.info("Using cached master interpretation")
+            return cached_interpretation
+        
+        # Generate if not in cache
+        logger.info("Generating master interpretation")
+        
+        # Get master prompt
+        positions = chart_data.get('planetary_positions', {})
+        ascendant = chart_data.get('ascendant', {})
+        houses = chart_data.get('house_cusps', [])
+        
+        # Debug logging to see what we're getting
+        logger.debug(f"Chart data keys: {list(chart_data.keys())}")
+        logger.debug(f"Planetary positions keys: {list(positions.keys())}")
+        logger.debug(f"Sun data: {positions.get('Sun', {})}")
+        logger.debug(f"Moon data: {positions.get('Moon', {})}")
+        logger.debug(f"Mercury data: {positions.get('Mercury', {})}")
+        logger.debug(f"Venus data: {positions.get('Venus', {})}")
+        logger.debug(f"Mars data: {positions.get('Mars', {})}")
+        logger.debug(f"Jupiter data: {positions.get('Jupiter', {})}")
+        logger.debug(f"Saturn data: {positions.get('Saturn', {})}")
+        logger.debug(f"Uranus data: {positions.get('Uranus', {})}")
+        logger.debug(f"Neptune data: {positions.get('Neptune', {})}")
+        logger.debug(f"Pluto data: {positions.get('Pluto', {})}")
+        
+        try:
+            asc_sign = ascendant.get('sign', '')
+            asc_deg = ascendant.get('degree_in_sign', 0.0)
+            if not isinstance(asc_sign, str):
+                asc_sign = str(asc_sign)
+            if not isinstance(asc_deg, (float, int)):
+                try:
+                    asc_deg = float(asc_deg)
+                except Exception:
+                    asc_deg = 0.0
+            ascendant_str = f"{asc_sign} {asc_deg}°"
 
-        # Debug log all master prompt data
-        logger.debug(f"Master prompt data: {master_prompt_data}")
+            midheaven_str = ''
+            if isinstance(houses, list) and len(houses) > 9:
+                mh = houses[9]
+                if isinstance(mh, (float, int)):
+                    midheaven_str = f"{mh}°"
+                else:
+                    try:
+                        midheaven_str = f"{float(mh)}°"
+                    except Exception:
+                        midheaven_str = ''
 
-        # Check for missing or None values
-        missing_keys = [k for k, v in master_prompt_data.items() if v is None or v == '']
-        if missing_keys:
-            logger.error(f"Missing or empty values for master prompt: {missing_keys}")
-            return f"Failed to generate master interpretation: Missing or empty values for {', '.join(missing_keys)}"
+            # Get aspects for master interpretation
+            all_aspects = chart_data.get('aspects', {})
+            aspect_summary = ""
+            
+            if all_aspects:
+                aspect_descriptions = []
+                for planet, aspects in all_aspects.items():
+                    for aspect in aspects:
+                        aspect_type = aspect.get('type', '')
+                        aspect_planet = aspect.get('planet', '')
+                        aspect_orb = aspect.get('orb', 0)
+                        if aspect_type and aspect_planet:
+                            aspect_descriptions.append(f"{planet} {aspect_type} {aspect_planet} (orb: {aspect_orb:.1f}°)")
+                aspect_summary = "; ".join(aspect_descriptions[:10])  # Limit to first 10 aspects
 
-        # Format chart data into prompt
+            master_prompt_data = {
+                'date': str(utc_date),
+                'time': str(utc_time),
+                'location': str(location),
+                'sun_sign': str(positions.get('Sun', {}).get('sign', '')),
+                'sun_house': str(positions.get('Sun', {}).get('house', 1)),
+                'moon_sign': str(positions.get('Moon', {}).get('sign', '')),
+                'moon_house': str(positions.get('Moon', {}).get('house', 1)),
+                'mercury_sign': str(positions.get('Mercury', {}).get('sign', '')),
+                'mercury_house': str(positions.get('Mercury', {}).get('house', 1)),
+                'venus_sign': str(positions.get('Venus', {}).get('sign', '')),
+                'venus_house': str(positions.get('Venus', {}).get('house', 1)),
+                'mars_sign': str(positions.get('Mars', {}).get('sign', '')),
+                'mars_house': str(positions.get('Mars', {}).get('house', 1)),
+                'jupiter_sign': str(positions.get('Jupiter', {}).get('sign', '')),
+                'jupiter_house': str(positions.get('Jupiter', {}).get('house', 1)),
+                'saturn_sign': str(positions.get('Saturn', {}).get('sign', '')),
+                'saturn_house': str(positions.get('Saturn', {}).get('house', 1)),
+                'uranus_sign': str(positions.get('Uranus', {}).get('sign', '')),
+                'uranus_house': str(positions.get('Uranus', {}).get('house', 1)),
+                'neptune_sign': str(positions.get('Neptune', {}).get('sign', '')),
+                'neptune_house': str(positions.get('Neptune', {}).get('house', 1)),
+                'pluto_sign': str(positions.get('Pluto', {}).get('sign', '')),
+                'pluto_house': str(positions.get('Pluto', {}).get('house', 1)),
+                'ascendant': ascendant_str,
+                'midheaven': midheaven_str,
+                'aspects': aspect_summary,
+                'dignities': '' # TODO: Add dignity calculation
+            }
+        except TypeError as e:
+            logger.error(f"TypeError constructing master_prompt_data: {e}")
+            logger.error(f"positions: {positions}")
+            logger.error(f"ascendant: {ascendant}")
+            logger.error(f"houses: {houses}")
+            raise
+
+        # Ensure all values are strings
+        master_prompt_data = {k: str(v) for k, v in master_prompt_data.items()}
+
+        # Log types and values for debugging
+        for k, v in master_prompt_data.items():
+            logger.info(f"master_prompt_data[{k!r}] = {v!r} (type: {type(v)})")
+
         prompt = prompt_manager.format_master_prompt(**master_prompt_data)
         
+        # Check if prompt is empty or None
         if not prompt:
-            raise ValueError("Failed to format master prompt")
+            logger.warning("Empty prompt generated for master interpretation, using fallback")
+            return "Unable to generate master interpretation due to missing prompt data."
         
-        logger.debug(f"Calling AI for master interpretation with model {model_name}...")
         # Generate interpretation
-        result = generate_interpretation(
-            prompt,
-            model_name=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens
+        interpretation = generate_interpretation(
+            prompt, model_name, temperature, max_tokens
         )
         
-        logger.debug("Successfully generated master interpretation")
-        return result
+        # Cache the interpretation
+        ai_cache.cache_interpretation(interpretation_key, interpretation, model_name, temperature)
+        
+        return interpretation
         
     except Exception as e:
-        logger.error(f"Error generating master interpretation: {e}")
-        return f"Failed to generate master interpretation: {str(e)}"
+        logger.error(f"Error in generate_master_interpretation_with_caching: {e}")
+        return f"Error generating master interpretation: {str(e)}"
 
 def check_rate_limit(request):
     """
@@ -420,13 +529,14 @@ def chart_form(request):
             logger.debug(f"Converted to UTC: {utc_date} {utc_time}")
             
             # Calculate chart data
-            chart_data, error = calculate_chart_data(
+            chart_data, error = calculate_chart_data_with_caching(
                 utc_date,
                 utc_time,
                 params['latitude'],
                 params['longitude'],
                 params['zodiac_type'],
-                params['house_system']
+                params['house_system'],
+                params['timezone_str']
             )
             if error:
                 return JsonResponse({"success": False, "error": error}, status=500)
@@ -434,7 +544,7 @@ def chart_form(request):
             
             # Generate interpretations
             logger.debug("Starting planet interpretations generation...")
-            planet_interpretations = generate_planet_interpretations(
+            planet_interpretations = generate_planet_interpretations_with_caching(
                 chart_data,
                 utc_date,
                 utc_time,
@@ -446,7 +556,7 @@ def chart_form(request):
             logger.debug("Generated planet interpretations")
             
             logger.debug("Starting master interpretation generation...")
-            master_interpretation = generate_master_interpretation(
+            master_interpretation = generate_master_interpretation_with_caching(
                 chart_data,
                 utc_date,
                 utc_time,
@@ -456,6 +566,76 @@ def chart_form(request):
                 params['max_tokens']
             )
             logger.debug("Generated master interpretation")
+            
+            # Plugin integration - Aspect Generator
+            aspect_results = []
+            aspect_orb = None
+            aspects_enabled = False
+            try:
+                aspect_orb = float(data.get('aspect_orb', 8.0))
+            except Exception:
+                aspect_orb = 8.0
+            aspects_enabled = str(data.get('aspects_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+            if aspects_enabled:
+                try:
+                    from plugins import get_plugin_manager
+                    plugin_manager = get_plugin_manager()
+                    aspect_plugin = plugin_manager.get_plugin('aspect_generator')
+                    if aspect_plugin:
+                        aspect_results = aspect_plugin.calculate_aspects(chart_data, orb=aspect_orb)
+                        # Add AI interpretations using the same settings as main chart generation
+                        for aspect in aspect_results:
+                            aspect['interpretation'] = aspect_plugin.generate_aspect_interpretation(
+                                aspect, 
+                                chart_data,
+                                model_name=params['model_name'],
+                                temperature=params['temperature'],
+                                max_tokens=params['max_tokens']
+                            )
+                except Exception as e:
+                    logger.error(f"Error generating aspects: {e}")
+                    aspect_results = []
+            
+            # Plugin integration - House Generator
+            house_results = []
+            houses_enabled = False
+            include_house_planets = False
+            houses_enabled = str(data.get('houses_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+            include_house_planets = str(data.get('include_house_planets', 'true')).lower() in ['true', '1', 'yes', 'on']
+            if houses_enabled:
+                try:
+                    from plugins import get_plugin_manager
+                    plugin_manager = get_plugin_manager()
+                    house_plugin = plugin_manager.get_plugin('house_generator')
+                    if house_plugin:
+                        house_results = house_plugin.generate_house_interpretations(
+                            chart_data,
+                            include_planets=include_house_planets,
+                            model_name=params['model_name'],
+                            temperature=params['temperature'],
+                            max_tokens=params['max_tokens']
+                        )
+                except Exception as e:
+                    logger.error(f"Error generating houses: {e}")
+                    house_results = []
+            
+            form_data = data
+
+            # Create a unique key for caching
+            request_params = json.dumps(sorted(data.items()), sort_keys=True)
+            request_hash = hashlib.md5(request_params.encode('utf-8')).hexdigest()
+            cache_key = f'chart_results_{request_hash}'
+
+            # Store the new results in the session
+            results_to_cache = {
+                'chart_data': chart_data,
+                'master_interpretation': master_interpretation,
+                'planet_interpretations': planet_interpretations,
+                'form_data': form_data,
+                'aspects': aspect_results,
+                'houses': house_results,
+            }
+            request.session[cache_key] = results_to_cache
             
             # Return results
             return JsonResponse({
@@ -482,13 +662,189 @@ def chart_form(request):
             }, status=500)
             
     else:  # GET request
-        # Get available models
-        available_models = prompt_manager.get_available_models()
+        aspect_results = []
+        house_results = []
         
-        return render(request, 'chart_form.html', {
-            'available_models': available_models
-        })
+        # Check if we have query parameters for displaying results
+        if request.GET.get('date') and request.GET.get('time'):
+            try:
+                # Create a unique key for the current request's parameters to use for caching
+                request_params = json.dumps(sorted(request.GET.items()), sort_keys=True)
+                request_hash = hashlib.md5(request_params.encode('utf-8')).hexdigest()
+                cache_key = f'chart_results_{request_hash}'
 
+                # Check if we have cached results in the session
+                cached_results = request.session.get(cache_key)
+
+                if cached_results:
+                    logger.info(f"Using cached chart results for key: {cache_key}")
+                    chart_data = cached_results['chart_data']
+                    master_interpretation = cached_results['master_interpretation']
+                    planet_interpretations = cached_results['planet_interpretations']
+                    form_data = cached_results['form_data']
+                    aspect_results = cached_results.get('aspects', [])
+                    house_results = cached_results.get('houses', [])
+                else:
+                    logger.info(f"No cached results found. Calculating new chart for key: {cache_key}")
+                    # Extract parameters from query string
+                    data = {
+                        'date': request.GET.get('date'),
+                        'time': request.GET.get('time'),
+                        'latitude': float(request.GET.get('latitude', 0)),
+                        'longitude': float(request.GET.get('longitude', 0)),
+                        'location': request.GET.get('location', ''),
+                        'timezone': request.GET.get('timezone', 'America/Halifax'),
+                        'zodiac_type': request.GET.get('zodiac_type', 'tropical'),
+                        'house_system': request.GET.get('house_system', 'whole_sign'),
+                        'model_name': request.GET.get('model_name', 'gpt-4'),
+                        'interpretation_type': request.GET.get('interpretation_type', 'comprehensive'),
+                        'temperature': 0.7,
+                        'max_tokens': 1000
+                    }
+                    
+                    # Validate input
+                    params, error = validate_input(data)
+                    if error:
+                        return render(request, 'chart_form.html', {
+                            'available_models': prompt_manager.get_available_models(),
+                            'error_message': error
+                        })
+                        
+                    # Convert to UTC
+                    utc_date, utc_time = local_to_utc(
+                        params['date'],
+                        params['time'],
+                        params['timezone_str']
+                    )
+                    
+                    # Calculate chart data
+                    chart_data, error = calculate_chart_data_with_caching(
+                        utc_date,
+                        utc_time,
+                        params['latitude'],
+                        params['longitude'],
+                        params['zodiac_type'],
+                        params['house_system'],
+                        params['timezone_str']
+                    )
+                    if error:
+                        return render(request, 'chart_form.html', {
+                            'available_models': prompt_manager.get_available_models(),
+                            'error_message': error
+                        })
+                    
+                    # Generate interpretations
+                    planet_interpretations = generate_planet_interpretations_with_caching(
+                        chart_data,
+                        utc_date,
+                        utc_time,
+                        params['location'],
+                        params['model_name'],
+                        params['temperature'],
+                        params['max_tokens']
+                    )
+                    
+                    master_interpretation = generate_master_interpretation_with_caching(
+                        chart_data,
+                        utc_date,
+                        utc_time,
+                        params['location'],
+                        params['model_name'],
+                        params['temperature'],
+                        params['max_tokens']
+                    )
+                    
+                    # Plugin integration - Aspect Generator
+                    aspect_orb = None
+                    aspects_enabled = False
+                    try:
+                        aspect_orb = float(data.get('aspect_orb', 8.0))
+                    except Exception:
+                        aspect_orb = 8.0
+                    aspects_enabled = str(data.get('aspects_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+                    if aspects_enabled:
+                        try:
+                            from plugins import get_plugin_manager
+                            plugin_manager = get_plugin_manager()
+                            aspect_plugin = plugin_manager.get_plugin('aspect_generator')
+                            if aspect_plugin:
+                                aspect_results = aspect_plugin.calculate_aspects(chart_data, orb=aspect_orb)
+                                # Add AI interpretations using the same settings as main chart generation
+                                for aspect in aspect_results:
+                                    aspect['interpretation'] = aspect_plugin.generate_aspect_interpretation(
+                                        aspect, 
+                                        chart_data,
+                                        model_name=params['model_name'],
+                                        temperature=params['temperature'],
+                                        max_tokens=params['max_tokens']
+                                    )
+                        except Exception as e:
+                            logger.error(f"Error generating aspects: {e}")
+                            aspect_results = []
+                    
+                    # Plugin integration - House Generator
+                    houses_enabled = False
+                    include_house_planets = False
+                    houses_enabled = str(data.get('houses_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+                    include_house_planets = str(data.get('include_house_planets', 'true')).lower() in ['true', '1', 'yes', 'on']
+                    if houses_enabled:
+                        try:
+                            from plugins import get_plugin_manager
+                            plugin_manager = get_plugin_manager()
+                            house_plugin = plugin_manager.get_plugin('house_generator')
+                            if house_plugin:
+                                house_results = house_plugin.generate_house_interpretations(
+                                    chart_data,
+                                    include_planets=include_house_planets,
+                                    model_name=params['model_name'],
+                                    temperature=params['temperature'],
+                                    max_tokens=params['max_tokens']
+                                )
+                        except Exception as e:
+                            logger.error(f"Error generating houses: {e}")
+                            house_results = []
+                    
+                    form_data = data
+
+                    # Store the new results in the session
+                    results_to_cache = {
+                        'chart_data': chart_data,
+                        'master_interpretation': master_interpretation,
+                        'planet_interpretations': planet_interpretations,
+                        'form_data': form_data,
+                        'aspects': aspect_results,
+                        'houses': house_results,
+                    }
+                    request.session[cache_key] = results_to_cache
+                
+                # Return results from cache or new calculation
+                return render(request, 'chart_form.html', {
+                    'available_models': prompt_manager.get_available_models(),
+                    'chart_data': chart_data,
+                    'master_interpretation': master_interpretation,
+                    'planet_interpretations': planet_interpretations,
+                    'form_data': form_data,
+                    'aspects': aspect_results,
+                    'houses': house_results,
+                })
+                
+            except Exception as e:
+                logger.error(f"Error processing GET request with parameters: {e}")
+                return render(request, 'chart_form.html', {
+                    'available_models': prompt_manager.get_available_models(),
+                    'error_message': f"Error processing request: {str(e)}",
+                    'aspects': aspect_results,
+                    'houses': house_results,
+                })
+        else:
+            # Regular form display
+            available_models = prompt_manager.get_available_models()
+            
+            return render(request, 'chart_form.html', {
+                'available_models': available_models
+            })
+
+@csrf_exempt
 @ensure_csrf_cookie
 @require_http_methods(["POST"])
 def generate_chart(request):
@@ -531,13 +887,14 @@ def generate_chart(request):
         logger.debug(f"Converted to UTC: {utc_date} {utc_time}")
         
         # Calculate chart data
-        chart_data, error = calculate_chart_data(
+        chart_data, error = calculate_chart_data_with_caching(
             utc_date,
             utc_time,
             params['latitude'],
             params['longitude'],
             params['zodiac_type'],
-            params['house_system']
+            params['house_system'],
+            params['timezone_str']
         )
         if error:
             return JsonResponse({"success": False, "error": error}, status=500)
@@ -545,7 +902,7 @@ def generate_chart(request):
         
         # Generate interpretations
         logger.debug("Starting planet interpretations generation...")
-        planet_interpretations = generate_planet_interpretations(
+        planet_interpretations = generate_planet_interpretations_with_caching(
             chart_data,
             utc_date,
             utc_time,
@@ -557,7 +914,7 @@ def generate_chart(request):
         logger.debug("Generated planet interpretations")
         
         logger.debug("Starting master interpretation generation...")
-        master_interpretation = generate_master_interpretation(
+        master_interpretation = generate_master_interpretation_with_caching(
             chart_data,
             utc_date,
             utc_time,
@@ -568,6 +925,60 @@ def generate_chart(request):
         )
         logger.debug("Generated master interpretation")
         
+        # Plugin integration - Aspect Generator
+        aspect_results = []
+        aspect_orb = None
+        aspects_enabled = False
+        try:
+            aspect_orb = float(data.get('aspect_orb', 8.0))
+        except Exception:
+            aspect_orb = 8.0
+        aspects_enabled = str(data.get('aspects_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+        if aspects_enabled:
+            try:
+                from plugins import get_plugin_manager
+                plugin_manager = get_plugin_manager()
+                aspect_plugin = plugin_manager.get_plugin('aspect_generator')
+                if aspect_plugin:
+                    aspect_results = aspect_plugin.calculate_aspects(chart_data, orb=aspect_orb)
+                    # Add AI interpretations using the same settings as main chart generation
+                    for aspect in aspect_results:
+                        aspect['interpretation'] = aspect_plugin.generate_aspect_interpretation(
+                            aspect, 
+                            chart_data,
+                            model_name=params['model_name'],
+                            temperature=params['temperature'],
+                            max_tokens=params['max_tokens']
+                        )
+                    logger.debug(f"Generated {len(aspect_results)} aspect interpretations")
+            except Exception as e:
+                logger.error(f"Error generating aspects: {e}")
+                aspect_results = []
+        
+        # Plugin integration - House Generator
+        house_results = []
+        houses_enabled = False
+        include_house_planets = False
+        houses_enabled = str(data.get('houses_enabled', 'true')).lower() in ['true', '1', 'yes', 'on']
+        include_house_planets = str(data.get('include_house_planets', 'true')).lower() in ['true', '1', 'yes', 'on']
+        if houses_enabled:
+            try:
+                from plugins import get_plugin_manager
+                plugin_manager = get_plugin_manager()
+                house_plugin = plugin_manager.get_plugin('house_generator')
+                if house_plugin:
+                    house_results = house_plugin.generate_house_interpretations(
+                        chart_data,
+                        include_planets=include_house_planets,
+                        model_name=params['model_name'],
+                        temperature=params['temperature'],
+                        max_tokens=params['max_tokens']
+                    )
+                    logger.debug(f"Generated {len(house_results)} house interpretations")
+            except Exception as e:
+                logger.error(f"Error generating houses: {e}")
+                house_results = []
+        
         # Return results
         return JsonResponse({
             "success": True,
@@ -575,7 +986,9 @@ def generate_chart(request):
                 "master": master_interpretation,
                 "planets": planet_interpretations
             },
-            "chart_data": chart_data
+            "chart_data": chart_data,
+            "aspects": aspect_results,
+            "houses": house_results
         })
         
     except json.JSONDecodeError as e:
@@ -591,3 +1004,12 @@ def generate_chart(request):
             "success": False,
             "error": f"Unexpected error: {str(e)}"
         }, status=500)
+
+@staff_member_required
+def system_dashboard(request):
+    health = get_system_health()
+    performance = get_performance_summary(60)
+    return render(request, 'system_dashboard.html', {
+        'health': health,
+        'performance': performance
+    })

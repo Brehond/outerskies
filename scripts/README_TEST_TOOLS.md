@@ -1,164 +1,161 @@
-# Test Output Capture Tools
+# Test Output Logging System
 
-This directory contains tools for capturing and analyzing Django test output to help with debugging test failures.
+This directory contains tools for capturing and analyzing test output to help debug issues.
 
-## Tools Available
+## Files
 
-### 1. Comprehensive Test Runner (`run_tests_with_logging.py`)
+- `log_output.py` - Core logging system for capturing command and test output
+- `run_tests.py` - Test runner that uses the logging system
+- `README_TEST_TOOLS.md` - This file
 
-A full-featured test runner that:
-- Runs multiple test suites
-- Captures all output (stdout/stderr)
-- Generates JSON reports
-- Creates HTML reports
-- Provides detailed statistics
+## Quick Start
 
-**Usage:**
+### Windows Users
 ```bash
-python scripts/run_tests_with_logging.py
+# Run full test suite with logging
+run_tests.bat full
+
+# Run API tests only
+run_tests.bat api
+
+# Run tests excluding plugins
+run_tests.bat no-plugins
+
+# Run migrations first, then tests
+run_tests.bat migrate
 ```
 
-**Output:**
-- `logs/test_run_YYYYMMDD_HHMMSS.log` - Detailed log file
-- `logs/test_results_YYYYMMDD_HHMMSS.json` - JSON results
-- `logs/test_report_YYYYMMDD_HHMMSS.html` - HTML report
-
-### 2. Simple Test Output Capture (`capture_test_output.py`)
-
-Captures output for a specific test command.
-
-**Usage:**
+### All Users
 ```bash
-python scripts/capture_test_output.py "python manage.py test chart.tests.test_auth.TestAuthFlow.test_registration_password_mismatch"
-```
+# Run full test suite with logging
+python scripts/run_tests.py full
 
-**Output:**
-- `logs/test_output_YYYYMMDD_HHMMSS.txt` - Complete test output
+# Run API tests only
+python scripts/run_tests.py api
 
-### 3. Windows Batch Script (`run_tests.bat`)
-
-Simple batch script for Windows users.
-
-**Usage:**
-```cmd
-# Run all authentication tests
-scripts\run_tests.bat
+# Run tests excluding plugins
+python scripts/run_tests.py no-plugins
 
 # Run specific test
-scripts\run_tests.bat chart.tests.test_auth.TestAuthFlow.test_registration_password_mismatch
+python scripts/run_tests.py api.tests.PaymentAPITests
+
+# Run any command with logging
+python scripts/log_output.py "python manage.py migrate"
 ```
 
-### 4. PowerShell Script (`run_tests.ps1`)
+## Output Files
 
-PowerShell script with better error handling and formatting.
+All output is saved to the `logs/` directory:
 
-**Usage:**
-```powershell
-# Run all authentication tests
-.\scripts\run_tests.ps1
+- `logs/command_YYYYMMDD_HHMMSS.txt` - General command output
+- `logs/tests/test_run_YYYYMMDD_HHMMSS.txt` - Detailed test output
 
-# Run specific test
-.\scripts\run_tests.ps1 -TestPath "chart.tests.test_auth.TestAuthFlow.test_registration_password_mismatch"
+## Features
 
-# Run with different verbosity
-.\scripts\run_tests.ps1 -TestPath "chart.tests.test_auth" -Verbosity "3"
+### 1. Complete Output Capture
+- Captures both stdout and stderr
+- Records command, timestamp, and exit code
+- Handles timeouts and exceptions
+
+### 2. Test Analysis
+- Automatically analyzes test results
+- Extracts test counts (total, passed, failed, errors)
+- Identifies specific error details
+- Provides summary statistics
+
+### 3. Multiple Test Modes
+- Full test suite
+- API tests only
+- Tests excluding problematic plugins
+- Specific test classes or methods
+
+### 4. Error Debugging
+- Detailed error logs with full stack traces
+- Test failure analysis
+- Command execution tracking
+
+## Example Output
+
 ```
+🧪 Running full Django test suite...
 
-## Quick Start for Debugging Test Failures
+📊 Test Results:
+   Success: ❌ No
+   Exit Code: 1
+   Test Log: logs/tests/test_run_20241201_143022.txt
+   General Log: logs/command_20241201_143022.txt
 
-1. **Run the failing test with output capture:**
-   ```powershell
-   .\scripts\run_tests.ps1 -TestPath "chart.tests.test_auth.TestAuthFlow.test_registration_password_mismatch"
-   ```
+🔍 Analyzing test failures...
 
-2. **Check the output file:**
-   - Look for the generated file in `logs/test_output_YYYYMMDD_HHMMSS.txt`
-   - This contains the complete test output including any error messages
+📈 Test Analysis:
+   Total Tests: 99
+   Passed: 92
+   Failed: 2
+   Errors: 5
+   Summary: Ran 99 tests in 45.234s
 
-3. **For comprehensive analysis:**
-   ```bash
-   python scripts/run_tests_with_logging.py
-   ```
-   - This will run all test suites and generate detailed reports
-
-## Understanding Test Output
-
-### Common Test Failure Patterns
-
-1. **Template Not Found:**
-   ```
-   TemplateDoesNotExist: chart/auth/some_template.html
-   ```
-   - Solution: Create the missing template file
-
-2. **URL Reverse Error:**
-   ```
-   NoReverseMatch: Reverse for 'some_url' not found
-   ```
-   - Solution: Check URL configuration and namespacing
-
-3. **Database Errors:**
-   ```
-   django.db.utils.IntegrityError
-   ```
-   - Solution: Check model constraints and test data
-
-4. **Email Backend Issues:**
-   ```
-   AssertionError: 0 != 1  # Expected email to be sent
-   ```
-   - Solution: Configure email backend for testing
-
-### Reading the Log Files
-
-- **Log files** contain timestamped entries with test progress
-- **JSON files** contain structured data for programmatic analysis
-- **HTML reports** provide a visual summary of test results
-- **Text output files** contain the raw Django test output
-
-## Best Practices
-
-1. **Always capture output** when debugging test failures
-2. **Use specific test paths** rather than running all tests
-3. **Check the logs directory** for historical test runs
-4. **Use the HTML reports** for team communication
-5. **Keep test output files** for regression analysis
+❌ Error Details (3 errors):
+   Error 1:
+   ======================================================================
+   ERROR: test_list_user_charts (api.tests.ChartAPITests.test_list_user_charts)
+   Test listing user charts
+   ----------------------------------------------------------------------
+   Traceback (most recent call last):
+   ...
+```
 
 ## Troubleshooting
 
-### PowerShell Execution Policy
-If you get execution policy errors:
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Python Path Issues
-Ensure you're in the project root directory when running scripts:
+### PowerShell Output Issues
+If you're experiencing truncated output in PowerShell, use the logging system:
 ```bash
-cd /path/to/outer-skies
-python scripts/capture_test_output.py "python manage.py test ..."
+python scripts/run_tests.py full
 ```
 
-### Permission Issues
-Make sure the `logs` directory is writable:
+### Database Issues
+If tests fail due to missing database tables:
 ```bash
-mkdir -p logs
-chmod 755 logs
+run_tests.bat migrate
 ```
 
-## Integration with CI/CD
+### Plugin Test Issues
+If plugin tests are failing due to missing database tables:
+```bash
+python scripts/run_tests.py no-plugins
+```
 
-These tools can be integrated into CI/CD pipelines:
+### Specific Test Debugging
+To debug a specific failing test:
+```bash
+python scripts/run_tests.py api.tests.PaymentAPITests.test_list_payments
+```
 
-```yaml
-# Example GitHub Actions step
-- name: Run Tests with Output Capture
-  run: |
-    python scripts/run_tests_with_logging.py
-    # Upload test reports as artifacts
-    - name: Upload Test Reports
-      uses: actions/upload-artifact@v2
-      with:
-        name: test-reports
-        path: logs/
-``` 
+## Log File Format
+
+Each log file contains:
+```
+Command: python manage.py test --verbosity=1
+Timestamp: 2024-12-01T14:30:22.123456
+Exit Code: 1
+================================================================================
+STDOUT:
+[OK] Plugin 'astrology_chat' registered successfully
+[OK] Plugin 'example_plugin' registered successfully
+Found 99 test(s).
+Creating test database for alias 'default'...
+System check identified no issues (0 silenced).
+...
+
+STDERR:
+Error response: {"status_code": 400, "path": "/api/v1/users/change_password/", ...}
+...
+```
+
+## Integration with Development Workflow
+
+1. **Before committing code**: Run `run_tests.bat full`
+2. **When debugging API issues**: Run `run_tests.bat api`
+3. **When plugin tests fail**: Run `run_tests.bat no-plugins`
+4. **Check logs**: Review files in `logs/` directory for detailed error information
+
+This system ensures that no test output is lost and provides comprehensive debugging information for any issues that arise. 

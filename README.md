@@ -94,22 +94,46 @@ npm run build
 
 ## Production Deployment
 
+For comprehensive production deployment instructions, see [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md).
+
+### Quick Production Setup
+
 1. **Set Production Environment Variables**
-   - Set `DEBUG=False`
-   - Configure secure `ALLOWED_HOSTS`
-   - Set up PostgreSQL database
-   - Configure Sentry for error tracking
-
-2. **Using Docker**
    ```bash
-   docker-compose up --build
+   cp env.production.example .env.production
+   # Edit .env.production with your actual values
    ```
 
-3. **Manual Deployment**
+2. **Using Production Docker Compose**
    ```bash
-   python manage.py collectstatic
-   gunicorn astrology_ai.wsgi:application
+   docker-compose -f docker-compose.prod.yml up -d
    ```
+
+3. **Using Deployment Script**
+   ```bash
+   # Linux/Mac
+   ./scripts/deploy.sh
+   
+   # Windows
+   scripts\deploy.bat
+   ```
+
+4. **Verify Deployment**
+   ```bash
+   curl -f http://localhost/health/
+   curl -f http://localhost/api/v1/system/health/
+   ```
+
+### Production Features
+
+- **SSL/HTTPS**: Automatic HTTP to HTTPS redirect
+- **Security Headers**: Comprehensive security middleware
+- **Rate Limiting**: API and endpoint rate limiting
+- **Health Checks**: Multiple health check endpoints
+- **Monitoring**: Sentry integration and performance monitoring
+- **Backups**: Automated database backups with S3 support
+- **Load Balancing**: Nginx reverse proxy with caching
+- **Background Tasks**: Celery workers for async processing
 
 ## Security
 

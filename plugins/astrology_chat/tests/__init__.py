@@ -1,0 +1,1 @@
+# Astrology Chat Plugin Tests 

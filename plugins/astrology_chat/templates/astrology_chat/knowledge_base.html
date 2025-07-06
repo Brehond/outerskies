@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Knowledge Base - Astrology Chat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .document-card {
+        transition: all 0.3s ease;
+    }
+    .document-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    .category-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+    }
+    .search-highlight {
+        background-color: var(--accent-color);
+        color: var(--primary-color);
+        padding: 0.1rem 0.2rem;
+        border-radius: 0.25rem;
+    }
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8 px-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-accent mb-2">📚 Astrology Knowledge Base</h1>
+            <p class="text-text-secondary text-lg">Browse our collection of astrology documents and resources</p>
+        </div>
+        <div class="flex space-x-4">
+            <a href="{% url 'astrology_chat_dashboard' %}" class="btn-secondary">
+                ← Back to Chat
+            </a>
+            <a href="{% url 'upload_knowledge_document' %}" class="btn-primary">
+                📄 Upload Document
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-secondary rounded-lg border border-border p-6 mb-8">
+        <form method="get" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="q" class="block text-sm font-semibold text-accent mb-2">Search</label>
+                    <input 
+                        type="text" 
+                        id="q" 
+                        name="q" 
+                        value="{{ search_query }}"
+                        class="w-full p-3 border border-border rounded-lg bg-primary text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
+                        placeholder="Search documents..."
+                    >
+                </div>
+                <div>
+                    <label for="category" class="block text-sm font-semibold text-accent mb-2">Category</label>
+                    <select 
+                        id="category" 
+                        name="category"
+                        class="w-full p-3 border border-border rounded-lg bg-primary text-text-primary focus:ring-2 focus:ring-accent focus:border-transparent"
+                    >
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit" class="w-full btn-primary">
+                        🔍 Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid mb-8">
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">📄</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Total Documents</p>
+                    <p class="text-2xl font-bold text-accent">{{ total_documents }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">📊</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Categories</p>
+                    <p class="text-2xl font-bold text-accent">{{ categories.count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">📝</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Total Words</p>
+                    <p class="text-2xl font-bold text-accent">{{ total_words|floatformat:0 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">⚡</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Processing Rate</p>
+                    <p class="text-2xl font-bold text-accent">{{ processing_rate|floatformat:1 }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documents -->
+    <div class="bg-secondary rounded-lg border border-border p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-accent">
+                {% if search_query %}
+                    Search Results for "{{ search_query }}"
+                {% else %}
+                    All Documents
+                {% endif %}
+            </h2>
+            <div class="text-text-muted">
+                {{ documents.paginator.count }} document{{ documents.paginator.count|pluralize }}
+            </div>
+        </div>
+
+        {% if documents %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for document in documents %}
+                <div class="document-card bg-primary rounded-lg border border-border p-6 cursor-pointer" 
+                     onclick="window.location.href='{% url 'view_knowledge_document' document.id %}'">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-accent truncate">{{ document.title }}</h3>
+                        <span class="text-xs text-text-muted">{{ document.created_at|date:"M j" }}</span>
+                    </div>
+                    
+                    {% if document.description %}
+                        <p class="text-text-secondary text-sm mb-4 line-clamp-2">{{ document.description }}</p>
+                    {% endif %}
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        {% if document.category %}
+                            <span class="category-badge" style="background-color: {{ document.category.color }}20; color: {{ document.category.color }};">
+                                {{ document.category.name }}
+                            </span>
+                        {% else %}
+                            <span class="category-badge bg-gray-100 text-gray-600">Uncategorized</span>
+                        {% endif %}
+                        
+                        <span class="text-xs text-text-muted">
+                            {{ document.file_type|upper }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center text-xs text-text-muted">
+                        <span>{{ document.word_count|floatformat:0 }} words</span>
+                        <span>{{ document.file_size_mb }} MB</span>
+                    </div>
+                    
+                    {% if document.processing_status == 'completed' %}
+                        <div class="mt-2 text-xs text-green-600">✓ Processed</div>
+                    {% elif document.processing_status == 'processing' %}
+                        <div class="mt-2 text-xs text-yellow-600">⏳ Processing</div>
+                    {% elif document.processing_status == 'failed' %}
+                        <div class="mt-2 text-xs text-red-600">✗ Failed</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if documents.has_other_pages %}
+            <div class="flex justify-center mt-8">
+                <nav class="flex space-x-2">
+                    {% if documents.has_previous %}
+                        <a href="?page={{ documents.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn-secondary">← Previous</a>
+                    {% endif %}
+                    
+                    <span class="px-4 py-2 text-text-secondary">
+                        Page {{ documents.number }} of {{ documents.paginator.num_pages }}
+                    </span>
+                    
+                    {% if documents.has_next %}
+                        <a href="?page={{ documents.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="btn-secondary">Next →</a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">📚</div>
+                <h3 class="text-xl font-semibold text-accent mb-2">
+                    {% if search_query %}
+                        No documents found for "{{ search_query }}"
+                    {% else %}
+                        No documents available
+                    {% endif %}
+                </h3>
+                <p class="text-text-secondary mb-6">
+                    {% if search_query %}
+                        Try adjusting your search terms or browse all documents.
+                    {% else %}
+                        Upload your first astrology document to get started.
+                    {% endif %}
+                </p>
+                <a href="{% url 'upload_knowledge_document' %}" class="btn-primary">
+                    Upload Document
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Categories Overview -->
+    <div class="mt-8 bg-secondary rounded-lg border border-border p-6">
+        <h3 class="text-xl font-bold text-accent mb-4">Document Categories</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for category in categories %}
+            <div class="bg-primary p-4 rounded-lg border border-border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-semibold text-accent">{{ category.name }}</h4>
+                        <p class="text-sm text-text-muted">{{ category.documents.count }} documents</p>
+                    </div>
+                    <div class="w-4 h-4 rounded-full" style="background-color: {{ category.color }};"></div>
+                </div>
+                {% if category.description %}
+                    <p class="text-xs text-text-muted mt-2">{{ category.description }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Highlight search terms in document titles
+document.addEventListener('DOMContentLoaded', function() {
+    const searchQuery = '{{ search_query }}';
+    if (searchQuery) {
+        const titles = document.querySelectorAll('.document-card h3');
+        titles.forEach(title => {
+            const regex = new RegExp(`(${searchQuery})`, 'gi');
+            title.innerHTML = title.textContent.replace(regex, '<span class="search-highlight">$1</span>');
+        });
+    }
+});
+
+// Auto-submit form on category change
+document.getElementById('category').addEventListener('change', function() {
+    this.form.submit();
+});
+</script>
+{% endblock %} 

@@ -2,6 +2,7 @@ import logging
 import swisseph as swe
 import datetime
 from typing import Dict, List, Tuple, Union, Any
+from .caching import ephemeris_cache
 
 logger = logging.getLogger(__name__)
 
@@ -189,11 +190,21 @@ def get_ascendant_and_houses(
     try:
         # Map user-friendly names to Swiss Ephemeris codes
         hs_map = {
-            'placidus': 'P',
-            'whole_sign': 'W',
+            'placidus': b'P',
+            'whole_sign': b'W',
         }
-        hs_code = hs_map.get(house_system, 'P')
-        houses, ascmc = swe.houses(jd, lat, lon, hs_code.encode('utf-8'))
+        hs_code = hs_map.get(house_system, b'P')
+        logger.info(f"Calling swe.houses with jd={jd}, lat={lat}, lon={lon}, house_system={house_system} (code={hs_code})")
+        houses, ascmc = swe.houses(jd, lat, lon, hs_code)
+        logger.info(f"swe.houses returned houses={houses}, ascmc={ascmc}")
+        # Validate that we got valid house data
+        if not houses or len(houses) < 12:
+            logger.error(f"Invalid house cusps data: {houses} (jd={jd}, lat={lat}, lon={lon}, house_system={house_system})")
+            logger.error(f"houses type: {type(houses)}, length: {len(houses) if houses else 'None'}")
+            raise ValueError("Invalid house cusps data")
+        
+        logger.info(f"House cusps validation passed. First 12 cusps: {houses[:12]}")
+        
         asc_long = ascmc[0]
         asc_sign, asc_deg_in_sign = get_sign_from_longitude(asc_long)
         asc = {
@@ -201,10 +212,14 @@ def get_ascendant_and_houses(
             "sign": asc_sign,
             "degree_in_sign": asc_deg_in_sign
         }
+        
+        # Create house signs dictionary (1-indexed to match astrological convention)
         house_signs = {}
-        for i, cusp in enumerate(houses):
+        for i in range(12):  # Houses 1-12 (0-indexed in array)
+            cusp = houses[i]
             sign, _ = get_sign_from_longitude(cusp)
-            house_signs[i] = sign
+            house_signs[i + 1] = sign  # Convert to 1-indexed
+        
         return asc, houses, house_signs
     except ValueError as e:
         logger.error(f"Invalid house system: {e}")
@@ -213,85 +228,196 @@ def get_ascendant_and_houses(
         logger.error(f"Error calculating houses: {e}")
         raise Exception(f"Error calculating houses: {e}")
 
-def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = 'tropical') -> Dict[str, Dict[str, Any]]:
+def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = 'tropical', house_system: str = 'placidus') -> Dict[str, Dict[str, Any]]:
     """
-    Calculate planetary positions.
-    zodiac_type: 'tropical' or 'sidereal'
+    Get planetary positions with caching support.
+    
+    Args:
+        jd: Julian Day
+        lat: Latitude
+        lon: Longitude
+        zodiac_type: 'tropical' or 'sidereal'
+        house_system: House system to use for house position calculation
+    
+    Returns:
+        Dict of planetary positions
     """
+    positions = {}
+    
+    # Map user-friendly house system names to Swiss Ephemeris codes (same as get_ascendant_and_houses)
+    hs_map = {
+        'placidus': b'P',
+        'whole_sign': b'W',
+    }
+    hs_code = hs_map.get(house_system, b'P')
+    
+    # Calculate houses first to get house cusps for house position calculation
     try:
-        # Set sidereal mode if needed
-        if zodiac_type == 'sidereal':
-            swe.set_sid_mode(swe.SIDM_LAHIRI, 0, 0)
-            flags = swe.FLG_SWIEPH | swe.FLG_SPEED | swe.FLG_SIDEREAL
-        else:
-            swe.set_sid_mode(swe.SIDM_FAGAN_BRADLEY, 0, 0)  # Reset to default
-            flags = swe.FLG_SWIEPH | swe.FLG_SPEED
-        positions = {}
-        for planet, code in PLANET_CODES.items():
-            pos, _ = swe.calc_ut(jd, code, flags)
-            longitude = pos[0]
-            sign, deg_in_sign = get_sign_from_longitude(longitude)
-            retrograde = pos[3] < 0
-            positions[planet] = {
-                "absolute_degree": longitude,
-                "sign": sign,
-                "degree": deg_in_sign,  # Changed from degree_in_sign to match prompt
-                "retrograde": retrograde,
-                "house": 1  # Default to house 1, will be calculated later
-            }
-        # Calculate aspects
-        aspects = calculate_aspects(positions)
-        # Add aspects and dignity to each planet's data
-        for planet, pos in positions.items():
-            pos["aspects"] = aspects[planet]
-            pos["dignity"] = calculate_dignity(planet, pos["sign"])
-        return positions
+        houses, ascmc = swe.houses(jd, lat, lon, hs_code)
+        armc = ascmc[2]  # Right Ascension of Medium Coeli
+        eps = 23.4367  # Use standard mean obliquity of the ecliptic
+        logger.debug(f"Successfully calculated houses: {houses[:12]}")  # Log first 12 house cusps
     except Exception as e:
-        logger.error(f"Error calculating planet positions: {e}")
-        raise Exception(f"Error calculating planet positions: {e}")
+        logger.error(f"Error calculating houses for house positions: {e}")
+        # Fallback to default values
+        armc = 0
+        eps = 23.4367
+        houses = None
+    
+    for planet_name, planet_code in PLANET_CODES.items():
+        try:
+            # Get planet position
+            result = swe.calc_ut(jd, planet_code)
+            longitude = result[0][0]
+            latitude = result[0][1]
+            distance = result[0][2]
+            
+            # Convert to sign and degree
+            sign, deg_in_sign = get_sign_from_longitude(longitude)
+            
+            # Calculate dignity
+            dignity = calculate_dignity(planet_name, sign)
+            
+            # Calculate house position using swe_house_pos
+            try:
+                house_position = swe.house_pos(armc, lat, eps, [longitude, latitude], hs_code)
+                house_number = int(house_position)
+                if house_number < 1:
+                    house_number = 1
+                elif house_number > 12:
+                    house_number = 12
+                logger.debug(f"Calculated house position for {planet_name}: {house_position:.2f} (House {house_number})")
+            except Exception as e:
+                logger.warning(f"Error calculating house position for {planet_name}: {e}")
+                logger.warning(f"Parameters: armc={armc}, lat={lat}, eps={eps}, hs_code={hs_code}, pos=[{longitude}, {latitude}]")
+                # Try to calculate house manually using house cusps as fallback
+                try:
+                    if houses is not None and len(houses) >= 12:
+                        # Find which house the planet falls into
+                        house_number = 1  # Default to house 1
+                        for i in range(12):
+                            cusp1 = houses[i]
+                            cusp2 = houses[(i + 1) % 12] if i < 11 else houses[0] + 360
+                            if i == 11 and cusp2 < cusp1:
+                                cusp2 += 360
+                            if cusp1 <= longitude < cusp2 or (i == 11 and longitude >= cusp1):
+                                house_number = i + 1
+                                break
+                        logger.info(f"Fallback house calculation for {planet_name}: House {house_number} (longitude: {longitude:.2f}°, cusps: {houses[:12]})")
+                    else:
+                        logger.warning(f"No house cusps available for fallback calculation for {planet_name}")
+                        house_number = 1
+                except Exception as fallback_error:
+                    logger.error(f"Fallback house calculation also failed for {planet_name}: {fallback_error}")
+                    house_number = 1
+            
+            positions[planet_name] = {
+                "absolute_degree": longitude,
+                "latitude": latitude,
+                "distance": distance,
+                "sign": sign,
+                "degree_in_sign": deg_in_sign,
+                "dignity": dignity,
+                "house": house_number,
+                "retrograde": result[0][3] < 0  # Negative speed indicates retrograde
+            }
+            
+        except Exception as e:
+            logger.error(f"Error calculating position for {planet_name}: {e}")
+            positions[planet_name] = {
+                "error": str(e),
+                "absolute_degree": 0,
+                "sign": "Unknown",
+                "degree_in_sign": 0,
+                "house": 1
+            }
+    
+    return positions
 
 def get_chart_data(
     date: str,
     time: str,
     lat: float,
-    lon: float
+    lon: float,
+    timezone: str = "UTC",
+    zodiac_type: str = "tropical",
+    house_system: str = "placidus"
 ) -> Dict[str, Any]:
     """
-    Calculate complete chart data.
+    Get complete chart data with caching support.
     
     Args:
         date: Date string in YYYY-MM-DD format
         time: Time string in HH:MM format
-        lat: Latitude in degrees
-        lon: Longitude in degrees
+        lat: Latitude
+        lon: Longitude
+        timezone: Timezone string
+        zodiac_type: 'tropical' or 'sidereal'
+        house_system: 'placidus' or 'whole_sign'
     
     Returns:
-        Dict containing all chart data
-    
-    Raises:
-        ValueError: If date/time format is invalid
-        Exception: For Swiss Ephemeris calculation errors
+        Complete chart data dictionary
     """
+    # Create birth data for caching
+    birth_data = {
+        'date': date,
+        'time': time,
+        'latitude': lat,
+        'longitude': lon,
+        'timezone': timezone,
+        'zodiac_type': zodiac_type,
+        'house_system': house_system
+    }
+    
+    # Try to get from cache first
+    cached_result = ephemeris_cache.get_ephemeris_calculation(birth_data)
+    if cached_result:
+        logger.info(f"Using cached ephemeris data for {date} {time}")
+        return cached_result
+    
+    # Calculate if not in cache
+    logger.info(f"Calculating ephemeris data for {date} {time}")
+    
     try:
+        # Convert to Julian Day
         jd = get_julian_day(date, time)
-        positions = get_planet_positions(jd, lat, lon)
-        asc, houses, house_signs = get_ascendant_and_houses(jd, lat, lon)
         
-        # Calculate houses for each planet
-        asc_sign_index = SIGN_NAMES.index(asc["sign"])
-        for planet, pos in positions.items():
-            sign_index = SIGN_NAMES.index(pos["sign"])
-            house = ((sign_index - asc_sign_index) % 12) + 1
-            pos["house"] = house
+        # Get planetary positions
+        planetary_positions = get_planet_positions(jd, lat, lon, zodiac_type, house_system)
         
-        return {
+        # Get ascendant and houses
+        ascendant, house_cusps, house_signs = get_ascendant_and_houses(jd, lat, lon, house_system)
+        
+        # Calculate aspects
+        aspects = calculate_aspects(planetary_positions)
+        
+        # Add aspects to planetary positions for easier access in interpretations
+        for planet_name, planet_data in planetary_positions.items():
+            if planet_name in aspects:
+                planet_data['aspects'] = aspects[planet_name]
+            else:
+                planet_data['aspects'] = []
+        
+        # Compile complete chart data
+        chart_data = {
             "julian_day": jd,
-            "positions": positions,
-            "ascendant": asc,
-            "houses": houses,
-            "house_signs": house_signs
+            "birth_data": birth_data,
+            "planetary_positions": planetary_positions,
+            "ascendant": ascendant,
+            "house_cusps": house_cusps,
+            "house_signs": house_signs,
+            "aspects": aspects,
+            "calculated_at": datetime.datetime.now().isoformat(),
+            "zodiac_type": zodiac_type,
+            "house_system": house_system
         }
+        
+        # Cache the result
+        ephemeris_cache.cache_ephemeris_calculation(birth_data, chart_data)
+        
+        return chart_data
+        
     except Exception as e:
         logger.error(f"Error calculating chart data: {e}")
-        raise Exception(f"Error calculating chart data: {e}")
+        raise
 

@@ -45,6 +45,8 @@ class User(AbstractUser):
     # Privacy settings
     profile_public = models.BooleanField(default=False, help_text="Allow others to view profile")
     chart_history_public = models.BooleanField(default=False, help_text="Allow others to view chart history")
+    # Premium access
+    is_premium = models.BooleanField(default=False, help_text="User has premium access")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -182,3 +184,103 @@ class PasswordResetToken(models.Model):
     @property
     def is_expired(self):
         return timezone.now() > self.expires_at
+
+class TaskStatus(models.Model):
+    """
+    Model to track background task status and progress.
+    """
+    TASK_TYPES = [
+        ('chart_generation', 'Chart Generation'),
+        ('interpretation', 'AI Interpretation'),
+        ('ephemeris', 'Ephemeris Calculation'),
+    ]
+    
+    TASK_STATES = [
+        ('PENDING', 'Pending'),
+        ('PROGRESS', 'In Progress'),
+        ('SUCCESS', 'Completed'),
+        ('FAILURE', 'Failed'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+    
+    task_id = models.CharField(max_length=255, unique=True, help_text="Celery task ID")
+    task_type = models.CharField(max_length=50, choices=TASK_TYPES, help_text="Type of task")
+    state = models.CharField(max_length=20, choices=TASK_STATES, default='PENDING')
+    progress = models.IntegerField(default=0, help_text="Progress percentage (0-100)")
+    status_message = models.TextField(blank=True, help_text="Current status message")
+    
+    # Task parameters (stored as JSON)
+    parameters = models.JSONField(default=dict, help_text="Task input parameters")
+    
+    # Task results (stored as JSON)
+    result = models.JSONField(default=dict, help_text="Task output results")
+    
+    # Error information
+    error_message = models.TextField(blank=True, help_text="Error message if task failed")
+    traceback = models.TextField(blank=True, help_text="Full error traceback")
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # User association (optional)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    
+    class Meta:
+        db_table = 'chart_task_status'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['task_id']),
+            models.Index(fields=['task_type']),
+            models.Index(fields=['state']),
+            models.Index(fields=['user', 'created_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.task_type} - {self.task_id} ({self.state})"
+    
+    @property
+    def duration(self):
+        """Calculate task duration in seconds."""
+        if not self.started_at:
+            return None
+        end_time = self.completed_at or timezone.now()
+        return (end_time - self.started_at).total_seconds()
+    
+    @property
+    def is_completed(self):
+        """Check if task is in a final state."""
+        return self.state in ['SUCCESS', 'FAILURE', 'CANCELLED']
+    
+    @property
+    def is_running(self):
+        """Check if task is currently running."""
+        return self.state == 'PROGRESS'
+    
+    def update_progress(self, progress, status_message=""):
+        """Update task progress and status."""
+        self.progress = progress
+        self.status_message = status_message
+        if self.state == 'PENDING':
+            self.state = 'PROGRESS'
+            self.started_at = timezone.now()
+        self.save()
+    
+    def mark_completed(self, result=None, error_message="", traceback=""):
+        """Mark task as completed."""
+        self.state = 'SUCCESS' if not error_message else 'FAILURE'
+        self.completed_at = timezone.now()
+        if result:
+            self.result = result
+        if error_message:
+            self.error_message = error_message
+        if traceback:
+            self.traceback = traceback
+        self.save()
+    
+    def mark_cancelled(self):
+        """Mark task as cancelled."""
+        self.state = 'CANCELLED'
+        self.completed_at = timezone.now()
+        self.save()

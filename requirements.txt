@@ -19,3 +19,24 @@ django-cors-headers>=4.3.1
 Pillow>=10.0.0
 cryptography>=41.0.0
 python-magic>=0.4.27
+# Background Task Processing
+celery>=5.3.0
+redis>=5.0.0
+django-redis>=5.4.0
+django-celery-results>=2.5.0
+django-celery-beat>=2.5.0
+# Astrology Chat Plugin Dependencies
+langchain>=0.1.0
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+pypdf>=3.0.0
+python-docx>=0.8.11
+# API Dependencies
+djangorestframework-simplejwt[rest_framework_simplejwt]>=5.3.0
+# API Documentation
+drf-spectacular>=0.27.0
+# Testing Dependencies
+pytest>=7.4.0
+pytest-django>=4.7.0
+factory-boy>=3.3.0
+coverage>=7.3.0

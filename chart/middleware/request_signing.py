@@ -76,9 +76,41 @@ class RequestSigningMiddleware:
         return request.path.startswith('/api/')
         
     def _is_public_endpoint(self, request):
-        """Check if endpoint is public."""
-        public_paths = getattr(settings, 'PUBLIC_API_PATHS', [])
-        return any(request.path.startswith(path) for path in public_paths)
+        """Check if endpoint is public and should skip signature validation."""
+        public_paths = [
+            '/api/health/',
+            '/api/public/',
+            '/api/docs/',
+            '/api/v1/system/health/',
+            '/api/v1/system/ai_models/',
+            '/api/v1/system/themes/',
+            '/api/v1/auth/register/',
+            '/api/v1/auth/login/',
+            '/api/v1/auth/refresh/',
+            '/api/v1/auth/logout/',
+        ]
+        
+        # Skip signature validation for public endpoints
+        if any(request.path.startswith(path) for path in public_paths):
+            return True
+            
+        # Skip signature validation for protected endpoints that use JWT authentication
+        protected_paths = [
+            '/api/v1/users/',
+            '/api/v1/charts/',
+            '/api/v1/subscriptions/',
+            '/api/v1/payments/',
+            '/api/v1/coupons/',
+            '/api/v1/chat/',
+        ]
+        
+        # If it's a protected endpoint and has JWT token, skip signature
+        if any(request.path.startswith(path) for path in protected_paths):
+            auth_header = request.headers.get('Authorization')
+            if auth_header and auth_header.startswith('Bearer '):
+                return True
+                
+        return False
         
     def _is_valid_timestamp(self, timestamp):
         """Check if timestamp is valid."""
@@ -91,13 +123,18 @@ class RequestSigningMiddleware:
             
     def _is_valid_nonce(self, nonce):
         """Check if nonce is valid."""
-        # Check if nonce exists in cache
-        if cache.get(f'nonce:{nonce}'):
-            return False
+        try:
+            # Check if nonce exists in cache
+            if cache.get(f'nonce:{nonce}'):
+                return False
             
-        # Store nonce in cache
-        cache.set(f'nonce:{nonce}', True, self.nonce_expiry)
-        return True
+            # Store nonce in cache
+            cache.set(f'nonce:{nonce}', True, self.nonce_expiry)
+            return True
+        except Exception as e:
+            # If cache fails, log warning but allow the request (fail open)
+            logger.warning(f"Nonce cache operation failed: {e}")
+            return True
         
     def _is_valid_signature(self, request, signature, timestamp, nonce):
         """Check if signature is valid."""
@@ -122,6 +159,16 @@ class RequestSigningMiddleware:
             signature_string.encode(),
             hashlib.sha256
         ).hexdigest()
+        
+        # Debug logging
+        logger.warning(f"SIGNATURE DEBUG for {method} {path}:")
+        logger.warning(f"  Received signature: {signature}")
+        logger.warning(f"  Expected signature: {expected_signature}")
+        logger.warning(f"  Timestamp: {timestamp}")
+        logger.warning(f"  Nonce: {nonce}")
+        logger.warning(f"  Body length: {len(request.body)}")
+        logger.warning(f"  Body base64: {body[:100]}..." if body else "  Body: empty")
+        logger.warning(f"  Signature string: {repr(signature_string)}")
         
         return constant_time_compare(signature, expected_signature)
         

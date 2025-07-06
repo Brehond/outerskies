@@ -11,17 +11,12 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
-from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import AccessToken
 from django.core.files.uploadedfile import SimpleUploadedFile
 from io import BytesIO
 from django.http import JsonResponse
 from chart.middleware.request_signing import RequestSigningMiddleware
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.middleware.security import SecurityMiddleware
-from rest_framework.versioning import URLPathVersioning
-from rest_framework.request import Request
-from rest_framework.test import APIRequestFactory
 
 @override_settings(
     MIDDLEWARE=[

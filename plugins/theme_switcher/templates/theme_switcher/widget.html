@@ -1,0 +1,86 @@
+<div class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Current Theme</h3>
+        <span class="text-2xl">🎨</span>
+    </div>
+    
+    <div class="flex items-center space-x-3">
+        <!-- Theme Color Preview -->
+        <div class="w-12 h-12 rounded-lg shadow-sm" 
+             style="background: linear-gradient(45deg, {{ theme_info.colors.primary }}, {{ theme_info.colors.secondary }}); 
+                    border: 2px solid {{ theme_info.colors.accent }};">
+        </div>
+        
+        <!-- Theme Info -->
+        <div class="flex-1">
+            <div class="font-medium text-gray-900 dark:text-white">{{ theme_info.name }}</div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">{{ theme_info.description }}</div>
+        </div>
+        
+        <!-- Quick Switch Button -->
+        <button onclick="window.location.href='/theme/'" 
+                class="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+            Change
+        </button>
+    </div>
+    
+    <!-- Quick Theme Switcher -->
+    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick Switch:</div>
+        <div class="flex space-x-1">
+            <button onclick="quickSwitchTheme('cosmic_night')" 
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-purple-900 to-yellow-400 hover:scale-110 transition-transform"
+                    title="Cosmic Night"></button>
+            <button onclick="quickSwitchTheme('sunset_orange')" 
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-orange-600 to-red-500 hover:scale-110 transition-transform"
+                    title="Sunset Orange"></button>
+            <button onclick="quickSwitchTheme('ocean_deep')" 
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-900 to-teal-400 hover:scale-110 transition-transform"
+                    title="Ocean Deep"></button>
+            <button onclick="quickSwitchTheme('forest_green')" 
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-green-800 to-emerald-400 hover:scale-110 transition-transform"
+                    title="Forest Green"></button>
+            <button onclick="quickSwitchTheme('light_mode')" 
+                    class="w-6 h-6 rounded-full bg-gradient-to-br from-gray-100 to-blue-200 hover:scale-110 transition-transform"
+                    title="Light Mode"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+function quickSwitchTheme(themeName) {
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        alert('Security token not found. Please refresh the page and try again.');
+        return;
+    }
+    
+    fetch('/theme/switch/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken.value
+        },
+        body: JSON.stringify({ theme: themeName })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            throw new Error(data.error || 'Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error switching theme: ' + error.message);
+    });
+}
+</script> 

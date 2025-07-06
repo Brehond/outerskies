@@ -1,0 +1,178 @@
+🚀 Starting Phase 2 Monitoring & Observability Tests
+============================================================
+✅ HealthCheckResult Creation: PASS
+   Details: {'response_time': 0.5}
+✅ Database Health Check: PASS
+   Details: {'status': 'healthy', 'response_time': 0.0}
+✅ Redis Health Check: PASS
+   Details: {'status': 'healthy', 'response_time': 0.026916980743408203}
+✅ Comprehensive Health Check: PASS
+   Details: {'overall_status': 'unhealthy', 'total_checks': 8}
+✅ Performance Monitor: PASS
+   Details: {'cache_hits': 1, 'cache_misses': 1}
+✅ get_system_health Function: PASS
+   Details: {'overall_status': 'unhealthy'}
+✅ get_quick_health_status Function: PASS
+   Details: {'status': 'healthy'}
+✅ Performance Functions: PASS
+   Details: {'period_minutes': 60}
+❌ API Endpoints: FAIL
+   Error: 
+❌ Admin Dashboard Access: FAIL
+   Error: 
+❌ Middleware Integration: FAIL
+   Error: 
+❌ Logging and Alerting: FAIL
+   Error: 
+✅ Cache Integration: PASS
+   Details: {'set_operation': True, 'get_operation': True, 'delete_operation': True}
+✅ Database Integration: PASS
+   Details: {'query_executed': True, 'result_count': 55}
+❌ Error Handling - Invalid Metric Name: FAIL
+   Error: 'SystemHealthChecker' object has no attribute 'record_metric'
+✅ Error Handling - Invalid Metric Value: PASS
+
+============================================================
+📊 PHASE 2 TEST RESULTS SUMMARY
+============================================================
+Total Tests: 16
+Passed: 11 ✅
+Failed: 5 ❌
+Success Rate: 68.8%
+Test Duration: 8.08 seconds
+
+❌ FAILED TESTS:
+  - API Endpoints: 
+  - Admin Dashboard Access: 
+  - Middleware Integration: 
+  - Logging and Alerting: 
+  - Error Handling - Invalid Metric Name: 'SystemHealthChecker' object has no attribute 'record_metric'
+
+============================================================
+DETAILED TEST RESULTS
+============================================================
+
+Test: HealthCheckResult Creation
+Status: PASS
+Timestamp: 2025-06-25T20:48:33.072241+00:00
+Details: {
+  "response_time": 0.5
+}
+----------------------------------------
+
+Test: Database Health Check
+Status: PASS
+Timestamp: 2025-06-25T20:48:33.072241+00:00
+Details: {
+  "status": "healthy",
+  "response_time": 0.0
+}
+----------------------------------------
+
+Test: Redis Health Check
+Status: PASS
+Timestamp: 2025-06-25T20:48:33.099158+00:00
+Details: {
+  "status": "healthy",
+  "response_time": 0.026916980743408203
+}
+----------------------------------------
+
+Test: Comprehensive Health Check
+Status: PASS
+Timestamp: 2025-06-25T20:48:35.667238+00:00
+Details: {
+  "overall_status": "unhealthy",
+  "total_checks": 8
+}
+----------------------------------------
+
+Test: Performance Monitor
+Status: PASS
+Timestamp: 2025-06-25T20:48:35.668242+00:00
+Details: {
+  "cache_hits": 1,
+  "cache_misses": 1
+}
+----------------------------------------
+
+Test: get_system_health Function
+Status: PASS
+Timestamp: 2025-06-25T20:48:37.899393+00:00
+Details: {
+  "overall_status": "unhealthy"
+}
+----------------------------------------
+
+Test: get_quick_health_status Function
+Status: PASS
+Timestamp: 2025-06-25T20:48:37.901426+00:00
+Details: {
+  "status": "healthy"
+}
+----------------------------------------
+
+Test: Performance Functions
+Status: PASS
+Timestamp: 2025-06-25T20:48:37.902426+00:00
+Details: {
+  "period_minutes": 60
+}
+----------------------------------------
+
+Test: API Endpoints
+Status: FAIL
+Timestamp: 2025-06-25T20:48:38.438471+00:00
+----------------------------------------
+
+Test: Admin Dashboard Access
+Status: FAIL
+Timestamp: 2025-06-25T20:48:38.455427+00:00
+----------------------------------------
+
+Test: Middleware Integration
+Status: FAIL
+Timestamp: 2025-06-25T20:48:38.493415+00:00
+----------------------------------------
+
+Test: Logging and Alerting
+Status: FAIL
+Timestamp: 2025-06-25T20:48:41.141286+00:00
+----------------------------------------
+
+Test: Cache Integration
+Status: PASS
+Timestamp: 2025-06-25T20:48:41.144312+00:00
+Details: {
+  "set_operation": true,
+  "get_operation": true,
+  "delete_operation": true
+}
+----------------------------------------
+
+Test: Database Integration
+Status: PASS
+Timestamp: 2025-06-25T20:48:41.144882+00:00
+Details: {
+  "query_executed": true,
+  "result_count": 55
+}
+----------------------------------------
+
+Test: Error Handling - Invalid Metric Name
+Status: FAIL
+Timestamp: 2025-06-25T20:48:41.144882+00:00
+Error: 'SystemHealthChecker' object has no attribute 'record_metric'
+----------------------------------------
+
+Test: Error Handling - Invalid Metric Value
+Status: PASS
+Timestamp: 2025-06-25T20:48:41.144882+00:00
+----------------------------------------
+
+SUMMARY:
+Total Tests: 16
+Passed: 11
+Failed: 5
+Success Rate: 68.8%
+Duration: 8.08 seconds

@@ -1,0 +1,74 @@
+Palette,Color 1,Color 2,Color 3,Color 4
+Standard,#282626,#605b5b,#4d4949,#0f0e0e
+Abyssal,#262424,#605b5b,#0e0d0d,#484444
+Spiral,#605b5b,#292727,#0d0c0c,#4a4646
+Found Footage,#3a3737,#605b5b,#cfcdcd,#181717
+Seaside,#605b5b,#f9f9f9,#252323,#a09d9d
+Retro (Dark),#605b5b,#faf9f9,#9d9a9a,#242222
+Retro (Light),#605b5b,#212020,#433f3f,#0c0c0c
+LED,#605b5b,#121111,#333030,#4a4646
+Uncanny Black,#605b5b,#302e2e,#4d4949,#161414
+NEO-80S,#605b5b,#272525,#454141,#131212
+Monolith,#605b5b,#0d0c0c,#282626,#484444
+Casie,#605b5b,#222020,#403c3c,#0e0d0d
+Flesh,#605b5b,#0d0c0c,#454242,#222020
+Ripper,#605b5b,#0d0c0c,#454242,#282626
+Archives,#605b5b,#151414,#343131,#4f4a4a
+Shrouded,#605b5b,#252323,#444141,#0e0d0d
+Alarm,#292626,#605b5b,#0c0c0c,#474343
+Wood,#605b5b,#413e3e,#0a0a0a,#222020
+Honey,#605b5b,#0a0a0a,#444141,#2a2828
+Jaguar,#605b5b,#111010,#2f2c2c,#4c4848
+Hills,#c1b8ae,#494541,#605b5b,#121111
+Film,#a18864,#36221a,#605b5b,#ccbe81
+Mythos,#8a8474,#222a25,#5f5a5a,#8bc0a4
+Tides I,#443e48,#201c26,#605a5c,#776b8d
+Tides II,#605b5b,#223147,#6e85a7,#131317
+XNX,#8ba3b9,#2e333f,#605b5b,#ebe5d6
+Grimoire,#615b59,#150d09,#ba9f6a,#38322f
+Clue,#605b5b,#ebe7e6,#202729,#7d5c4f
+Shiba,#a0a16b,#5f5b5a,#1c1915,#f2f2f0
+Seaweed,#738f8a,#5f5c5c,#222221,#cae4df
+Moldy Black,#899797,#080808,#e3f1f7,#595454
+Attic,#969287,#605b5b,#3a342e,#c3bea8
+Kinda Black,#423d3d,#dee1e4,#605b5b,#1e2025
+Old Print,#363534,#8f654d,#10100e,#5f5a5a
+Deep Gold,#2c2f2b,#f1d198,#5e5a59,#87a985
+Omen,#e74456,#645b5c,#f2c6a4,#2f3949
+Neon Slasher,#515158,#e94355,#251a1c,#377881
+Gothic,#a73d33,#362e28,#645f5e,#b2aa97
+ZR,#f6af04,#3a4ab8,#010302,#605b5a
+Faraday,#3d3938,#615b5a,#bd6c26,#0e1214
+Iron Rain,#4e4583,#cc7f61,#985948,#625b5c
+Palm Trees,#289d91,#eda0dd,#1a6a61,#605c5c
+Blood Dawn,#8b404a,#0e1018,#5c6165,#cb5054
+Samhain,#f658fc,#2f2629,#61565b,#f66270
+Riverside Incident,#3d3d36,#7d9bad,#645956,#242520
+Backrooms,#d0dbbd,#2d2a32,#686252,#cbd78d
+Mondo,#5a5b4c,#f9daa4,#23261f,#c04c34
+Blood Lord,#3b3c3b,#771c13,#605b5b,#17120e
+Skeletal King,#7a9db1,#050304,#4e545f,#99e0fc
+Swamp Snarl,#5f5b50,#2d2c1a,#a5934c,#3e3b2a
+Faded Pumpkin,#605b5b,#e0ad9c,#41262f,#7e615c
+Haircuts,#605c5c,#22aaf4,#dd5a09,#39330e
+Tarocco,#5b595e,#eb6562,#1a252c,#fda271
+Gardener,#5d5c58,#cecf85,#552243,#5c8a5a
+Seville,#505456,#ada05e,#608b81,#e8cd6a
+Watercolor,#6b6362,#9bc8c5,#fbc390,#c8917b
+Leather Face,#5f5b63,#f4ccaa,#717e80,#ceb396
+Caution Tape,#46433f,#f3b701,#f5deb9,#987404
+Cherry Candy,#635c5d,#f8b1c1,#9c3e68,#f369a1
+Occultation,#58535d,#feac87,#646b7a,#cb7e72
+Cursed Slab,#5f5d61,#c6b9a8,#aa7960,#201f1f
+Marsh,#615c5b,#ab8d68,#3a4b3f,#698972
+Apple Pie,#605b5b,#f98e85,#fefafa,#85a6c2
+Fish,#615c5c,#c0caa4,#ebf4e9,#4b6338
+Copper,#615c5b,#bd7d59,#489069,#4d3e4d
+Ciemna Czekolada,#625c5b,#010807,#e1ba99,#3a3a34
+Sweet Dreams,#615c5c,#9d8fb2,#a7c8db,#526b6b
+Family Crypt,#635f5d,#e1f4cb,#3f4739,#e3bb96
+Empty Church,#5f5c5b,#b69391,#907c78,#eae1df
+Cotton Candy,#615c5c,#ecafb8,#94b7d0,#666a86
+Shelter,#615c5c,#615c5c,#615c5c,#615c5c
+199X,#615c5c,#615c5c,#615c5c,#615c5c
+PAL1,#615c5c,#615c5c,#615c5c,#615c5c

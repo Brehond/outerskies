@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ session.title }} - Astrology Chat{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-container {
+        height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+    }
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+    }
+    .message {
+        margin-bottom: 1rem;
+        animation: fadeIn 0.3s ease-in;
+    }
+    .message.user {
+        text-align: right;
+    }
+    .message.ai {
+        text-align: left;
+    }
+    .message-content {
+        display: inline-block;
+        max-width: 70%;
+        padding: 1rem;
+        border-radius: 1rem;
+        word-wrap: break-word;
+    }
+    .message.user .message-content {
+        background: var(--accent-color);
+        color: var(--primary-color);
+        border-bottom-right-radius: 0.25rem;
+    }
+    .message.ai .message-content {
+        background: var(--secondary-color);
+        color: var(--text-primary-color);
+        border: 1px solid var(--border-color);
+        border-bottom-left-radius: 0.25rem;
+    }
+    .message-time {
+        font-size: 0.75rem;
+        color: var(--text-muted-color);
+        margin-top: 0.25rem;
+    }
+    .typing-indicator {
+        display: none;
+        padding: 1rem;
+        color: var(--text-muted-color);
+    }
+    .typing-indicator.show {
+        display: block;
+    }
+    .typing-dots {
+        display: inline-block;
+    }
+    .typing-dots::after {
+        content: '';
+        animation: typing 1.5s infinite;
+    }
+    @keyframes typing {
+        0%, 20% { content: ''; }
+        40% { content: '.'; }
+        60% { content: '..'; }
+        80%, 100% { content: '...'; }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .input-container {
+        border-top: 1px solid var(--border-color);
+        padding: 1rem;
+        background: var(--primary-color);
+    }
+    .message-input {
+        resize: none;
+        min-height: 60px;
+        max-height: 200px;
+    }
+    .send-button {
+        transition: all 0.2s ease;
+    }
+    .send-button:hover {
+        transform: scale(1.05);
+    }
+    .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto h-screen flex flex-col">
+    <!-- Header -->
+    <div class="bg-secondary border-b border-border p-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'astrology_chat_dashboard' %}" class="text-accent hover:text-accent-secondary">
+                    ← Back to Dashboard
+                </a>
+                <h1 class="text-xl font-bold text-accent">{{ session.title }}</h1>
+                {% if session.chart_data %}
+                    <span class="text-xs bg-accent text-primary px-2 py-1 rounded">📊 Chart Linked</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center space-x-2 text-sm text-text-muted">
+                <span>{{ session.message_count }} messages</span>
+                <span>•</span>
+                <span>${{ session.total_cost|default:"0.00" }}</span>
+                <span>•</span>
+                <span>{{ session.last_activity|timesince }} ago</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container bg-primary">
+        <!-- Messages -->
+        <div class="messages-container" id="messagesContainer">
+            {% for message in messages %}
+            <div class="message {% if message.is_ai %}ai{% else %}user{% endif %}">
+                <div class="message-content">
+                    {% if message.is_ai %}
+                        <div class="flex items-start space-x-2">
+                            <span class="text-lg">🤖</span>
+                            <div class="flex-1">
+                                {{ message.content|linebreaks }}
+                                {% if message.knowledge_sources %}
+                                    <div class="mt-2 text-xs text-text-muted">
+                                        <strong>Sources:</strong>
+                                        {% for source in message.knowledge_sources %}
+                                            <a href="{{ source.url }}" class="text-accent hover:underline">{{ source.title }}</a>{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% else %}
+                        {{ message.content|linebreaks }}
+                    {% endif %}
+                </div>
+                <div class="message-time">
+                    {{ message.created_at|date:"g:i A" }}
+                    {% if message.is_ai and message.tokens_used %}
+                        • {{ message.tokens_used }} tokens
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="flex items-center space-x-2">
+                <span class="text-lg">🤖</span>
+                <span class="typing-dots">AI is thinking</span>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <form id="messageForm" class="flex space-x-4">
+                {% csrf_token %}
+                <div class="flex-1">
+                    <textarea 
+                        id="messageInput" 
+                        name="content" 
+                        class="message-input w-full p-3 border border-border rounded-lg bg-secondary text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent focus:border-transparent"
+                        placeholder="Ask about your natal chart, planetary positions, aspects, or any astrological question..."
+                        rows="1"
+                        maxlength="2000"
+                    ></textarea>
+                </div>
+                <button 
+                    type="submit" 
+                    id="sendButton"
+                    class="send-button px-6 py-3 bg-accent text-primary rounded-lg font-semibold hover:bg-accent-secondary transition-colors"
+                    disabled
+                >
+                    Send
+                </button>
+            </form>
+            
+            <!-- Character Count -->
+            <div class="flex justify-between items-center mt-2 text-xs text-text-muted">
+                <span id="charCount">0 / 2000</span>
+                <span>Press Enter to send, Shift+Enter for new line</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const messageForm = document.getElementById('messageForm');
+const messageInput = document.getElementById('messageInput');
+const sendButton = document.getElementById('sendButton');
+const messagesContainer = document.getElementById('messagesContainer');
+const typingIndicator = document.getElementById('typingIndicator');
+const charCount = document.getElementById('charCount');
+
+// Auto-resize textarea
+messageInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    
+    // Update character count
+    const count = this.value.length;
+    charCount.textContent = `${count} / 2000`;
+    
+    // Enable/disable send button
+    sendButton.disabled = count === 0 || count > 2000;
+});
+
+// Handle Enter key
+messageInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (!sendButton.disabled) {
+            messageForm.dispatchEvent(new Event('submit'));
+        }
+    }
+});
+
+// Scroll to bottom
+function scrollToBottom() {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Add message to chat
+function addMessage(content, isAI = false, tokens = null, sources = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isAI ? 'ai' : 'user'}`;
+    
+    const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    
+    let sourcesHtml = '';
+    if (sources && sources.length > 0) {
+        sourcesHtml = `
+            <div class="mt-2 text-xs text-text-muted">
+                <strong>Sources:</strong>
+                ${sources.map(source => `<a href="${source.url}" class="text-accent hover:underline">${source.title}</a>`).join(', ')}
+            </div>
+        `;
+    }
+    
+    const tokensHtml = tokens ? ` • ${tokens} tokens` : '';
+    
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            ${isAI ? `
+                <div class="flex items-start space-x-2">
+                    <span class="text-lg">🤖</span>
+                    <div class="flex-1">
+                        ${content.replace(/\n/g, '<br>')}
+                        ${sourcesHtml}
+                    </div>
+                </div>
+            ` : content.replace(/\n/g, '<br>')}
+        </div>
+        <div class="message-time">
+            ${time}${tokensHtml}
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    scrollToBottom();
+}
+
+// Handle form submission
+messageForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const content = messageInput.value.trim();
+    if (!content) return;
+    
+    // Add user message
+    addMessage(content, false);
+    
+    // Clear input
+    messageInput.value = '';
+    messageInput.style.height = 'auto';
+    charCount.textContent = '0 / 2000';
+    sendButton.disabled = true;
+    
+    // Show typing indicator
+    typingIndicator.classList.add('show');
+    scrollToBottom();
+    
+    try {
+        const response = await fetch(`/chat/session/{{ session.id }}/send/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: JSON.stringify({ content: content })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Add AI response
+            addMessage(data.ai_message.content, true, data.ai_message.tokens_used, data.ai_message.knowledge_sources);
+        } else {
+            addMessage('Sorry, I encountered an error. Please try again.', true);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        addMessage('Sorry, I encountered an error. Please try again.', true);
+    } finally {
+        // Hide typing indicator
+        typingIndicator.classList.remove('show');
+    }
+});
+
+// Initial scroll to bottom
+scrollToBottom();
+
+// Auto-scroll when new messages are added
+const observer = new MutationObserver(scrollToBottom);
+observer.observe(messagesContainer, { childList: true });
+</script>
+{% endblock %} 

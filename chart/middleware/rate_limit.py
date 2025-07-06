@@ -63,33 +63,43 @@ class RateLimitMiddleware:
         
     def _check_rate_limit(self, client_ip):
         """Check if the client has exceeded their rate limit."""
-        key = f'rate_limit_{client_ip}'
-        current_time = int(time.time())
-        
-        # Get current request count
-        request_data = cache.get(key, {'count': 0, 'window_start': current_time})
-        
-        # Reset counter if window has expired
-        if current_time - request_data['window_start'] >= 60:
-            request_data = {'count': 0, 'window_start': current_time}
+        try:
+            key = f'rate_limit_{client_ip}'
+            current_time = int(time.time())
             
-        # Increment counter
-        request_data['count'] += 1
-        cache.set(key, request_data, 60)  # Cache for 1 minute
-        
-        return request_data['count'] <= self.requests_per_minute
+            # Get current request count
+            request_data = cache.get(key, {'count': 0, 'window_start': current_time})
+            
+            # Reset counter if window has expired
+            if current_time - request_data['window_start'] >= 60:
+                request_data = {'count': 0, 'window_start': current_time}
+                
+            # Increment counter
+            request_data['count'] += 1
+            cache.set(key, request_data, 60)  # Cache for 1 minute
+            
+            return request_data['count'] <= self.requests_per_minute
+        except Exception as e:
+            # If cache fails, allow the request (fail open)
+            logger.warning(f"Rate limit cache failed for {client_ip}: {e}")
+            return True
         
     def _check_concurrent_requests(self, client_ip):
         """Check if the client has too many concurrent requests."""
-        key = f'concurrent_requests_{client_ip}'
-        current_requests = cache.get(key, 0)
-        
-        if current_requests >= self.max_concurrent_requests:
-            return False
+        try:
+            key = f'concurrent_requests_{client_ip}'
+            current_requests = cache.get(key, 0)
             
-        # Increment counter
-        cache.set(key, current_requests + 1, 30)  # Cache for 30 seconds
-        return True
+            if current_requests >= self.max_concurrent_requests:
+                return False
+                
+            # Increment counter
+            cache.set(key, current_requests + 1, 30)  # Cache for 30 seconds
+            return True
+        except Exception as e:
+            # If cache fails, allow the request (fail open)
+            logger.warning(f"Concurrent requests cache failed for {client_ip}: {e}")
+            return True
         
     def _check_memory_usage(self):
         """Check if memory usage exceeds threshold."""
@@ -102,18 +112,31 @@ class RateLimitMiddleware:
         
     def _cleanup_rate_limit(self, client_ip):
         """Clean up rate limiting data for a client."""
-        key = f'concurrent_requests_{client_ip}'
-        current = cache.get(key, 0)
-        if current > 0:
-            cache.set(key, current - 1, 30)
+        try:
+            key = f'concurrent_requests_{client_ip}'
+            current = cache.get(key, 0)
+            if current > 0:
+                cache.set(key, current - 1, 30)
+        except Exception as e:
+            # If cache fails, just log it and continue
+            logger.warning(f"Failed to cleanup rate limit for {client_ip}: {e}")
             
     def get_rate_limit_status(self, client_ip):
         """Get current rate limit status for a client."""
-        key = f'rate_limit_{client_ip}'
-        request_data = cache.get(key, {'count': 0, 'window_start': int(time.time())})
-        
-        return {
-            'requests_remaining': max(0, self.requests_per_minute - request_data['count']),
-            'window_reset': request_data['window_start'] + 60 - int(time.time()),
-            'concurrent_requests': cache.get(f'concurrent_requests_{client_ip}', 0)
-        } 
+        try:
+            key = f'rate_limit_{client_ip}'
+            request_data = cache.get(key, {'count': 0, 'window_start': int(time.time())})
+            
+            return {
+                'requests_remaining': max(0, self.requests_per_minute - request_data['count']),
+                'window_reset': request_data['window_start'] + 60 - int(time.time()),
+                'concurrent_requests': cache.get(f'concurrent_requests_{client_ip}', 0)
+            }
+        except Exception as e:
+            # If cache fails, return default status
+            logger.warning(f"Failed to get rate limit status for {client_ip}: {e}")
+            return {
+                'requests_remaining': self.requests_per_minute,
+                'window_reset': 60,
+                'concurrent_requests': 0
+            } 

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}House Generator Settings - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-4xl font-extrabold mb-6 text-accent">House Generator Settings</h1>
+    
+    <div class="bg-primary rounded-xl shadow p-8 mb-6 border-l-8 border-accent">
+        <h2 class="text-2xl mb-4 text-accent">Plugin Configuration</h2>
+        
+        <form id="settingsForm" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="enabled" 
+                               name="enabled" 
+                               {% if enabled %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Enable House Interpretations</span>
+                    </label>
+                    <p class="text-xs text-plum2 mt-1">
+                        When enabled, the plugin will generate AI interpretations for all 12 houses.
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="include_planets" 
+                               name="include_planets" 
+                               {% if include_planets %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Include Planet Interpretations</span>
+                    </label>
+                    <p class="text-xs text-plum2 mt-1">
+                        When enabled, interpretations will include planets present in each house.
+                    </p>
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="bg-accent text-white px-6 py-2 rounded-md hover:bg-accent-dark transition-colors">
+                Save Settings
+            </button>
+        </form>
+    </div>
+    
+    <div class="bg-primary rounded-xl shadow p-8 border-l-8 border-blue-500">
+        <h2 class="text-2xl mb-4 text-accent">Plugin Information</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p><strong class="text-accent">Name:</strong> House Generator</p>
+                <p><strong class="text-accent">Version:</strong> 1.0.0</p>
+                <p><strong class="text-accent">Author:</strong> Outer Skies Team</p>
+            </div>
+            <div>
+                <p><strong class="text-accent">Description:</strong> Generates AI-powered interpretations for each of the 12 astrological houses</p>
+                <p><strong class="text-accent">Status:</strong> <span class="text-green-500">Active</span></p>
+                <p><strong class="text-accent">API Enabled:</strong> <span class="text-green-500">Yes</span></p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h3 class="text-lg font-semibold text-accent mb-2">Features</h3>
+            <ul class="list-disc list-inside text-sm text-plum2 space-y-1">
+                <li>Generate interpretations for all 12 astrological houses</li>
+                <li>Include house cusp signs in interpretations</li>
+                <li>Account for planets present in each house</li>
+                <li>Two-paragraph interpretations per house</li>
+                <li>REST API endpoints for integration</li>
+                <li>Configurable settings for planet inclusion</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="message" class="hidden mt-4 p-4 rounded-lg"></div>
+</div>
+
+<script>
+document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const messageDiv = document.getElementById('message');
+    
+    try {
+        const response = await fetch('/api/houses/settings/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            messageDiv.className = 'mt-4 p-4 rounded-lg bg-green-500 text-white';
+            messageDiv.textContent = 'Settings saved successfully!';
+        } else {
+            messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-500 text-white';
+            messageDiv.textContent = 'Error: ' + data.error;
+        }
+    } catch (error) {
+        messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-500 text-white';
+        messageDiv.textContent = 'Error saving settings: ' + error.message;
+    }
+    
+    messageDiv.classList.remove('hidden');
+    setTimeout(() => {
+        messageDiv.classList.add('hidden');
+    }, 3000);
+});
+</script>
+{% endblock %} 

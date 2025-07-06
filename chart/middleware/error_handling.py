@@ -110,35 +110,43 @@ class ErrorHandlingMiddleware:
         
     def _track_error(self, request, response):
         """Track error for rate limiting."""
-        key = f'error_count_{self._get_client_ip(request)}'
-        current_time = int(time.time())
-        
-        # Get current error count
-        error_data = cache.get(key, {'count': 0, 'window_start': current_time})
-        
-        # Reset counter if window has expired
-        if current_time - error_data['window_start'] >= self.error_window:
-            error_data = {'count': 0, 'window_start': current_time}
+        try:
+            key = f'error_count_{self._get_client_ip(request)}'
+            current_time = int(time.time())
             
-        # Increment counter
-        error_data['count'] += 1
-        cache.set(key, error_data, self.error_window)
+            # Get current error count
+            error_data = cache.get(key, {'count': 0, 'window_start': current_time})
+            
+            # Reset counter if window has expired
+            if current_time - error_data['window_start'] >= self.error_window:
+                error_data = {'count': 0, 'window_start': current_time}
+                
+            # Increment counter
+            error_data['count'] += 1
+            cache.set(key, error_data, self.error_window)
+        except Exception as e:
+            # If cache fails, just log it and continue
+            logger.warning(f"Failed to track error in cache: {e}")
         
     def _track_exception(self, request, exception):
         """Track exception for rate limiting."""
-        key = f'error_count_{self._get_client_ip(request)}'
-        current_time = int(time.time())
-        
-        # Get current error count
-        error_data = cache.get(key, {'count': 0, 'window_start': current_time})
-        
-        # Reset counter if window has expired
-        if current_time - error_data['window_start'] >= self.error_window:
-            error_data = {'count': 0, 'window_start': current_time}
+        try:
+            key = f'error_count_{self._get_client_ip(request)}'
+            current_time = int(time.time())
             
-        # Increment counter
-        error_data['count'] += 1
-        cache.set(key, error_data, self.error_window)
+            # Get current error count
+            error_data = cache.get(key, {'count': 0, 'window_start': current_time})
+            
+            # Reset counter if window has expired
+            if current_time - error_data['window_start'] >= self.error_window:
+                error_data = {'count': 0, 'window_start': current_time}
+                
+            # Increment counter
+            error_data['count'] += 1
+            cache.set(key, error_data, self.error_window)
+        except Exception as e:
+            # If cache fails, just log it and continue
+            logger.warning(f"Failed to track exception in cache: {e}")
         
     def _report_error(self, request, response):
         """Report error to admin."""
@@ -182,9 +190,14 @@ class ErrorHandlingMiddleware:
         
     def _should_report_error(self, request):
         """Check if error should be reported based on rate limiting."""
-        key = f'error_count_{self._get_client_ip(request)}'
-        error_data = cache.get(key, {'count': 0, 'window_start': time.time()})
-        return error_data['count'] <= self.error_threshold
+        try:
+            key = f'error_count_{self._get_client_ip(request)}'
+            error_data = cache.get(key, {'count': 0, 'window_start': time.time()})
+            return error_data['count'] <= self.error_threshold
+        except Exception as e:
+            # If cache fails, allow reporting (fail open)
+            logger.warning(f"Failed to check error count in cache: {e}")
+            return True
         
     def _json_error_response(self, response):
         """Return JSON error response."""

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}House Generator - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-4xl font-extrabold mb-6 text-accent">House Generator</h1>
+    
+    <div class="bg-primary rounded-xl shadow p-8 mb-6 border-l-8 border-accent">
+        <h2 class="text-2xl mb-4 text-accent">Generate House Interpretations</h2>
+        
+        <form id="houseForm" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="enabled" 
+                               name="enabled" 
+                               {% if enabled %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Enable House Interpretations</span>
+                    </label>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="include_planets" 
+                               name="include_planets" 
+                               {% if include_planets %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Include Planet Interpretations</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label for="chartData" class="block text-sm font-semibold text-accent">Chart Data (JSON)</label>
+                <textarea id="chartData" 
+                          name="chartData" 
+                          rows="10" 
+                          class="w-full rounded-md border border-plum2 bg-dark2 text-accent p-2"
+                          placeholder="Paste chart data JSON here..."></textarea>
+            </div>
+            
+            <button type="submit" 
+                    class="bg-accent text-white px-6 py-2 rounded-md hover:bg-accent-dark transition-colors">
+                Generate House Interpretations
+            </button>
+        </form>
+    </div>
+    
+    <div id="results" class="hidden bg-primary rounded-xl shadow p-8 border-l-8 border-green-500">
+        <h3 class="text-xl mb-4 text-accent">Generated House Interpretations</h3>
+        <div id="housesList"></div>
+    </div>
+    
+    <div id="loading" class="hidden text-center py-8">
+        <div class="spinner-border text-accent" role="status">
+            <span class="sr-only">Generating house interpretations...</span>
+        </div>
+        <p class="mt-4 text-accent">Generating house interpretations...</p>
+    </div>
+</div>
+
+<script>
+document.getElementById('houseForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const chartData = document.getElementById('chartData').value;
+    
+    if (!chartData.trim()) {
+        alert('Please provide chart data');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('results').classList.add('hidden');
+    
+    try {
+        const response = await fetch('/api/houses/generate/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error generating house interpretations: ' + error.message);
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+});
+
+function displayResults(data) {
+    const resultsDiv = document.getElementById('results');
+    const housesList = document.getElementById('housesList');
+    
+    housesList.innerHTML = '';
+    
+    if (data.houses && data.houses.length > 0) {
+        data.houses.forEach(house => {
+            const houseDiv = document.createElement('div');
+            houseDiv.className = 'mb-6 p-4 border border-plum2 rounded-lg';
+            
+            const houseNumber = house.house_number;
+            const ordinal = houseNumber === 1 ? 'st' : houseNumber === 2 ? 'nd' : houseNumber === 3 ? 'rd' : 'th';
+            
+            let planetsHtml = '';
+            if (house.planets && house.planets.length > 0) {
+                const planetNames = house.planets.map(p => `${p.name} in ${p.sign}`).join(', ');
+                planetsHtml = `<div class="text-sm text-plum2 mb-2"><strong>Planets:</strong> ${planetNames}</div>`;
+            } else {
+                planetsHtml = '<div class="text-sm text-plum2 mb-2"><strong>Planets:</strong> None</div>';
+            }
+            
+            houseDiv.innerHTML = `
+                <h4 class="text-lg font-semibold text-accent mb-2">
+                    ${houseNumber}${ordinal} House in ${house.cusp_sign}
+                </h4>
+                <div class="text-sm text-plum2 mb-2">
+                    <strong>Cusp:</strong> ${house.cusp_degree.toFixed(1)}° | 
+                    <strong>Sign:</strong> ${house.cusp_sign}
+                </div>
+                ${planetsHtml}
+                ${house.interpretation ? `
+                    <div class="text-accent mt-3">
+                        <strong>Interpretation:</strong><br>
+                        ${house.interpretation}
+                    </div>
+                ` : ''}
+            `;
+            housesList.appendChild(houseDiv);
+        });
+        
+        resultsDiv.classList.remove('hidden');
+    } else {
+        housesList.innerHTML = '<p class="text-plum2">No house data found.</p>';
+        resultsDiv.classList.remove('hidden');
+    }
+}
+</script>
+{% endblock %} 

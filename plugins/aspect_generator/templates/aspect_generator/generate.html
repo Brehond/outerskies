@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Aspect Generator - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-4xl font-extrabold mb-6 text-accent">Aspect Generator</h1>
+    
+    <div class="bg-primary rounded-xl shadow p-8 mb-6 border-l-8 border-accent">
+        <h2 class="text-2xl mb-4 text-accent">Generate Aspect Interpretations</h2>
+        
+        <form id="aspectForm" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="orb" class="block text-sm font-semibold text-accent">Aspect Orb (degrees)</label>
+                    <input type="range" 
+                           id="orb" 
+                           name="orb" 
+                           min="0" 
+                           max="15" 
+                           step="0.5" 
+                           value="{{ orb }}" 
+                           class="w-full"
+                           oninput="updateOrbValue(this.value)">
+                    <div class="text-sm text-plum2 mt-1">
+                        Current orb: <span id="orbValue">{{ orb }}</span> degrees
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="enabled" 
+                               name="enabled" 
+                               {% if enabled %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Enable AI Interpretations</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <label for="chartData" class="block text-sm font-semibold text-accent">Chart Data (JSON)</label>
+                <textarea id="chartData" 
+                          name="chartData" 
+                          rows="10" 
+                          class="w-full rounded-md border border-plum2 bg-dark2 text-accent p-2"
+                          placeholder="Paste chart data JSON here..."></textarea>
+            </div>
+            
+            <button type="submit" 
+                    class="bg-accent text-white px-6 py-2 rounded-md hover:bg-accent-dark transition-colors">
+                Generate Aspects
+            </button>
+        </form>
+    </div>
+    
+    <div id="results" class="hidden bg-primary rounded-xl shadow p-8 border-l-8 border-green-500">
+        <h3 class="text-xl mb-4 text-accent">Generated Aspects</h3>
+        <div id="aspectsList"></div>
+    </div>
+    
+    <div id="loading" class="hidden text-center py-8">
+        <div class="spinner-border text-accent" role="status">
+            <span class="sr-only">Generating aspects...</span>
+        </div>
+        <p class="mt-4 text-accent">Generating aspect interpretations...</p>
+    </div>
+</div>
+
+<script>
+function updateOrbValue(value) {
+    document.getElementById('orbValue').textContent = value;
+}
+
+document.getElementById('aspectForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const chartData = document.getElementById('chartData').value;
+    
+    if (!chartData.trim()) {
+        alert('Please provide chart data');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('results').classList.add('hidden');
+    
+    try {
+        const response = await fetch('/api/aspects/generate/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayResults(data);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error generating aspects: ' + error.message);
+    } finally {
+        document.getElementById('loading').classList.add('hidden');
+    }
+});
+
+function displayResults(data) {
+    const resultsDiv = document.getElementById('results');
+    const aspectsList = document.getElementById('aspectsList');
+    
+    aspectsList.innerHTML = '';
+    
+    if (data.aspects && data.aspects.length > 0) {
+        data.aspects.forEach(aspect => {
+            const aspectDiv = document.createElement('div');
+            aspectDiv.className = 'mb-6 p-4 border border-plum2 rounded-lg';
+            aspectDiv.innerHTML = `
+                <h4 class="text-lg font-semibold text-accent mb-2">
+                    ${aspect.planet1} ${aspect.aspect.toUpperCase()} ${aspect.planet2}
+                </h4>
+                <div class="text-sm text-plum2 mb-2">
+                    <strong>Orb:</strong> ${aspect.orb.toFixed(1)}° | 
+                    <strong>Angle:</strong> ${aspect.angle}° | 
+                    <strong>Distance:</strong> ${aspect.actual_distance.toFixed(1)}°
+                </div>
+                ${aspect.interpretation ? `
+                    <div class="text-accent mt-3">
+                        <strong>Interpretation:</strong><br>
+                        ${aspect.interpretation}
+                    </div>
+                ` : ''}
+            `;
+            aspectsList.appendChild(aspectDiv);
+        });
+        
+        resultsDiv.classList.remove('hidden');
+    } else {
+        aspectsList.innerHTML = '<p class="text-plum2">No aspects found within the specified orb.</p>';
+        resultsDiv.classList.remove('hidden');
+    }
+}
+</script>
+{% endblock %} 

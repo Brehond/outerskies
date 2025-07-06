@@ -1,0 +1,344 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pricing - Outer Skies{% endblock %}
+
+{% block extra_head %}
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+    .pricing-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .pricing-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    .popular-badge {
+        position: absolute;
+        top: -10px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+    .feature-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .feature-list li:before {
+        content: "✓";
+        color: #10b981;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    .billing-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+    .toggle-switch {
+        position: relative;
+        width: 60px;
+        height: 30px;
+        background: #374151;
+        border-radius: 15px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+    .toggle-switch.active {
+        background: #667eea;
+    }
+    .toggle-slider {
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 26px;
+        height: 26px;
+        background: white;
+        border-radius: 50%;
+        transition: transform 0.3s;
+    }
+    .toggle-switch.active .toggle-slider {
+        transform: translateX(30px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 py-12">
+    <div class="container mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+                Choose Your Cosmic Journey
+            </h1>
+            <p class="text-xl text-purple-200 max-w-2xl mx-auto">
+                Unlock the mysteries of the stars with our comprehensive astrology platform
+            </p>
+        </div>
+
+        <!-- Billing Toggle -->
+        <div class="billing-toggle">
+            <span class="text-white font-medium">Monthly</span>
+            <div class="toggle-switch" id="billingToggle">
+                <div class="toggle-slider"></div>
+            </div>
+            <span class="text-white font-medium">Yearly</span>
+            <span class="text-green-400 text-sm font-medium">Save 20%</span>
+        </div>
+
+        <!-- Pricing Cards -->
+        <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {% for plan in plans %}
+            <div class="pricing-card relative bg-white/10 backdrop-blur-lg rounded-2xl p-8 {% if plan.is_popular %}ring-2 ring-purple-500{% endif %}">
+                {% if plan.is_popular %}
+                <div class="popular-badge">Most Popular</div>
+                {% endif %}
+                
+                <div class="text-center mb-8">
+                    <h3 class="text-2xl font-bold text-white mb-2">{{ plan.name }}</h3>
+                    <p class="text-purple-200 mb-6">{{ plan.description }}</p>
+                    
+                    <div class="mb-6">
+                        <span class="text-4xl font-bold text-white">
+                            $<span class="price-monthly">{{ plan.price_monthly }}</span>
+                            <span class="price-yearly hidden">{{ plan.price_yearly }}</span>
+                        </span>
+                        <span class="text-purple-200">
+                            /<span class="billing-period">month</span>
+                        </span>
+                    </div>
+                    
+                    {% if plan.plan_type != 'free' %}
+                    <button 
+                        class="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105"
+                        onclick="subscribeToPlan({{ plan.id }}, event)"
+                        data-plan-id="{{ plan.id }}"
+                        data-plan-name="{{ plan.name }}"
+                    >
+                        {% if current_subscription and current_subscription.plan.id == plan.id %}
+                            Current Plan
+                        {% else %}
+                            Get Started
+                        {% endif %}
+                    </button>
+                    {% else %}
+                    <button 
+                        class="w-full bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl cursor-not-allowed"
+                        disabled
+                    >
+                        Current Plan
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <div class="space-y-4">
+                    <h4 class="text-lg font-semibold text-white mb-4">What's included:</h4>
+                    <ul class="feature-list text-purple-200">
+                        {% for feature in plan.features %}
+                        <li>{{ feature }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                
+                {% if plan.plan_type != 'free' and plan.price_yearly %}
+                <div class="mt-6 p-4 bg-green-500/20 rounded-lg">
+                    <p class="text-green-300 text-sm text-center">
+                        Save {{ plan.get_yearly_discount }}% with yearly billing
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="mt-16 max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">Frequently Asked Questions</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-3">Can I cancel anytime?</h3>
+                    <p class="text-purple-200">Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-3">What payment methods do you accept?</h3>
+                    <p class="text-purple-200">We accept all major credit cards, debit cards, and digital wallets through our secure Stripe integration.</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-3">Is there a free trial?</h3>
+                    <p class="text-purple-200">Yes! Start with our free plan to explore basic features, then upgrade when you're ready for more advanced insights.</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                    <h3 class="text-xl font-semibold text-white mb-3">Can I upgrade or downgrade?</h3>
+                    <p class="text-purple-200">Absolutely! You can change your plan at any time. Changes take effect at the start of your next billing cycle.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stripe Elements Container (Hidden) -->
+<div id="stripe-container" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Complete Your Subscription</h3>
+        <div id="card-element" class="mb-4 p-3 border rounded"></div>
+        <div id="card-errors" class="text-red-500 text-sm mb-4"></div>
+        <div class="flex gap-4">
+            <button id="submit-payment" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+                Subscribe
+            </button>
+            <button onclick="closeStripeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize Stripe
+    const stripe = Stripe('{{ stripe_public_key }}');
+    const elements = stripe.elements();
+    
+    // Billing toggle functionality
+    let isYearly = false;
+    const billingToggle = document.getElementById('billingToggle');
+    const billingPeriod = document.querySelectorAll('.billing-period');
+    const priceMonthly = document.querySelectorAll('.price-monthly');
+    const priceYearly = document.querySelectorAll('.price-yearly');
+    
+    billingToggle.addEventListener('click', function() {
+        isYearly = !isYearly;
+        this.classList.toggle('active');
+        
+        billingPeriod.forEach(period => {
+            period.textContent = isYearly ? 'year' : 'month';
+        });
+        
+        priceMonthly.forEach((price, index) => {
+            if (priceYearly[index]) {
+                if (isYearly) {
+                    price.classList.add('hidden');
+                    priceYearly[index].classList.remove('hidden');
+                } else {
+                    price.classList.remove('hidden');
+                    priceYearly[index].classList.add('hidden');
+                }
+            }
+        });
+    });
+    
+    // Subscription functionality
+    function subscribeToPlan(planId, event) {
+        const planName = event.target.getAttribute('data-plan-name');
+        
+        // Check if user is already subscribed to this plan
+        if (event.target.textContent.trim() === 'Current Plan') {
+            alert('You are already subscribed to this plan!');
+            return;
+        }
+        
+        // Show Stripe modal
+        showStripeModal(planId, planName);
+    }
+    
+    function showStripeModal(planId, planName) {
+        const container = document.getElementById('stripe-container');
+        const cardElement = document.getElementById('card-element');
+        
+        // Create card element
+        const card = elements.create('card', {
+            style: {
+                base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                        color: '#aab7c4',
+                    },
+                },
+            },
+        });
+        
+        card.mount(cardElement);
+        
+        // Handle form submission
+        document.getElementById('submit-payment').onclick = function() {
+            stripe.createPaymentMethod({
+                type: 'card',
+                card: card,
+            }).then(function(result) {
+                if (result.error) {
+                    document.getElementById('card-errors').textContent = result.error.message;
+                } else {
+                    createSubscription(planId, result.paymentMethod.id);
+                }
+            });
+        };
+        
+        container.classList.remove('hidden');
+    }
+    
+    function closeStripeModal() {
+        document.getElementById('stripe-container').classList.add('hidden');
+        document.getElementById('card-errors').textContent = '';
+    }
+    
+    function createSubscription(planId, paymentMethodId) {
+        const submitButton = document.getElementById('submit-payment');
+        submitButton.disabled = true;
+        submitButton.textContent = 'Processing...';
+        
+        fetch('/payments/subscription/create/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                plan_id: planId,
+                payment_method_id: paymentMethodId,
+                billing_cycle: isYearly ? 'yearly' : 'monthly'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.client_secret) {
+                    // Handle 3D Secure authentication
+                    stripe.confirmCardPayment(data.client_secret).then(function(result) {
+                        if (result.error) {
+                            document.getElementById('card-errors').textContent = result.error.message;
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Subscribe';
+                        } else {
+                            window.location.href = data.redirect_url;
+                        }
+                    });
+                } else {
+                    window.location.href = data.redirect_url;
+                }
+            } else {
+                document.getElementById('card-errors').textContent = data.error;
+                submitButton.disabled = false;
+                submitButton.textContent = 'Subscribe';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('card-errors').textContent = 'An error occurred. Please try again.';
+            submitButton.disabled = false;
+            submitButton.textContent = 'Subscribe';
+        });
+    }
+</script>
+{% endblock %} 

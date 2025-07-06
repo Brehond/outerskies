@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Aspect Generator Settings - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-4xl font-extrabold mb-6 text-accent">Aspect Generator Settings</h1>
+    
+    <div class="bg-primary rounded-xl shadow p-8 mb-6 border-l-8 border-accent">
+        <h2 class="text-2xl mb-4 text-accent">Plugin Configuration</h2>
+        
+        <form id="settingsForm" class="space-y-4">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="orb" class="block text-sm font-semibold text-accent">Default Aspect Orb (degrees)</label>
+                    <input type="range" 
+                           id="orb" 
+                           name="orb" 
+                           min="0" 
+                           max="15" 
+                           step="0.5" 
+                           value="{{ orb }}" 
+                           class="w-full"
+                           oninput="updateOrbValue(this.value)">
+                    <div class="text-sm text-plum2 mt-1">
+                        Current default: <span id="orbValue">{{ orb }}</span> degrees
+                    </div>
+                    <p class="text-xs text-plum2 mt-1">
+                        This is the default orb used when generating aspects if no specific orb is provided.
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="flex items-center">
+                        <input type="checkbox" 
+                               id="enabled" 
+                               name="enabled" 
+                               {% if enabled %}checked{% endif %}
+                               class="mr-2">
+                        <span class="text-sm font-semibold text-accent">Enable AI Interpretations by Default</span>
+                    </label>
+                    <p class="text-xs text-plum2 mt-1">
+                        When enabled, the plugin will generate AI interpretations for all aspects.
+                    </p>
+                </div>
+            </div>
+            
+            <button type="submit" 
+                    class="bg-accent text-white px-6 py-2 rounded-md hover:bg-accent-dark transition-colors">
+                Save Settings
+            </button>
+        </form>
+    </div>
+    
+    <div class="bg-primary rounded-xl shadow p-8 border-l-8 border-blue-500">
+        <h2 class="text-2xl mb-4 text-accent">Plugin Information</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p><strong class="text-accent">Name:</strong> Aspect Generator</p>
+                <p><strong class="text-accent">Version:</strong> 1.0.0</p>
+                <p><strong class="text-accent">Author:</strong> Outer Skies Team</p>
+            </div>
+            <div>
+                <p><strong class="text-accent">Description:</strong> Generates AI-powered interpretations for astrological aspects</p>
+                <p><strong class="text-accent">Status:</strong> <span class="text-green-500">Active</span></p>
+                <p><strong class="text-accent">API Enabled:</strong> <span class="text-green-500">Yes</span></p>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <h3 class="text-lg font-semibold text-accent mb-2">Features</h3>
+            <ul class="list-disc list-inside text-sm text-plum2 space-y-1">
+                <li>Calculate aspects between planets within specified orb</li>
+                <li>Generate AI-powered interpretations for each aspect</li>
+                <li>Integrate planet placements (sign and house)</li>
+                <li>Configurable orb settings</li>
+                <li>REST API endpoints for integration</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div id="message" class="hidden mt-4 p-4 rounded-lg"></div>
+</div>
+
+<script>
+function updateOrbValue(value) {
+    document.getElementById('orbValue').textContent = value;
+}
+
+document.getElementById('settingsForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const messageDiv = document.getElementById('message');
+    
+    try {
+        const response = await fetch('/api/aspects/settings/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            messageDiv.className = 'mt-4 p-4 rounded-lg bg-green-500 text-white';
+            messageDiv.textContent = 'Settings saved successfully!';
+        } else {
+            messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-500 text-white';
+            messageDiv.textContent = 'Error: ' + data.error;
+        }
+    } catch (error) {
+        messageDiv.className = 'mt-4 p-4 rounded-lg bg-red-500 text-white';
+        messageDiv.textContent = 'Error saving settings: ' + error.message;
+    }
+    
+    messageDiv.classList.remove('hidden');
+    
+    // Hide message after 3 seconds
+    setTimeout(() => {
+        messageDiv.classList.add('hidden');
+    }, 3000);
+});
+</script>
+{% endblock %} 

@@ -27,6 +27,7 @@ MEMORY_USAGE_THRESHOLD = 90  # Percentage
 
 # Add Security Middleware
 MIDDLEWARE = [
+    'monitoring.performance_monitor.PerformanceMonitoringMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

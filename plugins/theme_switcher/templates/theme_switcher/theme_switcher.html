@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}Theme Switcher - Outer Skies{% endblock %}
+
+{% block extra_head %}
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+<style>
+    .theme-card {
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: 2px solid transparent;
+    }
+    
+    .theme-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+    
+    .theme-card.active {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+    }
+    
+    .color-preview {
+        height: 60px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .color-preview::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    }
+    
+    .color-preview::after {
+        content: '';
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        background: var(--accent-color);
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .theme-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-top: 32px;
+    }
+    
+    .theme-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .theme-name {
+        font-weight: 600;
+        font-size: 1.1em;
+        color: var(--text-primary-color);
+    }
+    
+    .theme-description {
+        color: var(--text-secondary-color);
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+    
+    .apply-button {
+        background: var(--accent-color);
+        color: var(--primary-color);
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .apply-button:hover {
+        background: var(--accent-secondary-color);
+        transform: translateY(-1px);
+    }
+    
+    .apply-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .header-section {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 40px 20px;
+        background: var(--secondary-color);
+        border-radius: 16px;
+        border: 1px solid var(--border-color);
+    }
+    
+    .current-theme-badge {
+        display: inline-block;
+        background: var(--accent-color);
+        color: var(--primary-color);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+        margin-top: 12px;
+    }
+    
+    .loading-spinner {
+        display: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header Section -->
+    <div class="header-section">
+        <h1 class="text-4xl font-bold mb-4" style="color: var(--text-primary-color);">
+            🌌 Theme Switcher
+        </h1>
+        <p class="text-lg mb-6" style="color: var(--text-secondary-color);">
+            Choose your perfect cosmic aesthetic. Each theme is carefully crafted to enhance your astrological journey.
+        </p>
+        <div class="current-theme-badge">
+            Currently: {{ theme_info.name }}
+        </div>
+    </div>
+
+    <!-- Theme Grid -->
+    <div class="theme-grid">
+        {% for theme_key, theme in themes.items %}
+        <div class="theme-card bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg {% if theme_key == current_theme %}active{% endif %}"
+             data-theme="{{ theme_key }}">
+            <!-- Color Preview -->
+            <div class="color-preview" style="
+                --primary-color: {{ theme.colors.primary }};
+                --secondary-color: {{ theme.colors.secondary }};
+                --accent-color: {{ theme.colors.accent }};
+            "></div>
+            
+            <!-- Theme Info -->
+            <div class="theme-info">
+                <div>
+                    <div class="theme-name">{{ theme.name }}</div>
+                    <div class="theme-description">{{ theme.description }}</div>
+                </div>
+                {% if theme_key == current_theme %}
+                    <span class="text-green-500 font-semibold">✓ Active</span>
+                {% else %}
+                    <button class="apply-button" 
+                            onclick="switchTheme('{{ theme_key }}')"
+                            data-theme="{{ theme_key }}">
+                        <span class="button-text">Apply</span>
+                        <span class="loading-spinner"></span>
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-12 text-center">
+        <div class="inline-flex space-x-4">
+            <button onclick="resetToDefault()" 
+                    class="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                Reset to Default
+            </button>
+            <button onclick="previewRandomTheme()" 
+                    class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                Preview Random Theme
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Theme switching functionality
+function switchTheme(themeName) {
+    const button = document.querySelector(`button[data-theme="${themeName}"]`);
+    const buttonText = button.querySelector('.button-text');
+    const spinner = button.querySelector('.loading-spinner');
+    
+    // Show loading state
+    button.disabled = true;
+    buttonText.style.display = 'none';
+    spinner.style.display = 'inline-block';
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        alert('Security token not found. Please refresh the page and try again.');
+        // Reset button state
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+        return;
+    }
+    
+    // Send request to switch theme
+    fetch('/theme/switch/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken.value
+        },
+        body: JSON.stringify({ theme: themeName })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload page to apply new theme
+            window.location.reload();
+        } else {
+            throw new Error(data.error || 'Unknown error occurred');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error switching theme: ' + error.message);
+        // Reset button state
+        button.disabled = false;
+        buttonText.style.display = 'inline';
+        spinner.style.display = 'none';
+    });
+}
+
+function resetToDefault() {
+    switchTheme('cosmic_night');
+}
+
+function previewRandomTheme() {
+    const themeKeys = ['cosmic_night', 'sunset_orange', 'ocean_deep', 'forest_green', 'rose_gold', 'midnight_purple', 'classic_dark', 'light_mode'];
+    const currentTheme = '{{ current_theme }}';
+    
+    // Get a random theme that's not the current one
+    let randomTheme;
+    do {
+        randomTheme = themeKeys[Math.floor(Math.random() * themeKeys.length)];
+    } while (randomTheme === currentTheme);
+    
+    // Open preview in new tab
+    window.open(`/theme/preview/${randomTheme}/`, '_blank');
+}
+
+// Add click handlers to theme cards
+document.addEventListener('DOMContentLoaded', function() {
+    const themeCards = document.querySelectorAll('.theme-card');
+    themeCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const themeName = this.dataset.theme;
+            if (themeName !== '{{ current_theme }}') {
+                switchTheme(themeName);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -25,24 +25,34 @@ class APIVersionMiddleware:
         self.version_pattern = re.compile(r'^v?(\d+\.\d+)$')
         
     def __call__(self, request):
-        # Skip versioning for non-API requests
+        # Skip version validation for non-API requests
         if not self._is_api_request(request):
             return self.get_response(request)
             
-        # Get requested version
-        version = self._get_requested_version(request)
+        # Skip version validation for public endpoints
+        if self._is_public_endpoint(request):
+            return self.get_response(request)
+            
+        # Get API version from header
+        version = request.headers.get(self.version_header)
+        
+        # If no version provided, use current version for v1 API
+        if not version and request.path.startswith('/api/v1/'):
+            version = self.current_version
+        
+        # Check if version is provided
         if not version:
             return self._handle_missing_version(request)
             
-        # Validate version
+        # Check if version is valid
         if not self._is_valid_version(version):
             return self._handle_invalid_version(request, version)
             
-        # Check version compatibility
+        # Check if version is compatible
         if not self._is_compatible_version(version):
             return self._handle_incompatible_version(request, version)
             
-        # Check for deprecated version
+        # Check if version is deprecated
         if self._is_deprecated_version(version):
             return self._handle_deprecated_version(request, version)
             
@@ -52,7 +62,7 @@ class APIVersionMiddleware:
         response = self.get_response(request)
         
         # Add version headers
-        self._add_version_headers(response, version)
+        self._add_version_headers(response)
         
         return response
         
@@ -60,24 +70,21 @@ class APIVersionMiddleware:
         """Check if request is an API request."""
         return request.path.startswith('/api/')
         
-    def _get_requested_version(self, request):
-        """Get requested API version."""
-        # Check header
-        version = request.headers.get(self.version_header)
-        if version:
-            return version
-            
-        # Check URL
-        match = re.search(r'/v(\d+\.\d+)/', request.path)
-        if match:
-            return match.group(1)
-            
-        # Check query parameter
-        version = request.GET.get('version')
-        if version:
-            return version
-            
-        return None
+    def _is_public_endpoint(self, request):
+        """Check if endpoint is public and should skip version validation."""
+        public_paths = [
+            '/api/health/',
+            '/api/public/',
+            '/api/docs/',
+            '/api/v1/system/health/',
+            '/api/v1/system/ai_models/',
+            '/api/v1/system/themes/',
+            '/api/v1/auth/register/',
+            '/api/v1/auth/login/',
+            '/api/v1/auth/refresh/',
+            '/api/v1/auth/logout/',
+        ]
+        return any(request.path.startswith(path) for path in public_paths)
         
     def _is_valid_version(self, version):
         """Check if version is valid."""
@@ -145,16 +152,12 @@ class APIVersionMiddleware:
             'deprecation_date': self._get_deprecation_date(version)
         }, status=400)
         
-    def _add_version_headers(self, response, version):
+    def _add_version_headers(self, response):
         """Add version headers to response."""
         response['X-API-Current-Version'] = self.current_version
         response['X-API-Min-Version'] = self.min_version
         response['X-API-Max-Version'] = self.max_version
         
-        if version in self.deprecated_versions:
-            response['X-API-Deprecated'] = 'true'
-            response['X-API-Deprecation-Date'] = self._get_deprecation_date(version)
-            
     def _get_deprecation_date(self, version):
         """Get deprecation date for version."""
         # This could be stored in settings or database

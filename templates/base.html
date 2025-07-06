@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,12 +6,165 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Outer Skies{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/themes.css' %}">
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
     {% block extra_head %}{% endblock %}
 </head>
-<body>
+<body class="theme-bg-primary theme-text-primary">
+    {% for theme in THEMES %}
+        {% if theme.slug == current_theme_slug %}
+            <script>
+                (function() {
+                    const themeColors = {
+                        'primary-color': '{{ theme.colors.primary }}',
+                        'secondary-color': '{{ theme.colors.secondary }}',
+                        'accent-color': '{{ theme.colors.accent }}',
+                        'accent-secondary-color': '{{ theme.colors.accent_secondary }}',
+                        'text-primary-color': '{{ theme.colors.text_primary }}',
+                        'text-secondary-color': '{{ theme.colors.text_secondary }}',
+                        'text-muted-color': '{{ theme.colors.text_muted }}',
+                        'border-color': '{{ theme.colors.border }}',
+                        'border-light-color': '{{ theme.colors.border_light }}',
+                    };
+
+                    const root = document.documentElement;
+                    for (const [key, value] of Object.entries(themeColors)) {
+                        if (value) {
+                            root.style.setProperty(`--${key}`, value);
+                        }
+                    }
+                })();
+            </script>
+        {% endif %}
+    {% endfor %}
+
+    <!-- Navigation Header -->
+    <header class="theme-bg-secondary p-4 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <!-- Logo/Brand -->
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold text-accent">🌌 Outer Skies</h1>
+                <nav class="hidden md:flex space-x-6">
+                    <a href="/chart/" class="nav-item hover:text-accent transition-colors">Chart Generator</a>
+                    <a href="/theme/" class="nav-item hover:text-accent transition-colors">Themes</a>
+                    {% if user.is_staff or user.is_superuser %}
+                        <a href="/admin/system-dashboard/" class="nav-item hover:text-accent transition-colors">System Dashboard</a>
+                    {% endif %}
+                </nav>
+            </div>
+            
+            <!-- Theme Switcher -->
+            <div class="theme-dropdown">
+                <button class="theme-dropdown-trigger">
+                    <span>🎨</span>
+                    <span>Theme</span>
+                    <span>▼</span>
+                </button>
+                <div class="theme-dropdown-content">
+                    {% for theme in THEMES %}
+                    <div class="theme-option {% if theme.slug == current_theme_slug %}active{% endif %}"
+                         data-theme="{{ theme.slug }}"
+                         onclick="switchTheme('{{ theme.slug }}')">
+                        <div class="theme-color-preview" style="background-color: {{ theme.colors.accent }}; border-color: {{theme.colors.border}}"></div>
+                        <span class="theme-name-text">{{ theme.name }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <style>
+        .theme-dropdown-content {
+            background-color: var(--secondary-color);
+            border-color: var(--border-color);
+        }
+        .theme-option .theme-name-text {
+            color: var(--text-primary-color);
+            font-weight: 600;
+        }
+        .theme-option:hover {
+            background-color: var(--border-color);
+        }
+        .theme-option.active {
+            background-color: var(--accent-color);
+        }
+        .theme-option.active .theme-name-text {
+            color: var(--primary-color, #000); /* Fallback for high contrast */
+        }
+    </style>
+
     <main>
         {% block content %}{% endblock %}
     </main>
+    
+    <!-- Theme switching JavaScript -->
+    <script>
+    function switchTheme(themeName) {
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            alert('Security token not found. Please refresh the page and try again.');
+            return;
+        }
+        
+        fetch('/theme/switch/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken.value
+            },
+            body: JSON.stringify({ theme: themeName })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                throw new Error(data.error || 'Unknown error occurred');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error switching theme: ' + error.message);
+        });
+    }
+
+    // Set active theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentTheme = document.body.getAttribute('data-theme') || 'cosmic-night';
+        const activeOption = document.querySelector(`.theme-option[data-theme="${currentTheme}"]`);
+        if (activeOption) {
+            activeOption.classList.add('active');
+        }
+
+        // --- New Dropdown Logic ---
+        const dropdown = document.querySelector('.theme-dropdown');
+        const trigger = document.querySelector('.theme-dropdown-trigger');
+
+        if (trigger) {
+            trigger.addEventListener('click', function(event) {
+                event.stopPropagation(); // Prevent click from bubbling up to the window
+                dropdown.classList.toggle('is-open');
+            });
+        }
+
+        // Close dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (dropdown && dropdown.classList.contains('is-open') && !dropdown.contains(event.target)) {
+                dropdown.classList.remove('is-open');
+            }
+        });
+    });
+    </script>
+    
     {% block extra_scripts %}{% endblock %}
 </body>
 </html> 

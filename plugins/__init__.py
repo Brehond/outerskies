@@ -66,13 +66,13 @@ class PluginManager:
                             self.plugin_hooks[hook_name] = []
                         self.plugin_hooks[hook_name].append(hook_func)
                 
-                print(f"✅ Plugin '{plugin_name}' registered successfully")
+                print(f"[OK] Plugin '{plugin_name}' registered successfully")
             else:
-                print(f"⚠️  Plugin '{plugin_name}' missing Plugin class")
+                print(f"[WARN] Plugin '{plugin_name}' missing Plugin class")
         except ImportError as e:
-            print(f"❌ Failed to import plugin '{plugin_name}': {e}")
+            print(f"[ERROR] Failed to import plugin '{plugin_name}': {e}")
         except Exception as e:
-            print(f"❌ Failed to register plugin '{plugin_name}': {e}")
+            print(f"[ERROR] Failed to register plugin '{plugin_name}': {e}")
     
     def get_plugin(self, plugin_name):
         """
@@ -97,7 +97,7 @@ class PluginManager:
                     result = hook_func(*args, **kwargs)
                     results.append(result)
                 except Exception as e:
-                    print(f"❌ Hook '{hook_name}' failed: {e}")
+                    print(f"[ERROR] Hook '{hook_name}' failed: {e}")
         return results
     
     def get_plugin_urls(self):
@@ -124,7 +124,7 @@ class PluginManager:
                     if plugin_context:
                         context.update(plugin_context)
                 except Exception as e:
-                    print(f"❌ Failed to get context from plugin '{plugin_name}': {e}")
+                    print(f"[ERROR] Failed to get context from plugin '{plugin_name}': {e}")
         return context
 
 # Global plugin manager instance

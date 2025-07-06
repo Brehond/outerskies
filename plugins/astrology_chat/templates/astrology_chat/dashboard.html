@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Astrology Chat - Outer Skies{% endblock %}
+
+{% block extra_head %}
+<style>
+    .chat-session-card {
+        transition: all 0.3s ease;
+    }
+    .chat-session-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    .session-stats {
+        font-size: 0.875rem;
+        color: var(--text-muted-color);
+    }
+    .new-chat-btn {
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-secondary-color));
+        transition: all 0.3s ease;
+    }
+    .new-chat-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-8 px-4">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-4xl font-bold text-accent mb-2">🌌 Astrology Chat</h1>
+            <p class="text-text-secondary text-lg">Ask questions about your natal chart and get AI-powered insights</p>
+        </div>
+        <div class="flex space-x-4">
+            <a href="{% url 'knowledge_base' %}" class="btn-secondary">
+                📚 Knowledge Base
+            </a>
+            <a href="{% url 'new_chat_session' %}" class="new-chat-btn px-6 py-3 rounded-lg text-white font-semibold">
+                ✨ New Chat
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">💬</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Total Sessions</p>
+                    <p class="text-2xl font-bold text-accent">{{ total_sessions }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">🤖</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">AI Responses</p>
+                    <p class="text-2xl font-bold text-accent">{{ total_ai_responses|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">📊</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Knowledge Docs</p>
+                    <p class="text-2xl font-bold text-accent">{{ knowledge_docs_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-secondary p-6 rounded-lg border border-border">
+            <div class="flex items-center">
+                <div class="p-3 bg-accent rounded-lg mr-4">
+                    <span class="text-2xl">⚡</span>
+                </div>
+                <div>
+                    <p class="text-text-muted text-sm">Avg Response</p>
+                    <p class="text-2xl font-bold text-accent">{{ avg_response_time|default:"2.5" }}s</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Sessions -->
+    <div class="bg-secondary rounded-lg border border-border p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-accent">Recent Chat Sessions</h2>
+            <div class="flex space-x-2">
+                <button class="btn-secondary" onclick="refreshSessions()">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+
+        {% if sessions %}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for session in sessions %}
+                <div class="chat-session-card bg-primary rounded-lg border border-border p-6 cursor-pointer" 
+                     onclick="window.location.href='{% url 'astrology_chat_session' session.id %}'">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="text-lg font-semibold text-accent truncate">{{ session.title }}</h3>
+                        <span class="text-xs text-text-muted">{{ session.created_at|date:"M j" }}</span>
+                    </div>
+                    
+                    <div class="session-stats mb-4">
+                        <div class="flex justify-between text-sm">
+                            <span>Messages: {{ session.message_count }}</span>
+                            <span>Tokens: {{ session.total_tokens_used|default:"0" }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm mt-1">
+                            <span>Cost: ${{ session.total_cost|default:"0.00" }}</span>
+                            <span>{{ session.last_activity|timesince }} ago</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-text-muted">
+                            {% if session.chart_data %}
+                                📊 Chart Linked
+                            {% else %}
+                                💬 General Chat
+                            {% endif %}
+                        </span>
+                        <button class="text-red-500 hover:text-red-700 text-sm" 
+                                onclick="event.stopPropagation(); deleteSession('{{ session.id }}')">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if sessions.has_other_pages %}
+            <div class="flex justify-center mt-8">
+                <nav class="flex space-x-2">
+                    {% if sessions.has_previous %}
+                        <a href="?page={{ sessions.previous_page_number }}" class="btn-secondary">← Previous</a>
+                    {% endif %}
+                    
+                    <span class="px-4 py-2 text-text-secondary">
+                        Page {{ sessions.number }} of {{ sessions.paginator.num_pages }}
+                    </span>
+                    
+                    {% if sessions.has_next %}
+                        <a href="?page={{ sessions.next_page_number }}" class="btn-secondary">Next →</a>
+                    {% endif %}
+                </nav>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-12">
+                <div class="text-6xl mb-4">💬</div>
+                <h3 class="text-xl font-semibold text-accent mb-2">No Chat Sessions Yet</h3>
+                <p class="text-text-secondary mb-6">Start your first astrology chat session to get personalized insights about your natal chart.</p>
+                <a href="{% url 'new_chat_session' %}" class="new-chat-btn px-8 py-4 rounded-lg text-white font-semibold text-lg">
+                    Start Your First Chat
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-secondary rounded-lg border border-border p-6">
+            <h3 class="text-xl font-bold text-accent mb-4">📚 Knowledge Base</h3>
+            <p class="text-text-secondary mb-4">Browse our collection of astrology documents and resources to enhance your understanding.</p>
+            <a href="{% url 'knowledge_base' %}" class="btn-primary">Explore Knowledge Base</a>
+        </div>
+        
+        <div class="bg-secondary rounded-lg border border-border p-6">
+            <h3 class="text-xl font-bold text-accent mb-4">📊 Chart Analysis</h3>
+            <p class="text-text-secondary mb-4">Link your natal chart to get more personalized and accurate astrological insights.</p>
+            <a href="/chart/form/" class="btn-primary">Generate Chart</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function refreshSessions() {
+    window.location.reload();
+}
+
+function deleteSession(sessionId) {
+    if (confirm('Are you sure you want to delete this chat session? This action cannot be undone.')) {
+        fetch(`/chat/session/${sessionId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Error deleting session. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting session. Please try again.');
+        });
+    }
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    // Only refresh if user is not actively interacting
+    if (!document.hidden) {
+        refreshSessions();
+    }
+}, 30000);
+</script>
+{% endblock %} 
