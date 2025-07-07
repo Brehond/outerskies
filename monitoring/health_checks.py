@@ -494,4 +494,15 @@ def monitor_response_time() -> Dict[str, Any]:
         from monitoring.performance_monitor import performance_monitor
         return performance_monitor.get_request_performance(minutes=5)
     except Exception as e:
-        return {'error': str(e)} 
+        return {'error': str(e)}
+
+
+def check_database_connection() -> bool:
+    """Check if a database connection can be established."""
+    try:
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False 
