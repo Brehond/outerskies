@@ -349,8 +349,8 @@ class ChatService:
                 analytics.total_tokens_used += tokens
                 analytics.total_cost += Decimal(str(cost))
                 analytics.avg_response_time = (
-                    (analytics.avg_response_time * (analytics.ai_responses_received - 1) + response_time) /
-                    analytics.ai_responses_received
+                    (analytics.avg_response_time * (analytics.ai_responses_received - 1) + response_time)
+                    / analytics.ai_responses_received
                 )
                 analytics.save()
 
@@ -364,8 +364,8 @@ class ChatService:
         Returns:
             Fallback response text
         """
-        return """I apologize, but I'm having trouble generating a response right now. 
-        This could be due to a temporary issue with the AI service or network connectivity. 
+        return """I apologize, but I'm having trouble generating a response right now.
+        This could be due to a temporary issue with the AI service or network connectivity.
         Please try again in a moment, or feel free to rephrase your question."""
 
     def get_session_summary(self, session: ChatSession) -> Dict:

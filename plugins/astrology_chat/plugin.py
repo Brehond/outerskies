@@ -21,6 +21,15 @@ logger = logging.getLogger(__name__)
 _plugin_instance = None
 
 
+def premium_required(view_func):
+    """Decorator to require premium access"""
+    def wrapper(request, *args, **kwargs):
+        if not hasattr(request.user, 'is_premium') or not request.user.is_premium:
+            return redirect('/payments/pricing/')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 def get_plugin_instance():
     """Get the plugin instance for view functions"""
     global _plugin_instance
@@ -31,24 +40,28 @@ def get_plugin_instance():
 
 # Wrapper functions for view methods
 @login_required
+@premium_required
 def chat_dashboard_view(request):
     """Wrapper for chat dashboard view"""
     return get_plugin_instance().chat_dashboard(request)
 
 
 @login_required
+@premium_required
 def chat_session_view(request, session_id):
     """Wrapper for chat session view"""
     return get_plugin_instance().chat_session(request, session_id)
 
 
 @login_required
+@premium_required
 def new_chat_session_view(request):
     """Wrapper for new chat session view"""
     return get_plugin_instance().new_chat_session(request)
 
 
 @login_required
+@premium_required
 @require_http_methods(["POST"])
 def send_message_view(request, session_id):
     """Wrapper for send message view"""
@@ -56,48 +69,56 @@ def send_message_view(request, session_id):
 
 
 @login_required
+@premium_required
 def delete_session_view(request, session_id):
     """Wrapper for delete session view"""
     return get_plugin_instance().delete_session(request, session_id)
 
 
 @login_required
+@premium_required
 def knowledge_base_view(request):
     """Wrapper for knowledge base view"""
     return get_plugin_instance().knowledge_base(request)
 
 
 @login_required
+@premium_required
 def upload_document_view(request):
     """Wrapper for upload document view"""
     return get_plugin_instance().upload_document(request)
 
 
 @login_required
+@premium_required
 def view_document_view(request, doc_id):
     """Wrapper for view document view"""
     return get_plugin_instance().view_document(request, doc_id)
 
 
 @login_required
+@premium_required
 def api_sessions_view(request):
     """Wrapper for API sessions view"""
     return get_plugin_instance().api_sessions(request)
 
 
 @login_required
+@premium_required
 def api_messages_view(request, session_id):
     """Wrapper for API messages view"""
     return get_plugin_instance().api_messages(request, session_id)
 
 
 @login_required
+@premium_required
 def api_send_message_view(request, session_id):
     """Wrapper for API send message view"""
     return get_plugin_instance().api_send_message(request, session_id)
 
 
 @login_required
+@premium_required
 def api_knowledge_search_view(request):
     """Wrapper for API knowledge search view"""
     return get_plugin_instance().api_knowledge_search(request)
@@ -285,6 +306,13 @@ class AstrologyChatPlugin(BasePlugin):
             chat_service = ChatService()
             try:
                 ai_response = chat_service.generate_response(session, content)
+                # Save AI message
+                ChatMessage.objects.create(
+                    session=session,
+                    user=session.user,  # Assign to session user instead of None
+                    content=ai_response,
+                    is_ai=True
+                )
                 return JsonResponse({
                     'success': True,
                     'user_message': {
@@ -292,7 +320,7 @@ class AstrologyChatPlugin(BasePlugin):
                         'content': content,
                         'timestamp': user_message.created_at.isoformat()
                     },
-                    'ai_response': {
+                    'ai_message': {
                         'content': ai_response,
                         'tokens_used': 0,  # Will be updated by the service
                         'response_time': 0  # Will be updated by the service
