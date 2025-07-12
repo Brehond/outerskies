@@ -19,7 +19,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
           POSTGRES_DB: test_db
         options: >-
           --health-cmd pg_isready
@@ -65,7 +66,7 @@ jobs:
     - name: Set up environment variables
       run: |
         echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV
-        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/test_db" >> $GITHUB_ENV
         echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
         echo "DEBUG=True" >> $GITHUB_ENV
         echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
