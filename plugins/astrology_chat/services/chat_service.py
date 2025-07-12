@@ -1,6 +1,6 @@
 import time
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from django.conf import settings
 from django.utils import timezone
 from ai_integration.openrouter_api import generate_interpretation, get_available_models
@@ -33,7 +33,7 @@ class ChatService:
     ) -> Dict[str, Any]:
         """
         Get AI response (backward compatibility method)
-        
+
         Args:
             session: The chat session
             user_message: The user's message
@@ -54,7 +54,7 @@ class ChatService:
             max_tokens=max_tokens,
             include_knowledge=include_knowledge
         )
-        
+
         return {
             'content': response_text,
             'tokens_used': 0,  # Will be updated by generate_response
@@ -292,39 +292,40 @@ class ChatService:
         Calculate approximate cost for AI response
 
         Args:
-            model_name: Name of the AI model used
+            model_name: AI model used
             tokens: Number of tokens used
 
         Returns:
             Estimated cost in USD
         """
         # Approximate costs per 1K tokens (these are rough estimates)
-        cost_per_1k_tokens = {
+        cost_per_1k = {
             'gpt-4': 0.03,
             'gpt-3.5-turbo': 0.002,
             'claude-3-opus': 0.015,
             'claude-3-sonnet': 0.003,
-            'mistral-medium': 0.002,
+            'claude-3-haiku': 0.00025,
         }
 
-        base_cost = cost_per_1k_tokens.get(model_name, 0.01)
+        base_cost = cost_per_1k.get(model_name, 0.01)  # Default cost
         return (tokens / 1000) * base_cost
 
     def _update_analytics(self, session: ChatSession, tokens: int, cost: float, response_time: float):
         """
-        Update chat analytics for the session
+        Update session analytics with usage data
 
         Args:
             session: Chat session
-            tokens: Tokens used in response
-            cost: Cost of response
+            tokens: Tokens used
+            cost: Cost incurred
             response_time: Response time in seconds
         """
         try:
             # Update session totals
             session.total_tokens_used += tokens
             session.total_cost += Decimal(str(cost))
-            session.save(update_fields=['total_tokens_used', 'total_cost'])
+            session.message_count += 1
+            session.save(update_fields=['total_tokens_used', 'total_cost', 'message_count'])
 
             # Update daily analytics
             today = timezone.now().date()
@@ -334,27 +335,24 @@ class ChatService:
                 defaults={
                     'sessions_created': 0,
                     'messages_sent': 0,
-                    'ai_responses_received': 0,
-                    'total_tokens_used': 0,
-                    'total_cost': 0,
+                    'ai_responses_received': 1,
+                    'total_tokens_used': tokens,
+                    'total_cost': Decimal(str(cost)),
                     'knowledge_searches': 0,
                     'knowledge_documents_accessed': 0,
-                    'avg_response_time': 0,
+                    'avg_response_time': response_time,
                 }
             )
 
-            # Update analytics
-            analytics.ai_responses_received += 1
-            analytics.total_tokens_used += tokens
-            analytics.total_cost += Decimal(str(cost))
-
-            # Update average response time
-            if analytics.ai_responses_received > 0:
-                current_avg = analytics.avg_response_time
-                new_avg = ((current_avg * (analytics.ai_responses_received - 1)) + response_time) / analytics.ai_responses_received
-                analytics.avg_response_time = new_avg
-
-            analytics.save()
+            if not created:
+                analytics.ai_responses_received += 1
+                analytics.total_tokens_used += tokens
+                analytics.total_cost += Decimal(str(cost))
+                analytics.avg_response_time = (
+                    (analytics.avg_response_time * (analytics.ai_responses_received - 1) + response_time) /
+                    analytics.ai_responses_received
+                )
+                analytics.save()
 
         except Exception as e:
             logger.error(f"Error updating analytics: {str(e)}")
@@ -364,14 +362,11 @@ class ChatService:
         Get a fallback response when AI generation fails
 
         Returns:
-            Fallback response string
+            Fallback response text
         """
-        return (
-            "I apologize, but I'm having trouble generating a response right now.\n"
-            "This could be due to a temporary issue with the AI service or network connectivity.\n"
-            "Please try again in a moment, or feel free to rephrase your question.\n"
-            "If the problem persists, you may want to check your internet connection or try again later."
-        )
+        return """I apologize, but I'm having trouble generating a response right now. 
+        This could be due to a temporary issue with the AI service or network connectivity. 
+        Please try again in a moment, or feel free to rephrase your question."""
 
     def get_session_summary(self, session: ChatSession) -> Dict:
         """
@@ -388,20 +383,18 @@ class ChatService:
             user_messages = [msg.content for msg in messages if not msg.is_ai]
             ai_messages = [msg.content for msg in messages if msg.is_ai]
 
-            # Extract key topics from conversation
-            all_content = " ".join(user_messages + ai_messages)
-            topics = self._extract_topics(all_content)
+            # Extract topics from user messages
+            topics = self._extract_topics(user_messages)
 
             return {
                 'session_id': str(session.id),
                 'title': session.title,
-                'message_count': len(messages),
-                'user_messages': len(user_messages),
-                'ai_messages': len(ai_messages),
+                'message_count': session.message_count,
                 'total_tokens': session.total_tokens_used,
                 'total_cost': float(session.total_cost),
-                'duration_hours': (session.last_activity - session.created_at).total_seconds() / 3600,
-                'key_topics': topics,
+                'topics_discussed': topics,
+                'user_message_count': len(user_messages),
+                'ai_response_count': len(ai_messages),
                 'created_at': session.created_at.isoformat(),
                 'last_activity': session.last_activity.isoformat(),
             }
@@ -412,28 +405,27 @@ class ChatService:
 
     def _extract_topics(self, messages: List[str]) -> List[str]:
         """
-        Extract key topics from conversation messages
+        Extract main topics from user messages
 
         Args:
-            messages: List of message content
+            messages: List of user messages
 
         Returns:
-            List of key topics
+            List of identified topics
         """
-        # Simple keyword extraction (could be enhanced with NLP)
+        # Simple topic extraction based on keywords
         astrology_keywords = [
-            'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn',
-            'uranus', 'neptune', 'pluto', 'aries', 'taurus', 'gemini', 'cancer',
-            'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn',
-            'aquarius', 'pisces', 'house', 'aspect', 'transit', 'natal',
-            'chart', 'birth', 'zodiac', 'planet', 'sign'
+            'sun sign', 'moon sign', 'rising sign', 'ascendant', 'planets',
+            'houses', 'aspects', 'natal chart', 'birth chart', 'zodiac',
+            'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+            'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'
         ]
 
-        found_topics = []
-        content_lower = " ".join(messages).lower()
+        topics = set()
+        for message in messages:
+            message_lower = message.lower()
+            for keyword in astrology_keywords:
+                if keyword in message_lower:
+                    topics.add(keyword)
 
-        for keyword in astrology_keywords:
-            if keyword in content_lower:
-                found_topics.append(keyword.title())
-
-        return list(set(found_topics))[:5]  # Return top 5 unique topics
+        return list(topics)[:5]  # Return top 5 topics
