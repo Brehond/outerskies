@@ -179,4 +179,140 @@ class HouseGeneratorPlugin(BasePlugin):
                                     chart_data: Dict[str, Any],
                                     model_name: Optional[str] = None,
                                     temperature: Optional[float] = None,
-                                    max_t
+                                    max_tokens: Optional[int] = None) -> str:
+        """
+        Generate AI interpretation for a specific house
+
+        Args:
+            house_info: House information including planets
+            chart_data: Full chart data
+            model_name: AI model to use
+            temperature: AI temperature setting
+            max_tokens: Maximum tokens for response
+
+        Returns:
+            Generated interpretation text
+        """
+        try:
+            # Build prompt for house interpretation
+            prompt = self._build_house_prompt(house_info, chart_data)
+            
+            # Generate interpretation using AI
+            interpretation = generate_interpretation(
+                prompt=prompt,
+                model_name=model_name or 'gpt-4',
+                temperature=temperature or 0.7,
+                max_tokens=max_tokens or 500
+            )
+            
+            return interpretation
+        except Exception as e:
+            logger.error(f"Error generating house interpretation: {e}")
+            return f"Unable to generate interpretation for House {house_info['house_number']}"
+
+    def _get_house_cusps(self, chart_data: Dict[str, Any]) -> List[float]:
+        """Extract house cusps from chart data"""
+        house_cusps = chart_data.get('house_cusps', [])
+        if not house_cusps:
+            logger.warning("No house cusps found in chart data")
+        return house_cusps
+
+    def _get_sign_for_degree(self, degree: float) -> str:
+        """Get zodiac sign for a given degree"""
+        signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+                'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+        sign_index = int(degree / 30)
+        return signs[sign_index % 12]
+
+    def _get_planets_in_house(self, house_num: int, house_cusps: List[float], 
+                             positions: Dict[str, Any]) -> List[str]:
+        """Find planets in a specific house"""
+        planets_in_house = []
+        
+        for planet, position in positions.items():
+            if self._planet_in_house(planet, position, house_num, house_cusps):
+                planets_in_house.append(planet)
+        
+        return planets_in_house
+
+    def _planet_in_house(self, planet: str, position: Dict[str, Any], 
+                        house_num: int, house_cusps: List[float]) -> bool:
+        """Check if a planet is in a specific house"""
+        try:
+            planet_degree = position.get('degree', 0)
+            house_start = house_cusps[house_num - 1]
+            house_end = house_cusps[house_num % 12] if house_num < 12 else house_cusps[0]
+            
+            # Handle house boundary crossing
+            if house_start > house_end:  # House crosses 0° Aries
+                return planet_degree >= house_start or planet_degree < house_end
+            else:
+                return house_start <= planet_degree < house_end
+        except (IndexError, KeyError, TypeError):
+            logger.warning(f"Error checking planet {planet} position")
+            return False
+
+    def _build_house_prompt(self, house_info: Dict[str, Any], 
+                           chart_data: Dict[str, Any]) -> str:
+        """Build AI prompt for house interpretation"""
+        house_num = house_info['house_number']
+        cusp_sign = house_info['cusp_sign']
+        planets = house_info['planets']
+        
+        prompt = f"""
+        Generate an astrological interpretation for the {house_num}{self._get_ordinal_suffix(house_num)} House.
+        
+        House Details:
+        - House Number: {house_num}
+        - Cusp Sign: {cusp_sign}
+        - Planets in House: {', '.join(planets) if planets else 'None'}
+        
+        Please provide a comprehensive interpretation that includes:
+        1. The general meaning of the {house_num}{self._get_ordinal_suffix(house_num)} House
+        2. How the {cusp_sign} cusp influences this house
+        3. The significance of any planets present in this house
+        4. Practical advice for working with this house's energy
+        
+        Keep the interpretation clear, insightful, and actionable.
+        """
+        
+        return prompt.strip()
+
+    def _get_ordinal_suffix(self, num: int) -> str:
+        """Get ordinal suffix for a number"""
+        if 10 <= num % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(num % 10, 'th')
+        return suffix
+
+    # View methods
+    def generate_houses_view(self, request):
+        """View for generating house interpretations"""
+        return render_to_string('house_generator/generate.html', {
+            'plugin': self,
+            'context': self.get_context(request)
+        })
+
+    def house_settings_view(self, request):
+        """View for house generator settings"""
+        return render_to_string('house_generator/settings.html', {
+            'plugin': self,
+            'context': self.get_context(request)
+        })
+
+    def generate_houses_api(self, request):
+        """API endpoint for generating house interpretations"""
+        try:
+            # Implementation for API endpoint
+            return JsonResponse({'status': 'success', 'message': 'House generation endpoint'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    def house_settings_api(self, request):
+        """API endpoint for house settings"""
+        try:
+            # Implementation for settings API
+            return JsonResponse({'status': 'success', 'message': 'House settings endpoint'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

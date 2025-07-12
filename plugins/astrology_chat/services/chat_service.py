@@ -21,6 +21,46 @@ class ChatService:
         self.knowledge_service = KnowledgeService()
         self.available_models = get_available_models()
 
+    def get_response(
+        self,
+        session: ChatSession,
+        user_message: str,
+        user=None,
+        model_name: str = 'gpt-4',
+        temperature: float = 0.7,
+        max_tokens: int = 1000,
+        include_knowledge: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Get AI response (backward compatibility method)
+        
+        Args:
+            session: The chat session
+            user_message: The user's message
+            user: User object (for backward compatibility)
+            model_name: AI model to use
+            temperature: Response creativity (0.0-1.0)
+            max_tokens: Maximum response length
+            include_knowledge: Whether to include knowledge base context
+
+        Returns:
+            Dictionary with response data
+        """
+        response_text = self.generate_response(
+            session=session,
+            user_message=user_message,
+            model_name=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            include_knowledge=include_knowledge
+        )
+        
+        return {
+            'content': response_text,
+            'tokens_used': 0,  # Will be updated by generate_response
+            'response_time': 0  # Will be updated by generate_response
+        }
+
     def generate_response(
         self,
         session: ChatSession,

@@ -153,7 +153,7 @@ class AstrologyChatPlugin(BasePlugin):
             path('chat/session/<uuid:session_id>/delete/', delete_session_view, name='delete_chat_session'),
             path('chat/knowledge/', knowledge_base_view, name='knowledge_base'),
             path('chat/knowledge/upload/', upload_document_view, name='upload_knowledge_document'),
-            path('chat/knowledge/<int:doc_id>/', view_document_view, name='view_knowledge_document'),
+            path('chat/knowledge/<uuid:doc_id>/', view_document_view, name='view_knowledge_document'),
         ]
 
     def get_admin_urls(self):
@@ -284,7 +284,7 @@ class AstrologyChatPlugin(BasePlugin):
             # Get AI response
             chat_service = ChatService()
             try:
-                ai_response = chat_service.get_response(session, content, request.user)
+                ai_response = chat_service.generate_response(session, content)
                 return JsonResponse({
                     'success': True,
                     'user_message': {
@@ -293,9 +293,9 @@ class AstrologyChatPlugin(BasePlugin):
                         'timestamp': user_message.created_at.isoformat()
                     },
                     'ai_response': {
-                        'content': ai_response['content'],
-                        'tokens_used': ai_response.get('tokens_used', 0),
-                        'response_time': ai_response.get('response_time', 0)
+                        'content': ai_response,
+                        'tokens_used': 0,  # Will be updated by the service
+                        'response_time': 0  # Will be updated by the service
                     }
                 })
             except Exception as e:
