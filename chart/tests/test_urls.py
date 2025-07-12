@@ -11,6 +11,7 @@ from django.conf import settings
 # Simulate password history
 password_history = set()
 
+
 @csrf_exempt
 def register(request):
     if request.method == 'POST':
@@ -18,10 +19,10 @@ def register(request):
             data = json.loads(request.body.decode())
         except Exception:
             return JsonResponse({'error': 'invalid json'}, status=400)
-            
-        username = data.get('username')
+
+        _username = data.get('username')
         password = data.get('password')
-        email = data.get('email')
+        _email = data.get('email')
         # Simulate password complexity: must be at least 8 chars, contain @, and a digit
         if not password or len(password) < 8 or '@' not in password or not any(c.isdigit() for c in password):
             return JsonResponse({'error': 'password'}, status=400)
@@ -32,6 +33,7 @@ def register(request):
         return JsonResponse({'status': 'success'}, status=201)
     return JsonResponse({'status': 'error'}, status=400)
 
+
 @csrf_exempt
 def change_password(request):
     if request.method == 'POST':
@@ -39,8 +41,8 @@ def change_password(request):
             data = json.loads(request.body.decode())
         except Exception:
             return JsonResponse({'error': 'invalid json'}, status=400)
-            
-        old_password = data.get('old_password')
+
+        _old_password = data.get('old_password')
         new_password = data.get('new_password')
         # Simulate password reuse check
         if new_password in password_history:
@@ -48,6 +50,7 @@ def change_password(request):
         password_history.add(new_password)
         return JsonResponse({'status': 'changed'}, status=200)
     return JsonResponse({'status': 'error'}, status=400)
+
 
 @csrf_exempt
 def upload(request):
@@ -64,12 +67,14 @@ def upload(request):
         return JsonResponse({'status': 'uploaded'}, status=200)
     return JsonResponse({'status': 'error'}, status=400)
 
+
 @api_view(['GET'])
 def api_test_view(request):
     # Ensure session is created
     if not request.session.session_key:
         request.session.create()
     return JsonResponse({'status': 'ok'})
+
 
 @api_view(['GET', 'POST'])
 def data_view(request):
@@ -100,10 +105,11 @@ def data_view(request):
             return JsonResponse({'error': f'decryption failed: {e}'}, status=400)
     return JsonResponse({'status': 'ok'})
 
+
 urlpatterns = [
     path('register/', register, name='register'),
     path('change_password/', change_password, name='change_password'),
     path('upload/', upload, name='upload'),
     path('api/v1.0/test/', api_test_view, name='test'),
     path('api/data/', data_view, name='data'),
-] 
+]

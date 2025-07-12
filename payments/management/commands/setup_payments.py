@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Command(BaseCommand):
     help = 'Set up the payment system with default plans and Stripe configuration'
 
@@ -35,26 +36,26 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['all'] or options['create_plans']:
             self.create_default_plans()
-        
+
         if options['all'] or options['create_coupons']:
             self.create_sample_coupons()
-        
+
         if options['all'] or options['stripe_setup']:
             self.setup_stripe_products()
 
     def create_default_plans(self):
         """Create default subscription plans"""
         self.stdout.write('Creating default subscription plans...')
-        
+
         try:
             plans = create_default_plans()
             self.stdout.write(
                 self.style.SUCCESS(f'Successfully created {len(plans)} subscription plans')
             )
-            
+
             for plan in plans:
                 self.stdout.write(f'  - {plan.name}: ${plan.price_monthly}/month')
-                
+
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'Error creating plans: {e}')
@@ -63,7 +64,7 @@ class Command(BaseCommand):
     def create_sample_coupons(self):
         """Create sample coupon codes"""
         self.stdout.write('Creating sample coupon codes...')
-        
+
         coupons_data = [
             {
                 'code': 'WELCOME20',
@@ -96,7 +97,7 @@ class Command(BaseCommand):
                 'valid_until': '2024-06-30',
             }
         ]
-        
+
         created_count = 0
         for coupon_data in coupons_data:
             try:
@@ -104,21 +105,21 @@ class Command(BaseCommand):
                 coupon_data['valid_from'] = parse_date(coupon_data['valid_from'])
                 if coupon_data['valid_until']:
                     coupon_data['valid_until'] = parse_date(coupon_data['valid_until'])
-                
+
                 coupon, created = Coupon.objects.get_or_create(
                     code=coupon_data['code'],
                     defaults=coupon_data
                 )
-                
+
                 if created:
                     created_count += 1
                     self.stdout.write(f'  - Created coupon: {coupon.code}')
-                    
+
             except Exception as e:
                 self.stdout.write(
                     self.style.ERROR(f'Error creating coupon {coupon_data["code"]}: {e}')
                 )
-        
+
         self.stdout.write(
             self.style.SUCCESS(f'Successfully created {created_count} coupon codes')
         )
@@ -126,23 +127,23 @@ class Command(BaseCommand):
     def setup_stripe_products(self):
         """Set up Stripe products and prices"""
         self.stdout.write('Setting up Stripe products and prices...')
-        
+
         if not settings.STRIPE_SECRET_KEY:
             self.stdout.write(
                 self.style.WARNING('STRIPE_SECRET_KEY not configured. Skipping Stripe setup.')
             )
             return
-        
+
         try:
             stripe.api_key = settings.STRIPE_SECRET_KEY
-            
+
             # Create products for each plan
             plans = SubscriptionPlan.objects.filter(is_active=True)
-            
+
             for plan in plans:
                 if plan.plan_type == 'free':
                     continue  # Skip free plan
-                
+
                 # Create or get product
                 try:
                     product = stripe.Product.create(
@@ -161,13 +162,13 @@ class Command(BaseCommand):
                         if p.metadata.get('plan_id') == str(plan.id):
                             product = p
                             break
-                    
+
                     if not product:
                         self.stdout.write(
                             self.style.ERROR(f'Could not create or find product for plan {plan.name}')
                         )
                         continue
-                
+
                 # Create monthly price
                 if plan.price_monthly and plan.price_monthly > 0:
                     try:
@@ -184,7 +185,7 @@ class Command(BaseCommand):
                         self.stdout.write(
                             self.style.WARNING(f'Monthly price for {plan.name} might already exist')
                         )
-                
+
                 # Create yearly price
                 if plan.price_yearly and plan.price_yearly > 0:
                     try:
@@ -201,13 +202,13 @@ class Command(BaseCommand):
                         self.stdout.write(
                             self.style.WARNING(f'Yearly price for {plan.name} might already exist')
                         )
-                
+
                 plan.save()
-            
+
             self.stdout.write(
                 self.style.SUCCESS('Successfully set up Stripe products and prices')
             )
-            
+
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(f'Error setting up Stripe: {e}')
@@ -216,24 +217,24 @@ class Command(BaseCommand):
     def check_stripe_configuration(self):
         """Check if Stripe is properly configured"""
         self.stdout.write('Checking Stripe configuration...')
-        
+
         if not settings.STRIPE_SECRET_KEY:
             self.stdout.write(
                 self.style.ERROR('STRIPE_SECRET_KEY not configured')
             )
             return False
-        
+
         if not settings.STRIPE_PUBLISHABLE_KEY:
             self.stdout.write(
                 self.style.ERROR('STRIPE_PUBLISHABLE_KEY not configured')
             )
             return False
-        
+
         if not settings.STRIPE_WEBHOOK_SECRET:
             self.stdout.write(
                 self.style.WARNING('STRIPE_WEBHOOK_SECRET not configured (webhooks will not work)')
             )
-        
+
         try:
             stripe.api_key = settings.STRIPE_SECRET_KEY
             # Test API connection
@@ -246,4 +247,4 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.ERROR(f'Stripe configuration error: {e}')
             )
-            return False 
+            return False

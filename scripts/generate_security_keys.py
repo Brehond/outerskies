@@ -6,21 +6,26 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
+
 def generate_api_key():
     """Generate a secure API key."""
     return secrets.token_urlsafe(32)
+
 
 def generate_api_secret():
     """Generate a secure API secret."""
     return secrets.token_urlsafe(64)
 
+
 def generate_encryption_key():
     """Generate a secure encryption key."""
     return Fernet.generate_key().decode()
 
+
 def generate_encryption_salt():
     """Generate a secure encryption salt."""
     return secrets.token_bytes(16).hex()
+
 
 def main():
     """Generate security keys and create .env file."""
@@ -29,7 +34,7 @@ def main():
     api_secret = generate_api_secret()
     encryption_key = generate_encryption_key()
     encryption_salt = generate_encryption_salt()
-    
+
     # Create .env file
     env_content = f"""# Security Keys
 API_KEY={api_key}
@@ -72,11 +77,11 @@ STRIPE_PUBLIC_KEY=your-stripe-public-key
 STRIPE_SECRET_KEY=your-stripe-secret-key
 STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
 """
-    
+
     # Write to .env file
     with open('.env', 'w') as f:
         f.write(env_content)
-        
+
     print("Security keys generated and .env file created successfully!")
     print("\nIMPORTANT: Please update the following settings in the .env file:")
     print("1. Email settings with your SMTP credentials")
@@ -88,5 +93,6 @@ STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
     print("2. Keep these keys secure and never commit them to version control")
     print("3. Use different keys for development and production environments")
 
+
 if __name__ == '__main__':
-    main() 
+    main()

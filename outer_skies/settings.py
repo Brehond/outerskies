@@ -1,4 +1,5 @@
 # Security Settings
+import os
 SECURE_SSL_REDIRECT = True  # Redirect all HTTP to HTTPS
 SESSION_COOKIE_SECURE = True  # Only send cookies over HTTPS
 CSRF_COOKIE_SECURE = True  # Only send CSRF cookies over HTTPS
@@ -169,8 +170,7 @@ LOGGING = {
 }
 
 # Create logs directory if it doesn't exist
-import os
 if not os.path.exists('logs'):
     os.makedirs('logs')
 
-# ... rest of existing settings ... 
+# ... rest of existing settings ...

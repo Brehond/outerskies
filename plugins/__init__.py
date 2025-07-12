@@ -18,16 +18,17 @@ from django.conf import settings
 from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 
+
 class PluginManager:
     """
     Manages the registration and lifecycle of plugins
     """
-    
+
     def __init__(self):
         self.plugins = {}
         self.registered_plugins = []
         self.plugin_hooks = {}
-    
+
     def discover_plugins(self):
         """
         Automatically discover plugins in the plugins/ directory
@@ -35,18 +36,18 @@ class PluginManager:
         plugins_dir = os.path.join(settings.BASE_DIR, 'plugins')
         if not os.path.exists(plugins_dir):
             return
-        
+
         for item in os.listdir(plugins_dir):
             plugin_path = os.path.join(plugins_dir, item)
             if os.path.isdir(plugin_path) and not item.startswith('_'):
                 # Skip management directory
                 if item == 'management':
                     continue
-                    
+
                 # Check if it's a valid Django app
                 if os.path.exists(os.path.join(plugin_path, '__init__.py')):
                     self.register_plugin(item)
-    
+
     def register_plugin(self, plugin_name):
         """
         Register a plugin with the system
@@ -62,14 +63,14 @@ class PluginManager:
                 plugin_instance = plugin_class()
                 self.plugins[plugin_name] = plugin_instance
                 self.registered_plugins.append(plugin_name)
-                
+
                 # Register plugin hooks
                 if hasattr(plugin_instance, 'hooks'):
                     for hook_name, hook_func in plugin_instance.hooks.items():
                         if hook_name not in self.plugin_hooks:
                             self.plugin_hooks[hook_name] = []
                         self.plugin_hooks[hook_name].append(hook_func)
-                
+
                 print(f"[OK] Plugin '{plugin_name}' registered successfully")
             else:
                 print(f"[WARN] Plugin '{plugin_name}' missing Plugin class")
@@ -77,19 +78,19 @@ class PluginManager:
             print(f"[ERROR] Failed to import plugin '{plugin_name}': {e}")
         except Exception as e:
             print(f"[ERROR] Failed to register plugin '{plugin_name}': {e}")
-    
+
     def get_plugin(self, plugin_name):
         """
         Get a specific plugin instance
         """
         return self.plugins.get(plugin_name)
-    
+
     def get_all_plugins(self):
         """
         Get all registered plugins
         """
         return self.plugins
-    
+
     def execute_hook(self, hook_name, *args, **kwargs):
         """
         Execute all registered hooks for a given hook name
@@ -103,7 +104,7 @@ class PluginManager:
                 except Exception as e:
                     print(f"[ERROR] Hook '{hook_name}' failed: {e}")
         return results
-    
+
     def get_plugin_urls(self):
         """
         Collect URLs from all plugins
@@ -115,7 +116,7 @@ class PluginManager:
                 if plugin_urls:
                     urls.extend(plugin_urls)
         return urls
-    
+
     def get_plugin_context(self, request):
         """
         Collect context data from all plugins
@@ -131,14 +132,17 @@ class PluginManager:
                     print(f"[ERROR] Failed to get context from plugin '{plugin_name}': {e}")
         return context
 
+
 # Global plugin manager instance
 plugin_manager = PluginManager()
+
 
 def get_plugin_manager():
     """
     Get the global plugin manager instance
     """
     return plugin_manager
+
 
 def register_plugin_hook(hook_name, func):
     """
@@ -148,8 +152,9 @@ def register_plugin_hook(hook_name, func):
         plugin_manager.plugin_hooks[hook_name] = []
     plugin_manager.plugin_hooks[hook_name].append(func)
 
+
 def execute_plugin_hook(hook_name, *args, **kwargs):
     """
     Execute all registered hooks for a given hook name
     """
-    return plugin_manager.execute_hook(hook_name, *args, **kwargs) 
+    return plugin_manager.execute_hook(hook_name, *args, **kwargs)

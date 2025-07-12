@@ -25,4 +25,4 @@ router.register(r'background-charts', views.BackgroundChartViewSet, basename='ba
 
 urlpatterns = [
     path('', include(router.urls)),
-] 
+]

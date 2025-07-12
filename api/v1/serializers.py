@@ -5,9 +5,12 @@ from payments.models import SubscriptionPlan, UserSubscription, Payment, Coupon
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 # Import chat models if they exist
+
+
 def get_chat_models():
     from plugins.astrology_chat.models import ChatSession, ChatMessage, KnowledgeDocument
     return ChatSession, ChatMessage, KnowledgeDocument
+
 
 try:
     ChatSession, ChatMessage, KnowledgeDocument = get_chat_models()
@@ -23,7 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model"""
     charts_count = serializers.SerializerMethodField()
     subscription_status = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = User
         fields = [
@@ -35,11 +38,11 @@ class UserSerializer(serializers.ModelSerializer):
             'charts_count', 'subscription_status'
         ]
         read_only_fields = ['id', 'email_verified', 'is_premium', 'created_at', 'updated_at']
-    
+
     @extend_schema_field(OpenApiTypes.INT)
     def get_charts_count(self, obj):
         return obj.charts.count()
-    
+
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_subscription_status(self, obj) -> dict:
         if hasattr(obj, 'subscription'):
@@ -57,7 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserRegistrationSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
     password = serializers.CharField(
-        write_only=True, 
+        write_only=True,
         min_length=8,
         help_text="Password must be at least 8 characters long"
     )
@@ -65,19 +68,19 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         write_only=True,
         help_text="Must match the password field"
     )
-    
+
     class Meta:
         model = User
         fields = [
             'username', 'email', 'password', 'password_confirm',
             'first_name', 'last_name'
         ]
-    
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError("Passwords don't match")
         return attrs
-    
+
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         user = User.objects.create_user(**validated_data)
@@ -88,11 +91,11 @@ class UserLoginSerializer(serializers.Serializer):
     """Serializer for user login"""
     username = serializers.CharField(help_text="Username or email address")
     password = serializers.CharField(write_only=True, help_text="User password")
-    
+
     def validate(self, attrs):
         username = attrs.get('username')
         password = attrs.get('password')
-        
+
         if username and password:
             user = authenticate(username=username, password=password)
             if not user:
@@ -102,7 +105,7 @@ class UserLoginSerializer(serializers.Serializer):
             attrs['user'] = user
         else:
             raise serializers.ValidationError('Must include username and password')
-        
+
         return attrs
 
 
@@ -110,11 +113,11 @@ class ChartSerializer(serializers.ModelSerializer):
     """Serializer for Chart model"""
     user = UserSerializer(read_only=True)
     chart_summary = serializers.ReadOnlyField()
-    
+
     @extend_schema_field(OpenApiTypes.STR)
     def get_chart_summary(self, obj) -> str:
         return obj.chart_summary
-    
+
     class Meta:
         model = Chart
         fields = [
@@ -141,17 +144,17 @@ class ChartGenerationSerializer(serializers.Serializer):
         help_text="Birth time in HH:MM format (24-hour)"
     )
     latitude = serializers.FloatField(
-        min_value=-90, 
+        min_value=-90,
         max_value=90,
         help_text="Birth latitude (-90 to 90)"
     )
     longitude = serializers.FloatField(
-        min_value=-180, 
+        min_value=-180,
         max_value=180,
         help_text="Birth longitude (-180 to 180)"
     )
     location_name = serializers.CharField(
-        max_length=255, 
+        max_length=255,
         required=False,
         help_text="Human-readable location name"
     )
@@ -168,37 +171,37 @@ class ChartGenerationSerializer(serializers.Serializer):
         help_text="House system to use"
     )
     ai_model = serializers.CharField(
-        max_length=50, 
-        required=False, 
+        max_length=50,
+        required=False,
         default='gpt-4',
         help_text="AI model for interpretation"
     )
     temperature = serializers.FloatField(
-        min_value=0.0, 
-        max_value=1.0, 
-        required=False, 
+        min_value=0.0,
+        max_value=1.0,
+        required=False,
         default=0.7,
         help_text="AI creativity level (0.0-1.0)"
     )
     max_tokens = serializers.IntegerField(
-        min_value=100, 
-        max_value=4000, 
-        required=False, 
+        min_value=100,
+        max_value=4000,
+        required=False,
         default=1000,
         help_text="Maximum tokens for AI response"
     )
     interpretation_type = serializers.ChoiceField(
         choices=[('comprehensive', 'Comprehensive'), ('basic', 'Basic'), ('detailed', 'Detailed')],
-        required=False, 
+        required=False,
         default='comprehensive',
         help_text="Type of interpretation to generate"
     )
     chart_name = serializers.CharField(
-        max_length=255, 
+        max_length=255,
         required=False,
         help_text="Optional name for the chart"
     )
-    
+
     def validate(self, attrs):
         # Additional validation logic
         if attrs.get('location_name') is None:
@@ -220,7 +223,7 @@ class ChartInterpretationSerializer(serializers.Serializer):
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """Serializer for subscription plans"""
     features = serializers.ListField(child=serializers.CharField(), read_only=True)
-    
+
     class Meta:
         model = SubscriptionPlan
         fields = [
@@ -234,7 +237,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
 class UserSubscriptionSerializer(serializers.ModelSerializer):
     """Serializer for user subscriptions"""
     plan = SubscriptionPlanSerializer(read_only=True)
-    
+
     class Meta:
         model = UserSubscription
         fields = [
@@ -318,19 +321,19 @@ class TaskStatusSerializer(serializers.ModelSerializer):
     duration = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
     is_running = serializers.SerializerMethodField()
-    
+
     @extend_schema_field(OpenApiTypes.FLOAT)
     def get_duration(self, obj) -> float:
         return obj.duration
-    
+
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_completed(self, obj) -> bool:
         return obj.is_completed
-    
+
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_is_running(self, obj) -> bool:
         return obj.is_running
-    
+
     class Meta:
         model = TaskStatus
         fields = [
@@ -345,5 +348,3 @@ class TaskStatusSerializer(serializers.ModelSerializer):
             'created_at', 'started_at', 'completed_at', 'duration',
             'is_completed', 'is_running'
         ]
-    
- 

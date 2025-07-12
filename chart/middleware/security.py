@@ -7,6 +7,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 
 logger = logging.getLogger('security')
 
+
 class EnhancedSecurityMiddleware(MiddlewareMixin):
     """
     Enhanced security middleware that provides:
@@ -15,12 +16,12 @@ class EnhancedSecurityMiddleware(MiddlewareMixin):
     - Secure session handling
     - Additional security headers
     """
-    
+
     def __init__(self, get_response):
         super().__init__(get_response)
         # Maximum request size in bytes (1MB)
         self.max_request_size = getattr(settings, 'MAX_REQUEST_SIZE', 1024 * 1024)
-        
+
         # SQL injection patterns
         self.sql_patterns = [
             re.compile(r"(\%27)|(\')|(\-\-)|(\%23)|(#)", re.IGNORECASE),  # SQL comments
@@ -34,7 +35,7 @@ class EnhancedSecurityMiddleware(MiddlewareMixin):
             re.compile(r"((\%27)|(\'))((\%75)|u|(\%55))((\%70)|p|(\%50))((\%64)|d|(\%44))((\%61)|a|(\%41))((\%74)|t|(\%54))((\%65)|e|(\%45))", re.IGNORECASE),  # SQL UPDATE
             re.compile(r"((\%27)|(\'))((\%64)|d|(\%44))((\%65)|e|(\%45))((\%6C)|l|(\%4C))((\%65)|e|(\%45))((\%74)|t|(\%54))((\%65)|e|(\%45))", re.IGNORECASE),  # SQL DELETE
         ]
-        
+
         # XSS patterns
         self.xss_patterns = [
             re.compile(r"<script[^>]*>[\s\S]*?</script>", re.IGNORECASE),  # Basic script tag
@@ -55,31 +56,31 @@ class EnhancedSecurityMiddleware(MiddlewareMixin):
         # Skip for static/media files
         if request.path.startswith(('/static/', '/media/')):
             return self.get_response(request)
-            
+
         # Process request through session middleware
         response = self.session_middleware(request)
-        
+
         # Regenerate session ID if it exists
         if hasattr(request, 'session') and request.session.session_key:
             request.session.cycle_key()
-            
+
         # Add security headers
         response['X-Content-Type-Options'] = 'nosniff'
         response['X-Frame-Options'] = 'DENY'
         response['X-XSS-Protection'] = '1; mode=block'
         response['Strict-Transport-Security'] = f'max-age={settings.SECURE_HSTS_SECONDS}; includeSubDomains; preload'
-        
+
         # Set secure cookie settings
         if 'sessionid' in response.cookies:
             response.cookies['sessionid']['secure'] = True
             response.cookies['sessionid']['httponly'] = True
             response.cookies['sessionid']['samesite'] = 'Lax'
-            
+
         if 'csrftoken' in response.cookies:
             response.cookies['csrftoken']['secure'] = True
             response.cookies['csrftoken']['httponly'] = True
             response.cookies['csrftoken']['samesite'] = 'Lax'
-            
+
         return response
 
     def process_request(self, request):
@@ -120,7 +121,7 @@ class EnhancedSecurityMiddleware(MiddlewareMixin):
         )
         response['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        
+
         # Secure session handling
         if hasattr(request, 'session'):
             request.session.set_expiry(settings.SESSION_COOKIE_AGE)
@@ -174,4 +175,4 @@ class EnhancedSecurityMiddleware(MiddlewareMixin):
                     return True
             except (ValueError, TypeError):
                 pass
-        return False 
+        return False

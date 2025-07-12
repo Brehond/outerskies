@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 class HealthCheckResult:
     """Represents the result of a health check"""
-    
-    def __init__(self, name: str, status: str, details: Dict[str, Any] = None, 
+
+    def __init__(self, name: str, status: str, details: Dict[str, Any] = None,
                  response_time: float = 0.0, error: str = None):
         self.name = name
         self.status = status  # 'healthy', 'degraded', 'unhealthy'
@@ -39,7 +39,7 @@ class HealthCheckResult:
         self.response_time = response_time
         self.error = error
         self.timestamp = timezone.now()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization, converting Path objects to strings recursively."""
         def convert(obj):
@@ -65,31 +65,31 @@ class SystemHealthChecker:
     """
     Comprehensive system health checker for Outer Skies
     """
-    
+
     def __init__(self):
         self.results: List[HealthCheckResult] = []
         self.start_time = time.time()
-    
+
     def check_database_health(self) -> HealthCheckResult:
         """Check database connectivity and performance"""
         start_time = time.time()
-        
+
         try:
             # Test basic connectivity
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
                 cursor.fetchone()
-            
+
             # Test performance with a simple query
             with connection.cursor() as cursor:
                 cursor.execute("SELECT COUNT(*) FROM django_migrations")
                 migration_count = cursor.fetchone()[0]
-            
+
             # Check connection pool
             db_info = connection.get_connection_params()
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="database",
                 status="healthy",
@@ -101,7 +101,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except DatabaseError as e:
             return HealthCheckResult(
                 name="database",
@@ -116,25 +116,25 @@ class SystemHealthChecker:
                 error=f"Database check error: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_redis_health(self) -> HealthCheckResult:
         """Check Redis cache health"""
         start_time = time.time()
-        
+
         try:
             # Test basic connectivity
             cache.set('health_check', 'ok', timeout=10)
             test_value = cache.get('health_check')
-            
+
             if test_value != 'ok':
                 raise Exception("Cache read/write test failed")
-            
+
             # Test cache performance
             cache.set('performance_test', 'data', timeout=60)
             cache.get('performance_test')
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="redis_cache",
                 status="healthy",
@@ -144,7 +144,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="redis_cache",
@@ -152,17 +152,17 @@ class SystemHealthChecker:
                 error=f"Redis cache failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_celery_health(self) -> HealthCheckResult:
         """Check Celery background task system"""
         start_time = time.time()
-        
+
         try:
             from chart.celery_utils import enhanced_celery_manager
-            
+
             # Check Celery availability
             is_available = enhanced_celery_manager.is_celery_available()
-            
+
             if not is_available:
                 return HealthCheckResult(
                     name="celery",
@@ -170,19 +170,19 @@ class SystemHealthChecker:
                     details={'available': False, 'fallback_mode': True},
                     response_time=time.time() - start_time
                 )
-            
+
             # Get system health
             health_info = enhanced_celery_manager.get_system_health()
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="celery",
                 status="healthy",
                 details=health_info,
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="celery",
@@ -190,22 +190,22 @@ class SystemHealthChecker:
                 error=f"Celery health check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_ai_api_health(self) -> HealthCheckResult:
         """Check AI API connectivity"""
         start_time = time.time()
-        
+
         try:
             from ai_integration.openrouter_api import get_available_models
-            
+
             # Test API connectivity
             models = get_available_models()
-            
+
             if not models:
                 raise Exception("No AI models available")
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="ai_api",
                 status="healthy",
@@ -215,7 +215,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="ai_api",
@@ -223,23 +223,23 @@ class SystemHealthChecker:
                 error=f"AI API check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_ephemeris_health(self) -> HealthCheckResult:
         """Check Swiss Ephemeris calculations"""
         start_time = time.time()
-        
+
         try:
             import swisseph as swe
-            
+
             # Test basic ephemeris calculation
             jd = swe.julday(2024, 1, 1, 12.0)
             result = swe.calc_ut(jd, swe.SUN)
-            
+
             if not result or len(result) < 2:
                 raise Exception("Ephemeris calculation failed")
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="ephemeris",
                 status="healthy",
@@ -249,7 +249,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="ephemeris",
@@ -257,37 +257,37 @@ class SystemHealthChecker:
                 error=f"Ephemeris check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_file_system_health(self) -> HealthCheckResult:
         """Check file system and storage"""
         start_time = time.time()
-        
+
         try:
             # Check disk usage
             disk_usage = psutil.disk_usage('/')
             disk_percent = disk_usage.percent
-            
+
             # Check if we can write to media directory
             media_dir = getattr(settings, 'MEDIA_ROOT', '/tmp')
             test_file = os.path.join(media_dir, 'health_check_test.txt')
-            
+
             try:
                 with open(test_file, 'w') as f:
                     f.write('health_check')
-                
+
                 with open(test_file, 'r') as f:
                     content = f.read()
-                
+
                 os.remove(test_file)
-                
+
                 if content != 'health_check':
                     raise Exception("File system read/write test failed")
-                    
+
             except Exception as e:
                 raise Exception(f"File system test failed: {str(e)}")
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="file_system",
                 status="healthy" if disk_percent < 90 else "degraded",
@@ -299,7 +299,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="file_system",
@@ -307,17 +307,17 @@ class SystemHealthChecker:
                 error=f"File system check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_memory_health(self) -> HealthCheckResult:
         """Check system memory usage"""
         start_time = time.time()
-        
+
         try:
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
-            
+
             response_time = time.time() - start_time
-            
+
             return HealthCheckResult(
                 name="memory",
                 status="healthy" if memory_percent < 85 else "degraded",
@@ -328,7 +328,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="memory",
@@ -336,22 +336,22 @@ class SystemHealthChecker:
                 error=f"Memory check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def check_external_services(self) -> HealthCheckResult:
         """Check external service dependencies"""
         start_time = time.time()
-        
+
         try:
             # Check if we can reach external services
             services_status = {}
-            
+
             # Test basic internet connectivity
             try:
                 response = requests.get('https://httpbin.org/status/200', timeout=5)
                 services_status['internet'] = response.status_code == 200
             except:
                 services_status['internet'] = False
-            
+
             # Test DNS resolution
             try:
                 import socket
@@ -359,20 +359,20 @@ class SystemHealthChecker:
                 services_status['dns'] = True
             except:
                 services_status['dns'] = False
-            
+
             response_time = time.time() - start_time
-            
+
             # Determine overall status
             healthy_services = sum(services_status.values())
             total_services = len(services_status)
-            
+
             if healthy_services == total_services:
                 status = "healthy"
             elif healthy_services > 0:
                 status = "degraded"
             else:
                 status = "unhealthy"
-            
+
             return HealthCheckResult(
                 name="external_services",
                 status=status,
@@ -383,7 +383,7 @@ class SystemHealthChecker:
                 },
                 response_time=response_time
             )
-            
+
         except Exception as e:
             return HealthCheckResult(
                 name="external_services",
@@ -391,11 +391,11 @@ class SystemHealthChecker:
                 error=f"External services check failed: {str(e)}",
                 response_time=time.time() - start_time
             )
-    
+
     def run_all_health_checks(self) -> Dict[str, Any]:
         """Run all health checks and return comprehensive results"""
         logger.info("Starting comprehensive health checks...")
-        
+
         # Run all health checks
         checks = [
             self.check_database_health,
@@ -407,7 +407,7 @@ class SystemHealthChecker:
             self.check_memory_health,
             self.check_external_services
         ]
-        
+
         for check_func in checks:
             try:
                 result = check_func()
@@ -421,20 +421,20 @@ class SystemHealthChecker:
                     error=f"Health check failed: {str(e)}"
                 )
                 self.results.append(error_result)
-        
+
         # Calculate overall health
         total_time = time.time() - self.start_time
         healthy_count = sum(1 for r in self.results if r.status == 'healthy')
         degraded_count = sum(1 for r in self.results if r.status == 'degraded')
         unhealthy_count = sum(1 for r in self.results if r.status == 'unhealthy')
-        
+
         if unhealthy_count > 0:
             overall_status = "unhealthy"
         elif degraded_count > 0:
             overall_status = "degraded"
         else:
             overall_status = "healthy"
-        
+
         return {
             'overall_status': overall_status,
             'timestamp': timezone.now().isoformat(),
@@ -462,12 +462,12 @@ def get_quick_health_status() -> str:
         # Quick database check
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        
+
         # Quick cache check
         cache.set('quick_health', 'ok', timeout=5)
         if cache.get('quick_health') != 'ok':
             return "unhealthy"
-        
+
         return "healthy"
     except:
         return "unhealthy"
@@ -505,4 +505,4 @@ def check_database_connection() -> bool:
             cursor.execute("SELECT 1")
         return True
     except Exception:
-        return False 
+        return False

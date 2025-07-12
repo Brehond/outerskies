@@ -15,6 +15,7 @@ from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
+
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
     STRIPE_PUBLISHABLE_KEY='pk_test_dummy',
@@ -27,7 +28,7 @@ class PaymentModelTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -38,7 +39,7 @@ class PaymentModelTests(TestCase):
             features=['feature1', 'feature2'],
             is_active=True
         )
-        
+
         self.coupon = Coupon.objects.create(
             code='TEST10',
             name='Test Coupon',
@@ -62,7 +63,7 @@ class PaymentModelTests(TestCase):
             features=['feature1', 'feature2', 'feature3'],
             is_active=True
         )
-        
+
         self.assertEqual(plan.name, 'Premium Plan')
         self.assertEqual(plan.price_monthly, Decimal('19.99'))
         self.assertTrue(plan.is_active)
@@ -78,7 +79,7 @@ class PaymentModelTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         self.assertEqual(subscription.user, self.user)
         self.assertEqual(subscription.plan, self.plan)
         self.assertEqual(subscription.status, 'active')
@@ -91,7 +92,7 @@ class PaymentModelTests(TestCase):
             plan=self.plan,
             status='active'
         )
-        
+
         payment = Payment.objects.create(
             user=self.user,
             subscription=subscription,
@@ -103,7 +104,7 @@ class PaymentModelTests(TestCase):
             billing_email=self.user.email,
             billing_name=self.user.username
         )
-        
+
         self.assertEqual(payment.user, self.user)
         self.assertEqual(payment.amount, Decimal('9.99'))
         self.assertEqual(payment.status, 'succeeded')
@@ -113,7 +114,7 @@ class PaymentModelTests(TestCase):
         # Test coupon creation
         self.assertEqual(self.coupon.code, 'TEST10')
         self.assertEqual(self.coupon.discount_value, Decimal('10.00'))
-        
+
         # Test coupon usage
         payment = Payment.objects.create(
             user=self.user,
@@ -128,17 +129,17 @@ class PaymentModelTests(TestCase):
             billing_email=self.user.email,
             billing_name=self.user.username
         )
-        
+
         usage = CouponUsage.objects.create(
             user=self.user,
             coupon=self.coupon,
             payment=payment,
             discount_amount=Decimal('1.00')
         )
-        
+
         self.assertEqual(usage.user, self.user)
         self.assertEqual(usage.coupon, self.coupon)
-        
+
         # Manually increment usage count since it doesn't auto-increment
         self.coupon.current_uses += 1
         self.coupon.save()
@@ -148,9 +149,9 @@ class PaymentModelTests(TestCase):
         """Test coupon validation logic"""
         # Test valid coupon
         self.assertTrue(self.coupon.is_valid)
-        
+
         # Test expired coupon
-        expired_coupon = Coupon.objects.create(
+        _expired_coupon = Coupon.objects.create(
             code='EXPIRED',
             name='Expired Coupon',
             discount_type='percentage',
@@ -160,8 +161,8 @@ class PaymentModelTests(TestCase):
             valid_until=timezone.now() - timedelta(days=30),
             is_active=True
         )
-        self.assertFalse(expired_coupon.is_valid)
-        
+        self.assertFalse(_expired_coupon.is_valid)
+
         # Test max uses exceeded
         max_used_coupon = Coupon.objects.create(
             code='MAXUSED',
@@ -177,6 +178,7 @@ class PaymentModelTests(TestCase):
         max_used_coupon.save()
         self.assertFalse(max_used_coupon.is_valid)
 
+
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
     STRIPE_PUBLISHABLE_KEY='pk_test_dummy',
@@ -190,7 +192,7 @@ class PaymentViewTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -225,7 +227,7 @@ class PaymentViewTests(TestCase):
         # Should redirect to login for unauthenticated users
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [302, 400])  # Redirect or error
-        
+
         # Should work for authenticated users
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('payments:subscription_management'))
@@ -236,7 +238,7 @@ class PaymentViewTests(TestCase):
         # Should redirect to login for unauthenticated users
         response = self.client.get(reverse('payments:billing_history'))
         self.assertIn(response.status_code, [302, 400])  # Redirect or error
-        
+
         # Should work for authenticated users
         self.client.login(username='testuser', password='testpass123')
         response = self.client.get(reverse('payments:billing_history'))
@@ -254,14 +256,14 @@ class PaymentViewTests(TestCase):
             current_period_start=int(timezone.now().timestamp()),
             current_period_end=int((timezone.now() + timedelta(days=30)).timestamp())
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
         })
-        
+
         # Check if response is successful (200) or if it's a 400 with error details
         if response.status_code == 200:
             try:
@@ -286,14 +288,14 @@ class PaymentViewTests(TestCase):
         """Test subscription creation failure"""
         # Mock Stripe error
         mock_create_customer.side_effect = stripe.error.StripeError("Test error")
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
         })
-        
+
         # Check if response indicates an error
         self.assertIn(response.status_code, [400, 500])
         try:
@@ -315,14 +317,14 @@ class PaymentViewTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         # Mock successful cancellation
         mock_cancel.return_value = MagicMock(status='canceled')
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:cancel_subscription'))
-        
+
         # Check if response is successful or indicates an error
         self.assertIn(response.status_code, [200, 400, 500])
         if response.status_code == 200:
@@ -332,11 +334,12 @@ class PaymentViewTests(TestCase):
             except json.JSONDecodeError:
                 # If not JSON, just check the status code
                 pass
-        
+
         # Check subscription was updated (if the operation succeeded)
         subscription.refresh_from_db()
         if response.status_code == 200:
             self.assertEqual(subscription.status, 'canceled')
+
 
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
@@ -350,7 +353,7 @@ class StripeUtilsTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -366,9 +369,9 @@ class StripeUtilsTests(TestCase):
     def test_create_stripe_customer_success(self, mock_create):
         """Test successful Stripe customer creation"""
         mock_create.return_value = MagicMock(id='cus_test123')
-        
+
         result = StripeService.create_customer(self.user)
-        
+
         self.assertEqual(result.id, 'cus_test123')
         mock_create.assert_called_once()
 
@@ -385,16 +388,16 @@ class StripeUtilsTests(TestCase):
         # Mock the customer creation first
         with patch('stripe.Customer.create') as mock_customer:
             mock_customer.return_value = MagicMock(id='cus_test123')
-            
+
             mock_create.return_value = MagicMock(
                 id='sub_test123',
                 status='active',
                 current_period_start=int(timezone.now().timestamp()),
                 current_period_end=int((timezone.now() + timedelta(days=30)).timestamp())
             )
-            
+
             result = StripeService.create_subscription(self.user, self.plan)
-            
+
             self.assertEqual(result.id, 'sub_test123')
             self.assertEqual(result.status, 'active')
 
@@ -402,7 +405,7 @@ class StripeUtilsTests(TestCase):
     def test_cancel_stripe_subscription_success(self, mock_modify):
         """Test successful Stripe subscription cancellation"""
         mock_modify.return_value = MagicMock(status='canceled')
-        
+
         # Create a subscription first
         UserSubscription.objects.create(
             user=self.user,
@@ -412,9 +415,9 @@ class StripeUtilsTests(TestCase):
             current_period_start=timezone.now().replace(tzinfo=None),
             current_period_end=(timezone.now() + timedelta(days=30)).replace(tzinfo=None)
         )
-        
+
         result = StripeService.cancel_subscription(self.user)
-        
+
         self.assertEqual(result.status, 'canceled')
         mock_modify.assert_called_once()
 
@@ -427,9 +430,9 @@ class StripeUtilsTests(TestCase):
             amount=999,
             currency='usd'
         )
-        
+
         result = StripeService.create_payment_intent(Decimal('9.99'), 'usd')
-        
+
         self.assertEqual(result.id, 'pi_test123')
         self.assertEqual(result.status, 'succeeded')
 
@@ -439,7 +442,7 @@ class StripeUtilsTests(TestCase):
         mock_event = MagicMock()
         mock_event.type = 'test'
         mock_event.data = {}
-        
+
         # This should not raise an exception for invalid signature
         # since we're not testing signature validation in this test
         try:
@@ -457,12 +460,13 @@ class StripeUtilsTests(TestCase):
         mock_event.type = 'invoice.payment_succeeded'
         mock_event.data.object.id = 'in_test123'
         mock_construct.return_value = mock_event
-        
+
         # This should not raise an exception
         try:
             handle_stripe_webhook(mock_event)
         except Exception as e:
             self.fail(f"handle_webhook raised {e} unexpectedly!")
+
 
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
@@ -477,7 +481,7 @@ class PaymentIntegrationTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -501,24 +505,24 @@ class PaymentIntegrationTests(TestCase):
             current_period_start=int(timezone.now().timestamp()),
             current_period_end=int((timezone.now() + timedelta(days=30)).timestamp())
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         # 1. Visit pricing page
         response = self.client.get(reverse('payments:pricing'))
         self.assertIn(response.status_code, [200, 400])
-        
+
         # 2. Create subscription
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
         })
         self.assertIn(response.status_code, [200, 400])
-        
+
         # 3. Check subscription management page
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [200, 400])
-        
+
         # 4. Verify subscription was created in database (if operation succeeded)
         subscription = UserSubscription.objects.filter(user=self.user).first()
         if subscription:
@@ -526,7 +530,7 @@ class PaymentIntegrationTests(TestCase):
 
     def test_coupon_application(self):
         """Test coupon application in subscription flow"""
-        coupon = Coupon.objects.create(
+        _coupon = Coupon.objects.create(
             code='TEST10',
             name='Test Coupon',
             discount_type='percentage',
@@ -536,9 +540,9 @@ class PaymentIntegrationTests(TestCase):
             valid_until=timezone.now() + timedelta(days=30),
             is_active=True
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         # Test coupon validation
         response = self.client.post(reverse('payments:validate_coupon'), {
             'code': 'TEST10'
@@ -559,7 +563,7 @@ class PaymentIntegrationTests(TestCase):
             plan=self.plan,
             status='active'
         )
-        
+
         # Create some test payments
         Payment.objects.create(
             user=self.user,
@@ -572,7 +576,7 @@ class PaymentIntegrationTests(TestCase):
             billing_email=self.user.email,
             billing_name=self.user.username
         )
-        
+
         Payment.objects.create(
             user=self.user,
             subscription=subscription,
@@ -584,9 +588,9 @@ class PaymentIntegrationTests(TestCase):
             billing_email=self.user.email,
             billing_name=self.user.username
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.get(reverse('payments:billing_history'))
         self.assertIn(response.status_code, [200, 400])
         if response.status_code == 200:
@@ -603,23 +607,24 @@ class PaymentIntegrationTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         # Test subscription management page shows active subscription
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [200, 400])
         if response.status_code == 200:
             self.assertContains(response, 'active')
-        
+
         # Change status to past_due
         subscription.status = 'past_due'
         subscription.save()
-        
+
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [200, 400])
         if response.status_code == 200:
             self.assertContains(response, 'past_due')
+
 
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
@@ -634,7 +639,7 @@ class PaymentSecurityTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -660,7 +665,7 @@ class PaymentSecurityTests(TestCase):
         # Test subscription management without login
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [302, 400])  # Redirect to login or error
-        
+
         # Test payment history without login
         response = self.client.get(reverse('payments:billing_history'))
         self.assertIn(response.status_code, [302, 400])  # Redirect to login or error
@@ -672,13 +677,13 @@ class PaymentSecurityTests(TestCase):
             email='other@example.com',
             password='testpass123'
         )
-        
+
         other_subscription = UserSubscription.objects.create(
             user=other_user,
             plan=self.plan,
             status='active'
         )
-        
+
         # Create payment for other user
         Payment.objects.create(
             user=other_user,
@@ -691,10 +696,10 @@ class PaymentSecurityTests(TestCase):
             billing_email=other_user.email,
             billing_name=other_user.username
         )
-        
+
         # Login as first user
         self.client.login(username='testuser', password='testpass123')
-        
+
         # Check payment history - should not contain other user's payment
         response = self.client.get(reverse('payments:billing_history'))
         self.assertIn(response.status_code, [200, 400])
@@ -704,28 +709,29 @@ class PaymentSecurityTests(TestCase):
     def test_webhook_security(self):
         """Test webhook endpoint security"""
         # Test webhook without proper signature
-        response = self.client.post(reverse('payments:stripe_webhook'), 
-                                   content_type='application/json',
-                                   data='{"test": "data"}')
+        response = self.client.post(reverse('payments:stripe_webhook'),
+                                    content_type='application/json',
+                                    data='{"test": "data"}')
         self.assertIn(response.status_code, [400, 500])  # Invalid signature or other error
 
     def test_input_validation(self):
         """Test input validation on payment forms"""
         self.client.login(username='testuser', password='testpass123')
-        
+
         # Test invalid plan ID
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': 99999,  # Non-existent plan
             'payment_method_id': 'pm_test123'
         })
         self.assertIn(response.status_code, [400, 500])
-        
+
         # Test missing required fields
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id
             # Missing payment_method_id
         })
         self.assertIn(response.status_code, [400, 500])
+
 
 @override_settings(
     STRIPE_SECRET_KEY='sk_test_dummy',
@@ -740,7 +746,7 @@ class PaymentEdgeCaseTests(TestCase):
             email='test@example.com',
             password='testpass123'
         )
-        
+
         self.plan = SubscriptionPlan.objects.create(
             name='Test Plan',
             plan_type='stellar',
@@ -757,9 +763,9 @@ class PaymentEdgeCaseTests(TestCase):
         # Deactivate plan
         self.plan.is_active = False
         self.plan.save()
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
@@ -777,9 +783,9 @@ class PaymentEdgeCaseTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
@@ -788,7 +794,7 @@ class PaymentEdgeCaseTests(TestCase):
 
     def test_expired_coupon_usage(self):
         """Test usage of expired coupon"""
-        expired_coupon = Coupon.objects.create(
+        _expired_coupon = Coupon.objects.create(
             code='EXPIRED',
             name='Expired Coupon',
             discount_type='percentage',
@@ -798,9 +804,9 @@ class PaymentEdgeCaseTests(TestCase):
             valid_until=timezone.now() - timedelta(days=30),
             is_active=True
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:validate_coupon'), {
             'code': 'EXPIRED'
         })
@@ -818,13 +824,13 @@ class PaymentEdgeCaseTests(TestCase):
             valid_until=timezone.now() + timedelta(days=30),
             is_active=True
         )
-        
+
         # Use coupon once
         limited_coupon.current_uses = 1
         limited_coupon.save()
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:validate_coupon'), {
             'code': 'LIMITED'
         })
@@ -842,9 +848,9 @@ class PaymentEdgeCaseTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:create_subscription'), {
             'plan_id': self.plan.id,
             'payment_method_id': 'pm_test123'
@@ -855,12 +861,12 @@ class PaymentEdgeCaseTests(TestCase):
         """Test subscription cancellation edge cases"""
         # Test canceling non-existent subscription
         self.client.login(username='testuser', password='testpass123')
-        
+
         response = self.client.post(reverse('payments:cancel_subscription'))
         self.assertIn(response.status_code, [400, 500])
-        
+
         # Test canceling already canceled subscription
-        subscription = UserSubscription.objects.create(
+        _subscription = UserSubscription.objects.create(
             user=self.user,
             plan=self.plan,
             stripe_subscription_id='sub_canceled',
@@ -868,6 +874,6 @@ class PaymentEdgeCaseTests(TestCase):
             current_period_start=timezone.now(),
             current_period_end=timezone.now() + timedelta(days=30)
         )
-        
+
         response = self.client.post(reverse('payments:cancel_subscription'))
-        self.assertIn(response.status_code, [400, 500]) 
+        self.assertIn(response.status_code, [400, 500])

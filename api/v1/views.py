@@ -27,7 +27,7 @@ from chart.views import (
 )
 from payments.models import SubscriptionPlan, UserSubscription, Payment, Coupon
 from payments.stripe_utils import StripeService
-from ai_integration.openrouter_api import get_available_models, generate_interpretation
+from ai_integration.openrouter_api import get_available_models, generate_interpretation as openrouter_generate_interpretation
 from astrology_ai.context_processors import theme_context
 from chart.tasks import generate_chart_task, generate_interpretation_task, calculate_ephemeris_task
 from celery.result import AsyncResult
@@ -37,9 +37,12 @@ from monitoring.health_checks import get_system_health, get_quick_health_status
 from monitoring.performance_monitor import get_performance_summary
 
 # Import chat models if they exist
+
+
 def get_chat_models():
     from plugins.astrology_chat.models import ChatSession, ChatMessage, KnowledgeDocument
     return ChatSession, ChatMessage, KnowledgeDocument
+
 
 try:
     ChatSession, ChatMessage, KnowledgeDocument = get_chat_models()
@@ -57,19 +60,19 @@ class APIKeyOrJWTPermission(permissions.BasePermission):
     """
     Custom permission class that allows authentication via either JWT token or API key.
     """
-    
+
     def has_permission(self, request, view):
         # Check if user is authenticated via JWT
         if request.user and request.user.is_authenticated:
             return True
-            
+
         # Check if API key is provided and valid
         api_key = request.headers.get('X-API-Key')
         if api_key:
             from django.conf import settings
             if api_key == getattr(settings, 'API_KEY', ''):
                 return True
-                
+
         return False
 
 
@@ -123,7 +126,7 @@ class AuthViewSet(viewsets.ViewSet):
     """Authentication endpoints"""
     permission_classes = [permissions.AllowAny]
     serializer_class = UserRegistrationSerializer  # Default serializer for documentation
-    
+
     @action(detail=False, methods=['post'])
     def register(self, request):
         """User registration endpoint"""
@@ -139,7 +142,7 @@ class AuthViewSet(viewsets.ViewSet):
                 }
             }, "User registered successfully")
         return error_response("Registration failed", data=serializer.errors)
-    
+
     @action(detail=False, methods=['post'])
     def login(self, request):
         """User login endpoint"""
@@ -155,7 +158,7 @@ class AuthViewSet(viewsets.ViewSet):
                 }
             }, "Login successful")
         return error_response("Login failed", data=serializer.errors)
-    
+
     @action(detail=False, methods=['post'])
     def refresh(self, request):
         """Refresh token endpoint"""
@@ -163,15 +166,15 @@ class AuthViewSet(viewsets.ViewSet):
             refresh_token = request.data.get('refresh')
             if not refresh_token:
                 return error_response("Refresh token is required")
-            
+
             refresh = RefreshToken(refresh_token)
             return success_response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh)
             }, "Token refreshed successfully")
-        except Exception as e:
+        except Exception as _e:
             return error_response("Invalid refresh token")
-    
+
     @action(detail=False, methods=['post'])
     def logout(self, request):
         """User logout endpoint"""
@@ -181,7 +184,7 @@ class AuthViewSet(viewsets.ViewSet):
                 token = RefreshToken(refresh_token)
                 token.blacklist()
             return success_response(message="Logout successful")
-        except Exception as e:
+        except Exception as _e:
             return error_response("Logout failed")
 
 
@@ -206,37 +209,37 @@ class UserViewSet(viewsets.ModelViewSet):
     """User management endpoints"""
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return User.objects.filter(id=self.request.user.id)
-    
+
     def list(self, request, *args, **kwargs):
         """List users (returns current user only)"""
         return self.retrieve(request, *args, **kwargs)
-    
+
     def retrieve(self, request, *args, **kwargs):
         """Get current user"""
         return success_response(UserSerializer(request.user).data)
-    
+
     @action(detail=False, methods=['get'], name='users-profile')
     def profile(self, request):
         """Get user profile with cached preferences"""
         user_data = UserSerializer(request.user).data
-        
+
         # Get cached user preferences
         cached_preferences = user_cache.get_user_preferences(request.user.id)
         if cached_preferences:
             user_data['cached_preferences'] = cached_preferences
-        
+
         return success_response(user_data)
-    
+
     @action(detail=False, methods=['put', 'patch'], name='users-update-profile')
     def update_profile(self, request):
         """Update user profile"""
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
             user = serializer.save()
-            
+
             # Cache updated preferences
             user_cache.cache_user_preferences(user.id, {
                 'preferred_zodiac_type': user.preferred_zodiac_type,
@@ -244,25 +247,25 @@ class UserViewSet(viewsets.ModelViewSet):
                 'preferred_ai_model': user.preferred_ai_model,
                 'timezone': user.timezone
             })
-            
+
             return success_response(UserSerializer(user).data, "Profile updated successfully")
         return error_response("Profile update failed", data=serializer.errors)
-    
+
     @action(detail=False, methods=['post'], name='users-change-password')
     def change_password(self, request):
         """Change user password"""
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
-        
+
         if not old_password or not new_password:
             return error_response("Old password and new password are required")
-        
+
         if not request.user.check_password(old_password):
             return error_response("Invalid old password")
-        
+
         request.user.set_password(new_password)
         request.user.save()
-        
+
         return success_response(message="Password changed successfully")
 
 
@@ -313,70 +316,70 @@ class ChartViewSet(viewsets.ModelViewSet):
     """Chart management endpoints"""
     serializer_class = ChartSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return Chart.objects.filter(user=self.request.user)
-    
+
     def list(self, request, *args, **kwargs):
         """List user charts with caching"""
         # Try to get cached chart summary
         cached_summary = user_cache.get_user_charts_summary(request.user.id)
         if cached_summary:
             return success_response(cached_summary)
-        
+
         # Get charts from database
         charts = self.get_queryset()
         serializer = self.get_serializer(charts, many=True)
-        
+
         # Cache the summary
         user_cache.cache_user_charts_summary(request.user.id, {
             'charts': serializer.data,
             'total_count': charts.count(),
             'cached_at': timezone.now().isoformat()
         })
-        
+
         return success_response(serializer.data)
-    
+
     def retrieve(self, request, *args, **kwargs):
         """Get specific chart"""
         chart = self.get_object()
         return success_response(ChartSerializer(chart).data)
-    
+
     @action(detail=False, methods=['post'], name='charts-generate')
     def generate(self, request):
         """Generate new chart with caching"""
         serializer = ChartGenerationSerializer(data=request.data)
         if not serializer.is_valid():
             return error_response("Invalid chart data", data=serializer.errors)
-        
+
         data = serializer.validated_data
-        
+
         try:
             # Convert local time to UTC
             utc_date, utc_time = local_to_utc(
                 data['birth_date'], data['birth_time'], data['timezone']
             )
-            
+
             # Calculate chart data with caching
             chart_data, error = calculate_chart_data_with_caching(
                 utc_date, utc_time, data['latitude'], data['longitude'],
                 data['zodiac_type'], data['house_system'], data['timezone']
             )
-            
+
             if error:
                 return error_response(f"Chart calculation failed: {error}")
-            
+
             # Generate interpretations with caching
-            planet_interpretations = generate_planet_interpretations_with_caching(
+            _planet_interpretations = generate_planet_interpretations_with_caching(
                 chart_data, utc_date, utc_time, data['location_name'],
                 data['ai_model'], data['temperature'], data['max_tokens']
             )
-            
+
             master_interpretation = generate_master_interpretation_with_caching(
                 chart_data, utc_date, utc_time, data['location_name'],
                 data['ai_model'], data['temperature'], data['max_tokens']
             )
-            
+
             # Create chart record
             chart = Chart.objects.create(
                 user=request.user,
@@ -396,39 +399,39 @@ class ChartViewSet(viewsets.ModelViewSet):
                 aspects=chart_data.get('aspects', {}),
                 interpretation=master_interpretation
             )
-            
+
             # Clear user's cached chart summary
             user_cache.delete('user_session', f"{request.user.id}_charts")
-            
+
             return success_response(ChartSerializer(chart).data, "Chart generated successfully")
-            
+
         except Exception as e:
             logger.error(f"Chart generation error: {e}")
             return error_response(f"Chart generation failed: {str(e)}")
-    
+
     @action(detail=True, methods=['post'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.UUID, OpenApiParameter.PATH, description="Chart ID")])
     def interpret(self, request, pk=None):
         """Generate interpretation for existing chart"""
         chart = self.get_object()
-        
+
         try:
             # Generate new interpretation with caching
             interpretation = generate_master_interpretation_with_caching(
                 chart.chart_data, chart.birth_date, chart.birth_time,
                 chart.location_name, chart.ai_model_used, 0.7, 1000
             )
-            
+
             # Update chart
             chart.interpretation = interpretation
             chart.save()
-            
+
             return success_response(ChartSerializer(chart).data, "Interpretation generated successfully")
-            
+
         except Exception as e:
             logger.error(f"Interpretation generation error: {e}")
             return error_response(f"Interpretation generation failed: {str(e)}")
-    
+
     @action(detail=True, methods=['post'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.UUID, OpenApiParameter.PATH, description="Chart ID")])
     def toggle_favorite(self, request, pk=None):
@@ -436,11 +439,11 @@ class ChartViewSet(viewsets.ModelViewSet):
         chart = self.get_object()
         chart.is_favorite = not chart.is_favorite
         chart.save()
-        
+
         return success_response({
             'is_favorite': chart.is_favorite
         }, f"Chart {'marked as favorite' if chart.is_favorite else 'unmarked as favorite'}")
-    
+
     @action(detail=False, methods=['get'])
     def favorites(self, request):
         """Get favorite charts"""
@@ -453,10 +456,10 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
     """Subscription management endpoints"""
     serializer_class = SubscriptionPlanSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return SubscriptionPlan.objects.filter(is_active=True)
-    
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
@@ -466,12 +469,12 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
             return success_response(paginated_data.data)
         serializer = self.get_serializer(queryset, many=True)
         return success_response({'results': serializer.data})
-    
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return success_response(serializer.data)
-    
+
     @action(detail=False, methods=['get'])
     def my_subscription(self, request):
         """Get current user's subscription"""
@@ -481,21 +484,21 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
             return success_response({'subscription': serializer.data})
         except UserSubscription.DoesNotExist:
             return error_response("No active subscription found")
-    
+
     @action(detail=False, methods=['post'])
     def create_subscription(self, request):
         """Create a new subscription"""
         plan_id = request.data.get('plan_id')
         payment_method_id = request.data.get('payment_method_id')
-        
+
         if not plan_id or not payment_method_id:
             return error_response("Plan ID and payment method ID are required")
-        
+
         try:
             plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
         except SubscriptionPlan.DoesNotExist:
             return error_response("Invalid plan")
-        
+
         try:
             stripe_service = StripeService()
             subscription = stripe_service.create_subscription(
@@ -510,7 +513,7 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             logger.error(f"Subscription creation error: {e}")
             return error_response("Subscription creation failed")
-    
+
     @action(detail=False, methods=['post'])
     def cancel_subscription(self, request):
         """Cancel current subscription"""
@@ -530,10 +533,10 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     """Payment history endpoints"""
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user)
-    
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         page = self.paginate_queryset(queryset)
@@ -543,7 +546,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             return success_response(paginated_data.data)
         serializer = self.get_serializer(queryset, many=True)
         return success_response({'results': serializer.data})
-    
+
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
@@ -554,7 +557,7 @@ class CouponViewSet(viewsets.ViewSet):
     """Coupon validation endpoints"""
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = CouponSerializer
-    
+
     @action(detail=False, methods=['post'])
     def validate(self, request):
         """Validate a coupon code"""
@@ -582,53 +585,53 @@ class ChatViewSet(viewsets.ModelViewSet):
     """Chat session endpoints"""
     serializer_class = ChatSessionSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         if not CHAT_AVAILABLE:
             return ChatSession.objects.none()
         return ChatSession.objects.filter(user=self.request.user)
-    
+
     def list(self, request, *args, **kwargs):
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         return super().list(request, *args, **kwargs)
-    
+
     def create(self, request, *args, **kwargs):
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         return super().create(request, *args, **kwargs)
-    
+
     def retrieve(self, request, *args, **kwargs):
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         return super().retrieve(request, *args, **kwargs)
-    
+
     def update(self, request, *args, **kwargs):
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         return super().update(request, *args, **kwargs)
-    
+
     def destroy(self, request, *args, **kwargs):
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
         return super().destroy(request, *args, **kwargs)
-    
+
     @action(detail=True, methods=['post'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.UUID, OpenApiParameter.PATH, description="Chat Session ID")])
     def send_message(self, request, pk=None):
         """Send a message in a chat session"""
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-        
+
         try:
             session = self.get_object()
         except ChatSession.DoesNotExist:
             return error_response("Chat session not found", status_code=status.HTTP_404_NOT_FOUND)
-        
+
         message_content = request.data.get('content')
         if not message_content:
             return error_response("Message content is required")
-        
+
         try:
             # Create user message
             user_message = ChatMessage.objects.create(
@@ -637,10 +640,10 @@ class ChatViewSet(viewsets.ModelViewSet):
                 content=message_content,
                 message_type='user'
             )
-            
+
             # Generate AI response (simplified - would integrate with AI service)
             ai_response = f"Thank you for your message: {message_content}. This is a placeholder AI response."
-            
+
             ai_message = ChatMessage.objects.create(
                 session=session,
                 user=request.user,
@@ -648,23 +651,23 @@ class ChatViewSet(viewsets.ModelViewSet):
                 message_type='ai',
                 is_ai=True
             )
-            
+
             return success_response({
                 'user_message': ChatMessageSerializer(user_message).data,
                 'ai_message': ChatMessageSerializer(ai_message).data
             }, "Message sent successfully")
-            
+
         except Exception as e:
             logger.error(f"Chat message error: {e}")
             return error_response("Failed to send message")
-    
+
     @action(detail=True, methods=['get'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.UUID, OpenApiParameter.PATH, description="Chat Session ID")])
     def messages(self, request, pk=None):
         """Get messages for a chat session"""
         if not CHAT_AVAILABLE:
             return error_response("Chat feature not available", status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-        
+
         try:
             session = self.get_object()
             messages = session.chat_messages.all().order_by('created_at')
@@ -678,7 +681,7 @@ class SystemViewSet(viewsets.ViewSet):
     """System information endpoints"""
     permission_classes = [permissions.AllowAny]
     serializer_class = AIModelSerializer  # Default serializer for documentation
-    
+
     @action(detail=False, methods=['get'])
     def ai_models(self, request):
         """Get available AI models"""
@@ -706,7 +709,7 @@ class SystemViewSet(viewsets.ViewSet):
             }
         ]
         return success_response({'models': model_data})
-    
+
     @action(detail=False, methods=['get'])
     def themes(self, request):
         """Get available themes"""
@@ -721,7 +724,7 @@ class SystemViewSet(viewsets.ViewSet):
                 'description': f"Theme: {theme['name']}"
             })
         return success_response({'themes': themes_data})
-    
+
     @action(detail=False, methods=['get'])
     def health(self, request):
         """Get comprehensive system health status."""
@@ -734,29 +737,29 @@ class SystemViewSet(viewsets.ViewSet):
             'message': f"System health: {health['overall_status']}",
             'data': health
         }, status=status_code)
-    
+
     @action(detail=False, methods=['get'])
     def detailed_health(self, request):
         """Detailed health check for monitoring systems."""
         health_checker = SystemHealthChecker()
         results = health_checker.run_all_health_checks()
-        
+
         # Determine overall status
         overall_status = 'healthy'
         if any(r['status'] == 'unhealthy' for r in results['checks']):
             overall_status = 'unhealthy'
         elif any(r['status'] == 'degraded' for r in results['checks']):
             overall_status = 'degraded'
-        
+
         status_code = 200 if overall_status == 'healthy' else 503
-        
+
         return Response({
             'status': overall_status,
             'timestamp': timezone.now().isoformat(),
             'checks': results['checks'],
             'summary': results['summary']
         }, status=status_code)
-    
+
     @action(detail=False, methods=['get'])
     def quick_health(self, request):
         """Quick health check for load balancers."""
@@ -765,7 +768,7 @@ class SystemViewSet(viewsets.ViewSet):
         if status != 'healthy':
             logger.warning(f"Quick health check failed: {status}")
         return Response({'status': status}, status=code)
-    
+
     @action(detail=False, methods=['get'])
     def performance(self, request):
         """Get system performance summary."""
@@ -777,7 +780,7 @@ class SystemViewSet(viewsets.ViewSet):
             'message': 'Performance summary',
             'data': summary
         })
-    
+
     @action(detail=False, methods=['get'])
     def celery_health(self, request):
         """Get Celery system health status."""
@@ -807,21 +810,21 @@ class TaskStatusViewSet(viewsets.ModelViewSet):
     """
     serializer_class = TaskStatusSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         """Filter tasks by current user."""
         return TaskStatus.objects.filter(user=self.request.user)
-    
+
     @action(detail=True, methods=['get'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.INT, OpenApiParameter.PATH, description="Task Status ID")])
     def status(self, request, pk=None):
         """Get detailed status of a specific task."""
         try:
             task_status = self.get_object()
-            
+
             # Use the utility function to get comprehensive task status
             detailed_status = get_task_status(task_status.task_id)
-            
+
             if detailed_status:
                 return Response({
                     'status': 'success',
@@ -838,7 +841,7 @@ class TaskStatusViewSet(viewsets.ModelViewSet):
                         'message': 'Task status could not be retrieved'
                     }
                 }, status=404)
-                
+
         except TaskStatus.DoesNotExist:
             return Response({
                 'status': 'error',
@@ -852,31 +855,31 @@ class TaskStatusViewSet(viewsets.ModelViewSet):
                 'message': f'Error retrieving task status: {str(e)}',
                 'data': None
             }, status=500)
-    
+
     @action(detail=True, methods=['post'])
     @extend_schema(parameters=[OpenApiParameter("pk", OpenApiTypes.INT, OpenApiParameter.PATH, description="Task Status ID")])
     def cancel(self, request, pk=None):
         """Cancel a running task."""
         task_status = self.get_object()
-        
+
         if task_status.is_completed:
             return Response({
                 'error': 'Cannot cancel completed task'
             }, status=400)
-        
+
         try:
             # Revoke task in Celery
             from celery import current_app
             current_app.control.revoke(task_status.task_id, terminate=True)
-            
+
             # Update local status
             task_status.mark_cancelled()
-            
+
             return Response({
                 'message': 'Task cancelled successfully',
                 'task_id': task_status.task_id
             })
-            
+
         except Exception as e:
             return Response({
                 'error': f'Error cancelling task: {str(e)}'
@@ -889,22 +892,22 @@ class BackgroundChartViewSet(viewsets.ViewSet):
     """
     permission_classes = [APIKeyOrJWTPermission]
     serializer_class = ChartGenerationSerializer  # Default serializer for documentation
-    
+
     @action(detail=False, methods=['post'])
     def generate_chart(self, request):
         """Start background chart generation task."""
         try:
             # Validate input data
             data = request.data
-            required_fields = ['date', 'time', 'latitude', 'longitude', 'timezone_str', 
-                             'zodiac_type', 'house_system', 'model_name', 'temperature', 'max_tokens']
-            
+            required_fields = ['date', 'time', 'latitude', 'longitude', 'timezone_str',
+                               'zodiac_type', 'house_system', 'model_name', 'temperature', 'max_tokens']
+
             for field in required_fields:
                 if field not in data:
                     return Response({
                         'error': f'Missing required field: {field}'
                     }, status=400)
-            
+
             # Convert to UTC
             from chart.views import local_to_utc
             utc_date, utc_time = local_to_utc(
@@ -912,7 +915,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 data['time'],
                 data['timezone_str']
             )
-            
+
             # Prepare task parameters
             chart_params = {
                 'utc_date': utc_date,
@@ -926,7 +929,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 'max_tokens': int(data['max_tokens']),
                 'location': data.get('location_name', 'Unknown')
             }
-            
+
             # Use the new utility function for task creation with fallback
             task_result = create_task_with_fallback(
                 task_func=generate_chart_task,
@@ -938,7 +941,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
             if not task_result:
                 logger.error("create_task_with_fallback returned None")
                 return Response({'error': 'Internal server error: task result is None'}, status=500)
-            
+
             if task_result['success']:
                 response_data = {
                     'task_id': task_result['task_id'],
@@ -947,7 +950,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'celery_available': task_result['celery_available'],
                     'status_url': f'/api/v1/tasks/{task_result["task_status_id"]}/status/'
                 }
-                
+
                 # If task completed synchronously, include the result
                 if task_result['status'] == 'SUCCESS' and 'result' in task_result:
                     response_data['result'] = task_result['result']
@@ -959,13 +962,13 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'error': task_result.get('error', 'Unknown error occurred'),
                     'message': task_result.get('message', 'No message')
                 }, status=500)
-            
+
         except Exception as e:
             logger.error(f"Error in generate_chart endpoint: {e}")
             return Response({
                 'error': f'Error starting chart generation: {str(e)}'
             }, status=500)
-    
+
     @action(detail=False, methods=['post'])
     def generate_interpretation(self, request):
         """Start background interpretation generation task."""
@@ -973,13 +976,13 @@ class BackgroundChartViewSet(viewsets.ViewSet):
             # Validate input data
             data = request.data
             required_fields = ['chart_data', 'model_name', 'temperature', 'max_tokens']
-            
+
             for field in required_fields:
                 if field not in data:
                     return Response({
                         'error': f'Missing required field: {field}'
                     }, status=400)
-            
+
             # Prepare task parameters
             interpretation_params = {
                 'model_name': data['model_name'],
@@ -987,7 +990,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 'max_tokens': int(data['max_tokens']),
                 'interpretation_type': data.get('interpretation_type', 'comprehensive')
             }
-            
+
             # Use the new utility function for task creation with fallback
             task_result = create_task_with_fallback(
                 task_func=generate_interpretation_task,
@@ -999,7 +1002,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
             if not task_result:
                 logger.error("create_task_with_fallback returned None")
                 return Response({'error': 'Internal server error: task result is None'}, status=500)
-            
+
             if task_result['success']:
                 response_data = {
                     'task_id': task_result['task_id'],
@@ -1008,7 +1011,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'celery_available': task_result['celery_available'],
                     'status_url': f'/api/v1/tasks/{task_result["task_status_id"]}/status/'
                 }
-                
+
                 # If task completed synchronously, include the result
                 if task_result['status'] == 'SUCCESS' and 'result' in task_result:
                     response_data['result'] = task_result['result']
@@ -1020,29 +1023,29 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'error': task_result.get('error', 'Unknown error occurred'),
                     'message': task_result.get('message', 'No message')
                 }, status=500)
-            
+
         except Exception as e:
             return Response({
                 'error': f'Error starting interpretation generation: {str(e)}'
             }, status=500)
-    
+
     @action(detail=False, methods=['post'])
     def calculate_ephemeris(self, request):
         """Start background ephemeris calculation task."""
         try:
             # Validate input data
             data = request.data
-            required_fields = ['date', 'time', 'latitude', 'longitude', 'timezone_str', 
-                             'zodiac_type', 'house_system']
-            
+            required_fields = ['date', 'time', 'latitude', 'longitude', 'timezone_str',
+                               'zodiac_type', 'house_system']
+
             for field in required_fields:
                 if field not in data:
                     return Response({
                         'error': f'Missing required field: {field}'
                     }, status=400)
-            
+
             logger.info(f"Starting ephemeris calculation with data: {data}")
-            
+
             # Convert to UTC
             from chart.views import local_to_utc
             utc_date, utc_time = local_to_utc(
@@ -1050,9 +1053,9 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 data['time'],
                 data['timezone_str']
             )
-            
+
             logger.info(f"Converted to UTC: {utc_date}, {utc_time}")
-            
+
             # Prepare task parameters
             ephemeris_params = {
                 'utc_date': utc_date,
@@ -1062,13 +1065,13 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 'zodiac_type': data['zodiac_type'],
                 'house_system': data['house_system']
             }
-            
+
             logger.info(f"Prepared ephemeris params: {ephemeris_params}")
-            
+
             # Handle user for API key authentication
             user = request.user if hasattr(request, 'user') and request.user else None
             logger.info(f"User for task: {user}")
-            
+
             # Use the new utility function for task creation with fallback
             logger.info("Calling create_task_with_fallback...")
             task_result = create_task_with_fallback(
@@ -1078,9 +1081,9 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                 task_type='ephemeris',
                 parameters=ephemeris_params
             )
-            
+
             logger.info(f"Task result: {task_result}")
-            
+
             if task_result and task_result.get('success'):
                 response_data = {
                     'task_id': task_result.get('task_id'),
@@ -1089,7 +1092,7 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'celery_available': task_result.get('celery_available'),
                     'status_url': f'/api/v1/tasks/{task_result.get("task_status_id")}/status/'
                 }
-                
+
                 # If task completed synchronously, include the result
                 if task_result.get('status') == 'SUCCESS' and 'result' in task_result:
                     response_data['result'] = task_result['result']
@@ -1103,11 +1106,11 @@ class BackgroundChartViewSet(viewsets.ViewSet):
                     'error': error_msg,
                     'message': task_result.get('message', 'Task creation failed') if task_result else 'Task creation failed'
                 }, status=500)
-            
+
         except Exception as e:
             logger.error(f"Error in calculate_ephemeris endpoint: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
             return Response({
                 'error': f'Error starting ephemeris calculation: {str(e)}'
-            }, status=500) 
+            }, status=500)

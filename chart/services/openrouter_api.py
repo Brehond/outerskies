@@ -4,6 +4,7 @@ import httpx
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 
+
 def generate_interpretation(prompt: str, model: str = "openai/gpt-4") -> str:
     print("Sending prompt to OpenRouter:", repr(prompt))  # Debug
     headers = {

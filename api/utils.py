@@ -15,7 +15,7 @@ def custom_exception_handler(exc, context):
     """
     # Call REST framework's default exception handler first
     response = exception_handler(exc, context)
-    
+
     if response is not None:
         # Customize the error response format
         if isinstance(response.data, dict):
@@ -52,7 +52,7 @@ def custom_exception_handler(exc, context):
                 'message': _('Internal server error'),
                 'data': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
     return response
 
 
@@ -65,7 +65,7 @@ def api_response(data=None, message="Success", status_code=200, error=False):
         'message': message,
         'data': data
     }
-    
+
     return Response(response_data, status=status_code)
 
 
@@ -89,15 +89,15 @@ def paginated_response(queryset, serializer_class, request, page_size=20):
     """
     from rest_framework.pagination import PageNumberPagination
     from rest_framework import serializers
-    
+
     paginator = PageNumberPagination()
     paginator.page_size = page_size
-    
+
     page = paginator.paginate_queryset(queryset, request)
     if page is not None:
         serializer = serializer_class(page, many=True)
         return paginator.get_paginated_response(serializer.data)
-    
+
     serializer = serializer_class(queryset, many=True)
     return Response(serializer.data)
 
@@ -110,8 +110,8 @@ def validate_required_fields(data, required_fields):
     for field in required_fields:
         if field not in data or data[field] is None or data[field] == '':
             missing_fields.append(field)
-    
+
     if missing_fields:
         raise ValidationError(f"Missing required fields: {', '.join(missing_fields)}")
-    
-    return True 
+
+    return True

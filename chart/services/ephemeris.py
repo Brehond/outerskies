@@ -49,17 +49,18 @@ DIGNITY_RULERSHIPS = {
     "Pluto": {"Ruler": "Scorpio", "Exaltation": "Aries", "Fall": "Libra", "Detriment": "Taurus"}
 }
 
+
 def get_julian_day(date_str: str, time_str: str) -> float:
     """
     Convert date (yyyy-mm-dd) and time (hh:mm) to Julian Day (float).
-    
+
     Args:
         date_str: Date string in YYYY-MM-DD format
         time_str: Time string in HH:MM format
-    
+
     Returns:
         Julian Day as float
-    
+
     Raises:
         ValueError: If date/time format is invalid
     """
@@ -70,13 +71,14 @@ def get_julian_day(date_str: str, time_str: str) -> float:
         logger.error(f"Invalid date/time format: {e}")
         raise ValueError(f"Invalid date/time format: {e}")
 
+
 def get_sign_from_longitude(longitude: float) -> Tuple[str, float]:
     """
     Convert ecliptic longitude to (sign, degree_in_sign)
-    
+
     Args:
         longitude: Ecliptic longitude in degrees
-    
+
     Returns:
         Tuple of (sign name, degree within sign)
     """
@@ -84,18 +86,19 @@ def get_sign_from_longitude(longitude: float) -> Tuple[str, float]:
     deg_in_sign = longitude % 30
     return SIGN_NAMES[sign_index], deg_in_sign
 
+
 def calculate_aspects(positions: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """
     Calculate aspects between planets.
-    
+
     Args:
         positions: Dict of planet positions
-    
+
     Returns:
         Dict mapping planets to their aspects
     """
     aspects = {}
-    
+
     for planet1, pos1 in positions.items():
         aspects[planet1] = []
         for planet2, pos2 in positions.items():
@@ -103,7 +106,7 @@ def calculate_aspects(positions: Dict[str, Dict[str, Any]]) -> Dict[str, List[Di
                 diff = abs(pos1["absolute_degree"] - pos2["absolute_degree"])
                 if diff > 180:
                     diff = 360 - diff
-                
+
                 # Check for aspects
                 if diff <= ASPECT_ORBS["Conjunction"]:
                     aspects[planet1].append({
@@ -141,41 +144,43 @@ def calculate_aspects(positions: Dict[str, Dict[str, Any]]) -> Dict[str, List[Di
                         "type": "Quincunx",
                         "orb": abs(diff - 150)
                     })
-    
+
     return aspects
+
 
 def calculate_dignity(planet: str, sign: str) -> str:
     """
     Calculate dignity status for a planet in a sign.
-    
+
     Args:
         planet: Planet name
         sign: Sign name
-    
+
     Returns:
         Dignity status string
     """
     dignities = DIGNITY_RULERSHIPS.get(planet, {})
-    
+
     if isinstance(dignities.get("Ruler"), list):
         if sign in dignities["Ruler"]:
             return "Ruler"
     elif sign == dignities.get("Ruler"):
         return "Ruler"
-        
+
     if sign == dignities.get("Exaltation"):
         return "Exaltation"
-        
+
     if isinstance(dignities.get("Detriment"), list):
         if sign in dignities["Detriment"]:
             return "Detriment"
     elif sign == dignities.get("Detriment"):
         return "Detriment"
-        
+
     if sign == dignities.get("Fall"):
         return "Fall"
-        
+
     return "Neutral"
+
 
 def get_ascendant_and_houses(
     jd: float,
@@ -202,9 +207,9 @@ def get_ascendant_and_houses(
             logger.error(f"Invalid house cusps data: {houses} (jd={jd}, lat={lat}, lon={lon}, house_system={house_system})")
             logger.error(f"houses type: {type(houses)}, length: {len(houses) if houses else 'None'}")
             raise ValueError("Invalid house cusps data")
-        
+
         logger.info(f"House cusps validation passed. First 12 cusps: {houses[:12]}")
-        
+
         asc_long = ascmc[0]
         asc_sign, asc_deg_in_sign = get_sign_from_longitude(asc_long)
         asc = {
@@ -212,14 +217,14 @@ def get_ascendant_and_houses(
             "sign": asc_sign,
             "degree_in_sign": asc_deg_in_sign
         }
-        
+
         # Create house signs dictionary (1-indexed to match astrological convention)
         house_signs = {}
         for i in range(12):  # Houses 1-12 (0-indexed in array)
             cusp = houses[i]
             sign, _ = get_sign_from_longitude(cusp)
             house_signs[i + 1] = sign  # Convert to 1-indexed
-        
+
         return asc, houses, house_signs
     except ValueError as e:
         logger.error(f"Invalid house system: {e}")
@@ -228,29 +233,30 @@ def get_ascendant_and_houses(
         logger.error(f"Error calculating houses: {e}")
         raise Exception(f"Error calculating houses: {e}")
 
+
 def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = 'tropical', house_system: str = 'placidus') -> Dict[str, Dict[str, Any]]:
     """
     Get planetary positions with caching support.
-    
+
     Args:
         jd: Julian Day
         lat: Latitude
         lon: Longitude
         zodiac_type: 'tropical' or 'sidereal'
         house_system: House system to use for house position calculation
-    
+
     Returns:
         Dict of planetary positions
     """
     positions = {}
-    
+
     # Map user-friendly house system names to Swiss Ephemeris codes (same as get_ascendant_and_houses)
     hs_map = {
         'placidus': b'P',
         'whole_sign': b'W',
     }
     hs_code = hs_map.get(house_system, b'P')
-    
+
     # Calculate houses first to get house cusps for house position calculation
     try:
         houses, ascmc = swe.houses(jd, lat, lon, hs_code)
@@ -263,7 +269,7 @@ def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = '
         armc = 0
         eps = 23.4367
         houses = None
-    
+
     for planet_name, planet_code in PLANET_CODES.items():
         try:
             # Get planet position
@@ -271,13 +277,13 @@ def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = '
             longitude = result[0][0]
             latitude = result[0][1]
             distance = result[0][2]
-            
+
             # Convert to sign and degree
             sign, deg_in_sign = get_sign_from_longitude(longitude)
-            
+
             # Calculate dignity
             dignity = calculate_dignity(planet_name, sign)
-            
+
             # Calculate house position using swe_house_pos
             try:
                 house_position = swe.house_pos(armc, lat, eps, [longitude, latitude], hs_code)
@@ -310,7 +316,7 @@ def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = '
                 except Exception as fallback_error:
                     logger.error(f"Fallback house calculation also failed for {planet_name}: {fallback_error}")
                     house_number = 1
-            
+
             positions[planet_name] = {
                 "absolute_degree": longitude,
                 "latitude": latitude,
@@ -321,7 +327,7 @@ def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = '
                 "house": house_number,
                 "retrograde": result[0][3] < 0  # Negative speed indicates retrograde
             }
-            
+
         except Exception as e:
             logger.error(f"Error calculating position for {planet_name}: {e}")
             positions[planet_name] = {
@@ -331,8 +337,9 @@ def get_planet_positions(jd: float, lat: float, lon: float, zodiac_type: str = '
                 "degree_in_sign": 0,
                 "house": 1
             }
-    
+
     return positions
+
 
 def get_chart_data(
     date: str,
@@ -345,7 +352,7 @@ def get_chart_data(
 ) -> Dict[str, Any]:
     """
     Get complete chart data with caching support.
-    
+
     Args:
         date: Date string in YYYY-MM-DD format
         time: Time string in HH:MM format
@@ -354,7 +361,7 @@ def get_chart_data(
         timezone: Timezone string
         zodiac_type: 'tropical' or 'sidereal'
         house_system: 'placidus' or 'whole_sign'
-    
+
     Returns:
         Complete chart data dictionary
     """
@@ -368,36 +375,36 @@ def get_chart_data(
         'zodiac_type': zodiac_type,
         'house_system': house_system
     }
-    
+
     # Try to get from cache first
     cached_result = ephemeris_cache.get_ephemeris_calculation(birth_data)
     if cached_result:
         logger.info(f"Using cached ephemeris data for {date} {time}")
         return cached_result
-    
+
     # Calculate if not in cache
     logger.info(f"Calculating ephemeris data for {date} {time}")
-    
+
     try:
         # Convert to Julian Day
         jd = get_julian_day(date, time)
-        
+
         # Get planetary positions
         planetary_positions = get_planet_positions(jd, lat, lon, zodiac_type, house_system)
-        
+
         # Get ascendant and houses
         ascendant, house_cusps, house_signs = get_ascendant_and_houses(jd, lat, lon, house_system)
-        
+
         # Calculate aspects
         aspects = calculate_aspects(planetary_positions)
-        
+
         # Add aspects to planetary positions for easier access in interpretations
         for planet_name, planet_data in planetary_positions.items():
             if planet_name in aspects:
                 planet_data['aspects'] = aspects[planet_name]
             else:
                 planet_data['aspects'] = []
-        
+
         # Compile complete chart data
         chart_data = {
             "julian_day": jd,
@@ -411,13 +418,12 @@ def get_chart_data(
             "zodiac_type": zodiac_type,
             "house_system": house_system
         }
-        
+
         # Cache the result
         ephemeris_cache.cache_ephemeris_calculation(birth_data, chart_data)
-        
+
         return chart_data
-        
+
     except Exception as e:
         logger.error(f"Error calculating chart data: {e}")
         raise
-

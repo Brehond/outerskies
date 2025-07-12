@@ -1,19 +1,31 @@
+"""
+Forms for the house generator plugin
+"""
+
 from django import forms
 
 
-class HouseGeneratorSettingsForm(forms.Form):
-    """Settings form for the House Generator plugin"""
-    
-    houses_enabled = forms.BooleanField(
-        label="Enable House Interpretations",
-        initial=True,
-        required=False,
-        help_text="Enable AI-powered house interpretations"
+class HouseGeneratorForm(forms.Form):
+    """
+    Form for generating house systems
+    """
+    house_system = forms.ChoiceField(
+        choices=[
+            ('placidus', 'Placidus'),
+            ('koch', 'Koch'),
+            ('equal', 'Equal House'),
+            ('whole_sign', 'Whole Sign'),
+        ],
+        label='House System',
+        help_text='Select the house system to use'
     )
-    
-    include_planets = forms.BooleanField(
-        label="Include Planets in Houses",
-        initial=True,
-        required=False,
-        help_text="Include planet information in house interpretations"
-    ) 
+
+    latitude = forms.FloatField(
+        label='Latitude',
+        help_text='Geographic latitude for house calculation'
+    )
+
+    longitude = forms.FloatField(
+        label='Longitude',
+        help_text='Geographic longitude for house calculation'
+    )

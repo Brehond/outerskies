@@ -36,6 +36,7 @@ User = get_user_model()
 #     def test_api_key_expiration(self):
 #         pass
 
+
 @override_settings(
     EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
     DEFAULT_FROM_EMAIL='noreply@outer-skies.com',
@@ -125,7 +126,7 @@ class TestAuthFlow(TestCase):
         self.assertContains(response, "password fields didn", status_code=200)
 
     def test_login_logout_flow(self):
-        user = User.objects.create_user(username='astrotest', email='astro@example.com', password='Testpass123!')
+        _user = User.objects.create_user(username='astrotest', email='astro@example.com', password='Testpass123!')
         response = self.client.post(self.login_url, {'username': 'astrotest', 'password': 'Testpass123!'})
         self.assertEqual(response.status_code, 302)
         response = self.client.get(self.profile_url)
@@ -284,4 +285,4 @@ class TestAuthFlow(TestCase):
             'timezone': 'UTC',
         })
         self.assertEqual(response.status_code, 302)  # Redirect after successful registration
-        self.assertTrue(User.objects.filter(username='newuser').exists()) 
+        self.assertTrue(User.objects.filter(username='newuser').exists())

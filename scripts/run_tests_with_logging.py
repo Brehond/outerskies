@@ -12,16 +12,17 @@ import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
+
 class TestLogger:
     def __init__(self, log_dir: str = "logs"):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(exist_ok=True)
-        
+
         # Create timestamp for this test run
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_file = self.log_dir / f"test_run_{self.timestamp}.log"
         self.json_file = self.log_dir / f"test_results_{self.timestamp}.json"
-        
+
         # Test results storage
         self.test_results = {
             "timestamp": self.timestamp,
@@ -33,24 +34,24 @@ class TestLogger:
             "test_details": [],
             "summary": {}
         }
-    
+
     def log(self, message: str, level: str = "INFO"):
         """Log a message with timestamp"""
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = f"[{timestamp}] {level}: {message}"
-        
+
         # Write to log file
         with open(self.log_file, 'a', encoding='utf-8') as f:
             f.write(log_entry + '\n')
-        
+
         # Also print to console
         print(log_entry)
-    
+
     def run_test_command(self, command: List[str], test_name: str = "Unknown") -> Dict[str, Any]:
         """Run a test command and capture all output"""
         self.log(f"Running test: {test_name}")
         self.log(f"Command: {' '.join(command)}")
-        
+
         result = {
             "test_name": test_name,
             "command": command,
@@ -61,10 +62,10 @@ class TestLogger:
             "return_code": -1,
             "duration": 0
         }
-        
+
         try:
             start_time = datetime.datetime.now()
-            
+
             # Run the command and capture output
             process = subprocess.run(
                 command,
@@ -73,10 +74,10 @@ class TestLogger:
                 encoding='utf-8',
                 timeout=300  # 5 minute timeout
             )
-            
+
             end_time = datetime.datetime.now()
             duration = (end_time - start_time).total_seconds()
-            
+
             result.update({
                 "return_code": process.returncode,
                 "output": process.stdout,
@@ -84,18 +85,18 @@ class TestLogger:
                 "duration": duration,
                 "success": process.returncode == 0
             })
-            
+
             # Parse Django test output
             test_stats = self.parse_django_test_output(process.stdout)
             result.update(test_stats)
-            
+
             if result["success"]:
                 self.log(f"✓ {test_name} PASSED ({duration:.2f}s)")
             else:
                 self.log(f"✗ {test_name} FAILED ({duration:.2f}s)")
                 if process.stderr:
                     self.log(f"Error output: {process.stderr}", "ERROR")
-            
+
         except subprocess.TimeoutExpired:
             result.update({
                 "error": "Test timed out after 5 minutes",
@@ -108,9 +109,9 @@ class TestLogger:
                 "success": False
             })
             self.log(f"✗ {test_name} EXCEPTION: {e}", "ERROR")
-        
+
         return result
-    
+
     def parse_django_test_output(self, output: str) -> Dict[str, Any]:
         """Parse Django test output to extract statistics"""
         stats = {
@@ -120,11 +121,11 @@ class TestLogger:
             "skipped": 0,
             "test_details": []
         }
-        
+
         lines = output.split('\n')
         for line in lines:
             line = line.strip()
-            
+
             # Look for test summary
             if "Ran" in line and "test" in line:
                 try:
@@ -141,7 +142,7 @@ class TestLogger:
                             stats["skipped"] = int(parts[i - 1])
                 except (ValueError, IndexError):
                     pass
-            
+
             # Look for individual test results
             if line.startswith("FAIL:") or line.startswith("ERROR:"):
                 test_detail = {
@@ -150,13 +151,13 @@ class TestLogger:
                     "details": ""
                 }
                 stats["test_details"].append(test_detail)
-        
+
         return stats
-    
+
     def run_all_tests(self):
         """Run all test suites and generate comprehensive report"""
         self.log("Starting comprehensive test run")
-        
+
         # Define test suites
         test_suites = [
             {
@@ -164,7 +165,7 @@ class TestLogger:
                 "command": ["python", "manage.py", "test", "chart.tests.test_auth", "--verbosity=2"]
             },
             {
-                "name": "Chart Model Tests", 
+                "name": "Chart Model Tests",
                 "command": ["python", "manage.py", "test", "chart.tests.test_models", "--verbosity=2"]
             },
             {
@@ -180,27 +181,27 @@ class TestLogger:
                 "command": ["python", "manage.py", "test", "chart.tests", "--verbosity=2"]
             }
         ]
-        
+
         # Run each test suite
         for suite in test_suites:
             result = self.run_test_command(suite["command"], suite["name"])
             self.test_results["test_details"].append(result)
-            
+
             # Update summary statistics
             self.test_results["total_tests"] += result.get("tests_run", 0)
             self.test_results["passed"] += result.get("tests_run", 0) - result.get("failures", 0) - result.get("errors", 0)
             self.test_results["failed"] += result.get("failures", 0)
             self.test_results["errors"] += result.get("errors", 0)
             self.test_results["skipped"] += result.get("skipped", 0)
-        
+
         # Generate summary
         self.generate_summary()
-        
+
         # Save results
         self.save_results()
-        
+
         return self.test_results
-    
+
     def generate_summary(self):
         """Generate a summary of all test results"""
         total = self.test_results["total_tests"]
@@ -208,12 +209,12 @@ class TestLogger:
         failed = self.test_results["failed"]
         errors = self.test_results["errors"]
         skipped = self.test_results["skipped"]
-        
+
         if total > 0:
             success_rate = (passed / total) * 100
         else:
             success_rate = 0
-        
+
         self.test_results["summary"] = {
             "success_rate": success_rate,
             "total_tests": total,
@@ -222,7 +223,7 @@ class TestLogger:
             "errors": errors,
             "skipped": skipped
         }
-        
+
         # Log summary
         self.log("=" * 60)
         self.log("TEST RUN SUMMARY")
@@ -234,19 +235,19 @@ class TestLogger:
         self.log(f"Skipped: {skipped}")
         self.log(f"Success Rate: {success_rate:.1f}%")
         self.log("=" * 60)
-    
+
     def save_results(self):
         """Save test results to JSON file"""
         with open(self.json_file, 'w', encoding='utf-8') as f:
             json.dump(self.test_results, f, indent=2, default=str)
-        
+
         self.log(f"Test results saved to: {self.json_file}")
         self.log(f"Detailed log saved to: {self.log_file}")
-    
+
     def generate_html_report(self):
         """Generate an HTML report from the test results"""
         html_file = self.log_dir / f"test_report_{self.timestamp}.html"
-        
+
         html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -272,7 +273,7 @@ class TestLogger:
         <h1>Test Report</h1>
         <p>Generated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
-    
+
     <div class="summary">
         <div class="summary-card">
             <h3>Total Tests</h3>
@@ -295,14 +296,14 @@ class TestLogger:
             <p class="passed">{self.test_results['summary']['success_rate']:.1f}%</p>
         </div>
     </div>
-    
+
     <h2>Test Details</h2>
 """
-        
+
         for test_detail in self.test_results["test_details"]:
             status_class = "passed" if test_detail["success"] else "failed"
             status_icon = "✓" if test_detail["success"] else "✗"
-            
+
             html_content += f"""
     <div class="test-detail">
         <h3>{status_icon} {test_detail['test_name']}</h3>
@@ -312,45 +313,46 @@ class TestLogger:
         <p><strong>Failures:</strong> {test_detail.get('failures', 0)}</p>
         <p><strong>Errors:</strong> {test_detail.get('errors', 0)}</p>
 """
-            
+
             if test_detail.get('output'):
                 html_content += f"""
         <h4>Output:</h4>
         <div class="test-output">{test_detail['output']}</div>
 """
-            
+
             if test_detail.get('error'):
                 html_content += f"""
         <h4>Error:</h4>
         <div class="test-output">{test_detail['error']}</div>
 """
-            
+
             html_content += """
     </div>
 """
-        
+
         html_content += """
 </body>
 </html>
 """
-        
+
         with open(html_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
-        
+
         self.log(f"HTML report generated: {html_file}")
         return html_file
+
 
 def main():
     """Main function to run the test logger"""
     logger = TestLogger()
-    
+
     try:
         # Run all tests
         results = logger.run_all_tests()
-        
+
         # Generate HTML report
         html_file = logger.generate_html_report()
-        
+
         # Print final summary
         print("\n" + "=" * 60)
         print("TEST RUN COMPLETED")
@@ -359,13 +361,13 @@ def main():
         print(f"JSON results: {logger.json_file}")
         print(f"HTML report: {html_file}")
         print("=" * 60)
-        
+
         # Return appropriate exit code
         if results["summary"]["failed"] > 0 or results["summary"]["errors"] > 0:
             sys.exit(1)
         else:
             sys.exit(0)
-            
+
     except KeyboardInterrupt:
         logger.log("Test run interrupted by user", "WARNING")
         sys.exit(1)
@@ -373,5 +375,6 @@ def main():
         logger.log(f"Unexpected error: {e}", "ERROR")
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    main() 
+    main()

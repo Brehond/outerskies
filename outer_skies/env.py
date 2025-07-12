@@ -8,12 +8,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from .env file
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+
 def get_env_variable(var_name, default=None):
     """Get environment variable or return default value."""
     value = os.getenv(var_name, default)
     if value is None:
         raise ValueError(f'Environment variable {var_name} is not set')
     return value
+
 
 # Security Keys
 API_KEY = get_env_variable('API_KEY')
@@ -54,4 +56,4 @@ AWS_S3_REGION_NAME = get_env_variable('AWS_S3_REGION_NAME')
 # Stripe Settings
 STRIPE_PUBLIC_KEY = get_env_variable('STRIPE_PUBLIC_KEY')
 STRIPE_SECRET_KEY = get_env_variable('STRIPE_SECRET_KEY')
-STRIPE_WEBHOOK_SECRET = get_env_variable('STRIPE_WEBHOOK_SECRET') 
+STRIPE_WEBHOOK_SECRET = get_env_variable('STRIPE_WEBHOOK_SECRET')

@@ -10,11 +10,12 @@ from datetime import datetime
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chart.tests.test_settings')
 django.setup()
 
+
 class DataValidationMiddlewareTests(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
         self.middleware = DataValidationMiddleware(get_response=lambda r: HttpResponse())
-        
+
         # Sample valid data
         self.valid_chart_data = {
             'title': 'Test Chart',
@@ -30,7 +31,7 @@ class DataValidationMiddlewareTests(TestCase):
                 'showLegend': True
             }
         }
-        
+
         self.valid_data_points = {
             'data': [
                 {
@@ -67,7 +68,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that missing required fields are caught."""
         data = self.valid_chart_data.copy()
         del data['title']
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -82,7 +83,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that invalid field types are caught."""
         data = self.valid_chart_data.copy()
         data['title'] = 123  # Should be string
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -97,7 +98,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that string length validation works."""
         data = self.valid_chart_data.copy()
         data['title'] = 'a' * 101  # Exceeds maxLength of 100
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -112,7 +113,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that enum validation works."""
         data = self.valid_chart_data.copy()
         data['options']['type'] = 'invalid'  # Not in enum
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -127,7 +128,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that array validation works."""
         data = self.valid_chart_data.copy()
         data['data'] = [{'x': 'invalid', 'y': 'invalid'}]  # Invalid types
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -142,7 +143,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that HTML is stripped from strings."""
         data = self.valid_chart_data.copy()
         data['title'] = '<script>alert("xss")</script>Test Chart'
-        
+
         request = self.factory.post(
             '/api/chart/',
             data=json.dumps(data),
@@ -156,7 +157,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that numbers are properly sanitized."""
         data = self.valid_data_points.copy()
         data['data'][0]['value'] = '42.5'  # String number
-        
+
         request = self.factory.post(
             '/api/data/',
             data=json.dumps(data),
@@ -170,7 +171,7 @@ class DataValidationMiddlewareTests(TestCase):
         """Test that date validation works."""
         data = self.valid_data_points.copy()
         data['data'][0]['timestamp'] = 'invalid-date'
-        
+
         request = self.factory.post(
             '/api/data/',
             data=json.dumps(data),
@@ -191,4 +192,4 @@ class DataValidationMiddlewareTests(TestCase):
         response = self.middleware(request)
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.content)
-        self.assertEqual(data['error'], 'Invalid JSON data') 
+        self.assertEqual(data['error'], 'Invalid JSON data')

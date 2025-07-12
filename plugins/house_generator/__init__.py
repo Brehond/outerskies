@@ -11,4 +11,4 @@ from .plugin import HouseGeneratorPlugin
 Plugin = HouseGeneratorPlugin
 
 __version__ = "1.0.0"
-__author__ = "Outer Skies Team" 
+__author__ = "Outer Skies Team"

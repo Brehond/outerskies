@@ -1,24 +1,25 @@
 import os
 
+
 def theme_context(request):
-    
+
     THEME_NAMES = [
-        "Standard", "Abyssal", "Spiral", "Found Footage", "Seaside", 
-        "Retro (Dark)", "Retro (Light)", "LED", "Uncanny Black", "Neo-80s", 
-        "Monolith", "Casie", "Flesh", "Ripper", "Archives", "Shrouded", 
-        "Alarm", "Wood", "Honey", "Jaguar", "Hills", "Film", "Mythos", 
-        "Tide I", "Tides II", "XNX", "Grimoire", "Clue", "Shiba", "Seaweed", 
-        "Moldy Black", "Attic", "Kinda Black", "Old Print", "Deep Gold", 
-        "Omen", "Neon Slasher", "Gothic", "ZR", "Faraday", "Iron Rain", 
-        "Palm Trees", "Blood Dawn", "Samhain", "Riverside Incident", 
-        "Backrooms", "Mondo", "Bloodlord", "Skeletal King", "Swamp Snarl", 
-        "Faded Pumpkin", "Haircuts", "Tarocco", "Gardener", "Seville", 
-        "Watercolor", "Leatherface", "Caution Tape", "Cherry Candy", 
-        "Occulatation", "Cursed Slab", "Marsh", "Apple Pie", "Fish", "Copper", 
-        "Ciemna Czekolada", "Sweet Dreams", "Family Crypt", "Empty Church", 
+        "Standard", "Abyssal", "Spiral", "Found Footage", "Seaside",
+        "Retro (Dark)", "Retro (Light)", "LED", "Uncanny Black", "Neo-80s",
+        "Monolith", "Casie", "Flesh", "Ripper", "Archives", "Shrouded",
+        "Alarm", "Wood", "Honey", "Jaguar", "Hills", "Film", "Mythos",
+        "Tide I", "Tides II", "XNX", "Grimoire", "Clue", "Shiba", "Seaweed",
+        "Moldy Black", "Attic", "Kinda Black", "Old Print", "Deep Gold",
+        "Omen", "Neon Slasher", "Gothic", "ZR", "Faraday", "Iron Rain",
+        "Palm Trees", "Blood Dawn", "Samhain", "Riverside Incident",
+        "Backrooms", "Mondo", "Bloodlord", "Skeletal King", "Swamp Snarl",
+        "Faded Pumpkin", "Haircuts", "Tarocco", "Gardener", "Seville",
+        "Watercolor", "Leatherface", "Caution Tape", "Cherry Candy",
+        "Occulatation", "Cursed Slab", "Marsh", "Apple Pie", "Fish", "Copper",
+        "Ciemna Czekolada", "Sweet Dreams", "Family Crypt", "Empty Church",
         "Cotton Candy", "Shelter", "199X", "PAL1"
     ]
-    
+
     # Define custom palettes here
     PALETTES = {
         "PAL1": {
@@ -841,7 +842,7 @@ def theme_context(request):
             "border_light": "#c9be9f",
         },
     }
-    
+
     PLACEHOLDER_COLORS = {
         "primary": "#000000",
         "secondary": "#111111",
@@ -862,9 +863,9 @@ def theme_context(request):
             "colors": PALETTES.get(theme_name, PLACEHOLDER_COLORS),
         })
 
-    current_theme_slug = request.session.get('user_theme', 'standard') # default theme
-    
+    current_theme_slug = request.session.get('user_theme', 'standard')  # default theme
+
     return {
         'THEMES': THEMES,
         'current_theme_slug': current_theme_slug,
-    } 
+    }

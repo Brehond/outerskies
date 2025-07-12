@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
+
 class PromptManager:
     def __init__(self):
         self.base_path = Path(__file__).parent
@@ -118,6 +119,7 @@ class PromptManager:
                 'temperature': 0.7
             }
         }
+
 
 # Create a singleton instance
 prompt_manager = PromptManager()

@@ -1,3 +1,1 @@
-from .plugin import ThemeSwitcherPlugin
- 
-Plugin = ThemeSwitcherPlugin 
+# Theme Switcher Plugin

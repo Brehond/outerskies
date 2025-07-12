@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
+
 class Command(BaseCommand):
     help = 'Set up the Astrology Chat plugin with initial configuration'
 
@@ -57,7 +58,7 @@ class Command(BaseCommand):
     def create_default_categories(self):
         """Create default knowledge base categories"""
         self.stdout.write('Creating default knowledge base categories...')
-        
+
         default_categories = [
             {
                 'name': 'Planetary Meanings',
@@ -138,7 +139,7 @@ class Command(BaseCommand):
     def setup_demo_data(self):
         """Create demo data for testing"""
         self.stdout.write('Setting up demo data...')
-        
+
         # Create demo user if needed
         demo_user, created = User.objects.get_or_create(
             username='demo_user',
@@ -149,13 +150,13 @@ class Command(BaseCommand):
                 'is_premium': True
             }
         )
-        
+
         if created:
             self.stdout.write('  ✓ Created demo user')
-        
+
         # Create demo chat sessions
         from plugins.astrology_chat.models import ChatSession, ChatMessage
-        
+
         demo_sessions = [
             {
                 'title': 'Understanding My Sun Sign',
@@ -188,57 +189,48 @@ class Command(BaseCommand):
                 ]
             }
         ]
-        
+
         for session_data in demo_sessions:
             session = ChatSession.objects.create(
                 user=demo_user,
                 title=session_data['title'],
                 context_notes=session_data['context_notes']
             )
-            
+
             for message_data in session_data['messages']:
                 ChatMessage.objects.create(
                     session=session,
-                    user=demo_user,
                     content=message_data['content'],
                     is_ai=message_data['is_ai'],
                     tokens_used=message_data.get('tokens_used', 0)
                 )
-            
-            self.stdout.write(f'  ✓ Created demo session: {session.title}')
 
         self.stdout.write(
             self.style.SUCCESS('Demo data setup complete')
         )
 
     def process_documents(self):
-        """Process all pending documents"""
+        """Process all pending documents in the knowledge base"""
         self.stdout.write('Processing pending documents...')
-        
-        from plugins.astrology_chat.models import KnowledgeDocument
+
         knowledge_service = KnowledgeService()
-        
-        pending_documents = KnowledgeDocument.objects.filter(
-            processing_status='pending'
-        )
-        
-        if not pending_documents.exists():
-            self.stdout.write('  No pending documents to process')
+        pending_docs = knowledge_service.get_pending_documents()
+
+        if not pending_docs:
+            self.stdout.write('No pending documents to process')
             return
-        
+
         processed_count = 0
-        for document in pending_documents:
+        for doc in pending_docs:
             try:
-                self.stdout.write(f'  Processing: {document.title}')
-                success = knowledge_service.process_document(document)
-                if success:
-                    processed_count += 1
-                    self.stdout.write(f'    ✓ Successfully processed')
-                else:
-                    self.stdout.write(f'    ✗ Failed to process')
+                knowledge_service.process_document(doc)
+                processed_count += 1
+                self.stdout.write(f'  ✓ Processed: {doc.title}')
             except Exception as e:
-                self.stdout.write(f'    ✗ Error: {str(e)}')
-        
+                self.stdout.write(
+                    self.style.ERROR(f'  ✗ Failed to process {doc.title}: {e}')
+                )
+
         self.stdout.write(
             self.style.SUCCESS(f'Processed {processed_count} documents')
         )
@@ -246,90 +238,62 @@ class Command(BaseCommand):
     def cleanup_old_data(self):
         """Clean up old sessions and documents"""
         self.stdout.write('Cleaning up old data...')
-        
+
         from django.utils import timezone
         from datetime import timedelta
-        from plugins.astrology_chat.models import ChatSession, ChatMessage, KnowledgeDocument
-        
-        # Clean up old inactive sessions (older than 90 days)
+        from plugins.astrology_chat.models import ChatSession, ChatMessage
+
+        # Delete sessions older than 90 days
         cutoff_date = timezone.now() - timedelta(days=90)
-        old_sessions = ChatSession.objects.filter(
-            is_active=False,
-            last_activity__lt=cutoff_date
-        )
-        
+        old_sessions = ChatSession.objects.filter(created_at__lt=cutoff_date)
         session_count = old_sessions.count()
         old_sessions.delete()
-        
-        # Clean up old analytics (older than 1 year)
-        old_analytics = ChatAnalytics.objects.filter(
-            date__lt=timezone.now().date() - timedelta(days=365)
-        )
-        
-        analytics_count = old_analytics.count()
-        old_analytics.delete()
-        
-        # Clean up failed documents (older than 30 days)
-        failed_documents = KnowledgeDocument.objects.filter(
-            processing_status='failed',
-            created_at__lt=cutoff_date
-        )
-        
-        document_count = failed_documents.count()
-        failed_documents.delete()
-        
+
+        # Delete messages older than 90 days
+        old_messages = ChatMessage.objects.filter(created_at__lt=cutoff_date)
+        message_count = old_messages.count()
+        old_messages.delete()
+
         self.stdout.write(
-            self.style.SUCCESS(
-                f'Cleaned up {session_count} old sessions, '
-                f'{analytics_count} old analytics, '
-                f'{document_count} failed documents'
-            )
+            self.style.SUCCESS(f'Cleaned up {session_count} sessions and {message_count} messages')
         )
 
     def check_requirements(self):
         """Check if all requirements are met"""
         self.stdout.write('Checking requirements...')
-        
-        # Check OpenRouter API key
-        if not os.getenv('OPENROUTER_API_KEY'):
+
+        # Check if required packages are installed
+        try:
+            import openai
+            self.stdout.write('  ✓ OpenAI package available')
+        except ImportError:
             self.stdout.write(
-                self.style.WARNING('⚠️  OPENROUTER_API_KEY not set')
+                self.style.WARNING('  ⚠ OpenAI package not found')
             )
-        else:
-            self.stdout.write('  ✓ OpenRouter API key configured')
-        
-        # Check vector database directory
-        vector_db_path = os.path.join(settings.BASE_DIR, 'data', 'vector_db')
-        if not os.path.exists(vector_db_path):
-            os.makedirs(vector_db_path, exist_ok=True)
-            self.stdout.write('  ✓ Created vector database directory')
-        else:
-            self.stdout.write('  ✓ Vector database directory exists')
-        
-        # Check required packages
-        required_packages = [
-            'langchain',
-            'chromadb', 
-            'sentence_transformers',
-            'pypdf',
-            'docx'
+
+        try:
+            import anthropic
+            self.stdout.write('  ✓ Anthropic package available')
+        except ImportError:
+            self.stdout.write(
+                self.style.WARNING('  ⚠ Anthropic package not found')
+            )
+
+        # Check environment variables
+        required_vars = [
+            'OPENAI_API_KEY',
+            'ANTHROPIC_API_KEY',
+            'OPENROUTER_API_KEY'
         ]
-        
-        missing_packages = []
-        for package in required_packages:
-            try:
-                __import__(package)
-                self.stdout.write(f'  ✓ {package} installed')
-            except ImportError:
-                missing_packages.append(package)
-                self.stdout.write(f'  ✗ {package} not installed')
-        
-        if missing_packages:
-            self.stdout.write(
-                self.style.ERROR(
-                    f'Missing packages: {", ".join(missing_packages)}'
+
+        for var in required_vars:
+            if os.getenv(var):
+                self.stdout.write(f'  ✓ {var} is set')
+            else:
+                self.stdout.write(
+                    self.style.WARNING(f'  ⚠ {var} is not set')
                 )
-            )
-            self.stdout.write(
-                'Install with: pip install ' + ' '.join(missing_packages)
-            ) 
+
+        self.stdout.write(
+            self.style.SUCCESS('Requirements check complete')
+        )

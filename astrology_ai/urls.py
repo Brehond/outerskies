@@ -6,9 +6,11 @@ from django.shortcuts import redirect
 from plugins import get_plugin_manager
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+
 def homepage(request):
     """Simple homepage that redirects to chart form"""
     return redirect('chart_form')
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -17,12 +19,12 @@ urlpatterns = [
     path('auth/', include('chart.auth_urls')),
     path('payments/', include('payments.urls')),
     path('', include('django_prometheus.urls')),
-    
+
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
+
     # Homepage
     path('', homepage, name='homepage'),
 ]

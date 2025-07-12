@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -9,11 +10,10 @@ load_dotenv()
 # Initialize Sentry only if DSN is provided
 sentry_dsn = os.getenv("SENTRY_DSN")
 if sentry_dsn and sentry_dsn != "your_sentry_dsn_here":
-    import sentry_sdk
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.redis import RedisIntegration
-    
+
     sentry_sdk.init(
         dsn=sentry_dsn,
         integrations=[
@@ -101,7 +101,6 @@ REST_FRAMEWORK = {
 }
 
 # JWT Settings
-from datetime import timedelta
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
@@ -400,28 +399,28 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Outer Skies API',
     'DESCRIPTION': '''
     # Outer Skies - AI-Powered Astrology Chart Analysis API
-    
+
     This API provides comprehensive astrology chart generation and interpretation services.
-    
+
     ## Features
     - Birth chart calculation using Swiss Ephemeris
     - AI-powered chart interpretation
     - User authentication and profile management
     - Subscription and payment management
     - Theme system with 75+ color palettes
-    
+
     ## Authentication
     This API uses JWT (JSON Web Token) authentication. Include the token in the Authorization header:
     ```
     Authorization: Bearer <your_token>
     ```
-    
+
     ## Rate Limiting
     - Anonymous users: 100 requests/hour
     - Authenticated users: 1000 requests/hour
     - Chart generation: 10 requests/hour
     - AI interpretation: 50 requests/hour
-    
+
     ## Getting Started
     1. Register a new account using `/api/v1/auth/register/`
     2. Login to get your access token using `/api/v1/auth/login/`
@@ -489,16 +488,16 @@ if platform.system() == 'Windows':
             'retry_on_timeout': True,
         }
     }
-    
+
     # Windows-specific worker settings
     CELERY_WORKER_POOL = 'solo'  # Use solo pool on Windows
     CELERY_WORKER_CONCURRENCY = 1
     CELERY_WORKER_PREFETCH_MULTIPLIER = 1
-    
+
     # Disable some features that cause issues on Windows
     CELERY_WORKER_DISABLE_RATE_LIMITS = True
     CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
-    
+
     # Windows-specific result backend settings
     CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
         'visibility_timeout': 3600,
@@ -516,7 +515,7 @@ else:
         'socket_timeout': 5,
         'retry_on_timeout': True,
     }
-    
+
     CELERY_WORKER_PREFETCH_MULTIPLIER = 1
     CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
 
@@ -559,6 +558,8 @@ REDIS_DB = int(os.getenv('REDIS_DB', 0))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
 
 # Cache Configuration with Redis fallback
+
+
 def get_cache_config():
     """Get cache configuration with fallback to local memory if Redis is unavailable."""
     try:
@@ -600,6 +601,7 @@ def get_cache_config():
             }
         }
 
+
 CACHES = get_cache_config()
 
 # Email Configuration (for development)
@@ -618,4 +620,4 @@ DEFAULT_FROM_EMAIL = 'noreply@outerskies.com'
 # EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 # EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 # EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@outerskies.com') 
+# DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@outerskies.com')

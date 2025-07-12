@@ -25,4 +25,4 @@ content = content.replace(old_gemini, new_mistral)
 with open('chart/templates/chart_form.html', 'w') as f:
     f.write(content)
 
-print("Successfully replaced gemini-pro with mistral-7b in frontend") 
+print("Successfully replaced gemini-pro with mistral-7b in frontend")

@@ -15,9 +15,11 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Load task modules from all registered Django apps.
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 
+
 @app.task(bind=True)
 def debug_task(self):
     print(f'Request: {self.request!r}')
+
 
 # Configure task routing
 app.conf.task_routes = {
@@ -48,7 +50,7 @@ if platform.system() == 'Windows':
     app.conf.worker_concurrency = 1
     app.conf.worker_prefetch_multiplier = 1
     app.conf.worker_disable_rate_limits = True
-    
+
     # Windows-specific broker settings
     app.conf.broker_transport_options = {
         'visibility_timeout': 3600,
@@ -63,7 +65,7 @@ if platform.system() == 'Windows':
             'retry_on_timeout': True,
         }
     }
-    
+
     # Windows-specific result backend settings
     app.conf.result_backend_transport_options = {
         'visibility_timeout': 3600,
@@ -77,9 +79,12 @@ else:
     app.conf.worker_max_tasks_per_child = 1000
 
 # Configure result backend and broker (moved to avoid settings access issues)
+
+
 def configure_celery():
     app.conf.result_backend = settings.CELERY_RESULT_BACKEND
     app.conf.broker_url = settings.CELERY_BROKER_URL
+
 
 # Call configuration function
 configure_celery()
@@ -99,4 +104,4 @@ app.conf.beat_schedule = {
 # Development environment detection
 if os.getenv('CELERY_ALWAYS_EAGER', 'False').lower() == 'true':
     app.conf.task_always_eager = True
-    app.conf.task_eager_propagates = True 
+    app.conf.task_eager_propagates = True

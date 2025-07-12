@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import User
 import re
 
+
 class UserRegistrationForm(UserCreationForm):
     """
     Form for user registration with additional astrological fields
@@ -17,7 +18,7 @@ class UserRegistrationForm(UserCreationForm):
             'placeholder': 'Enter your email address'
         })
     )
-    
+
     birth_date = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={
@@ -27,7 +28,7 @@ class UserRegistrationForm(UserCreationForm):
         }),
         help_text="Optional: Your birth date for personalized features"
     )
-    
+
     birth_time = forms.TimeField(
         required=False,
         widget=forms.TimeInput(attrs={
@@ -37,7 +38,7 @@ class UserRegistrationForm(UserCreationForm):
         }),
         help_text="Optional: Your birth time for accurate chart calculations"
     )
-    
+
     birth_location = forms.CharField(
         max_length=255,
         required=False,
@@ -47,7 +48,7 @@ class UserRegistrationForm(UserCreationForm):
         }),
         help_text="Optional: Your birth location for chart calculations"
     )
-    
+
     timezone = forms.ChoiceField(
         choices=[
             ('UTC', 'UTC'),
@@ -67,7 +68,7 @@ class UserRegistrationForm(UserCreationForm):
         }),
         help_text="Your timezone for accurate time calculations"
     )
-    
+
     # Override password fields with custom styling
     password1 = forms.CharField(
         label=_("Password"),
@@ -87,7 +88,7 @@ class UserRegistrationForm(UserCreationForm):
         strip=False,
         help_text=_("Enter the same password as before, for verification."),
     )
-    
+
     # Override username field
     username = forms.CharField(
         max_length=150,
@@ -97,7 +98,7 @@ class UserRegistrationForm(UserCreationForm):
         }),
         help_text=_("Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."),
     )
-    
+
     # Terms and conditions
     agree_to_terms = forms.BooleanField(
         required=True,
@@ -108,60 +109,61 @@ class UserRegistrationForm(UserCreationForm):
             'required': 'You must agree to the terms and conditions to register.'
         }
     )
-    
+
     class Meta:
         model = User
         fields = ('username', 'email', 'birth_date', 'birth_time', 'birth_location', 'timezone', 'password1', 'password2', 'agree_to_terms')
-    
+
     def clean_username(self):
         username = self.cleaned_data.get('username')
         if username:
             # Check if username is already taken
             if User.objects.filter(username=username).exists():
                 raise ValidationError('This username is already taken.')
-            
+
             # Validate username format
             if not re.match(r'^[a-zA-Z0-9_]+$', username):
                 raise ValidationError('Username can only contain letters, numbers, and underscores.')
-            
+
             if len(username) < 3:
                 raise ValidationError('Username must be at least 3 characters long.')
-        
+
         return username
-    
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if email and User.objects.filter(email=email).exists():
             raise ValidationError('This email address is already registered.')
         return email
-    
+
     def clean(self):
         cleaned_data = super().clean()
         birth_date = cleaned_data.get('birth_date')
         birth_time = cleaned_data.get('birth_time')
         birth_location = cleaned_data.get('birth_location')
-        
+
         # If any birth data is provided, require all
         if any([birth_date, birth_time, birth_location]):
             if not all([birth_date, birth_time, birth_location]):
                 raise ValidationError(
                     'If you provide birth information, please provide all fields (date, time, and location).'
                 )
-        
+
         return cleaned_data
-    
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
-        
+
         # Set astrological preferences
         user.preferred_zodiac_type = 'tropical'
         user.preferred_house_system = 'placidus'
         user.preferred_ai_model = 'gpt-4'
-        
+
         if commit:
             user.save()
         return user
+
 
 class UserProfileForm(forms.ModelForm):
     """
@@ -174,7 +176,7 @@ class UserProfileForm(forms.ModelForm):
             'type': 'date'
         })
     )
-    
+
     birth_time = forms.TimeField(
         required=False,
         widget=forms.TimeInput(attrs={
@@ -182,7 +184,7 @@ class UserProfileForm(forms.ModelForm):
             'type': 'time'
         })
     )
-    
+
     birth_location = forms.CharField(
         max_length=255,
         required=False,
@@ -191,7 +193,7 @@ class UserProfileForm(forms.ModelForm):
             'placeholder': 'City, Country'
         })
     )
-    
+
     latitude = forms.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -202,7 +204,7 @@ class UserProfileForm(forms.ModelForm):
             'placeholder': 'Latitude (e.g., 40.7128)'
         })
     )
-    
+
     longitude = forms.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -213,7 +215,7 @@ class UserProfileForm(forms.ModelForm):
             'placeholder': 'Longitude (e.g., -74.0060)'
         })
     )
-    
+
     timezone = forms.ChoiceField(
         choices=[
             ('UTC', 'UTC'),
@@ -231,21 +233,21 @@ class UserProfileForm(forms.ModelForm):
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     preferred_zodiac_type = forms.ChoiceField(
         choices=[('tropical', 'Tropical'), ('sidereal', 'Sidereal')],
         widget=forms.Select(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     preferred_house_system = forms.ChoiceField(
         choices=[('placidus', 'Placidus'), ('whole_sign', 'Whole Sign')],
         widget=forms.Select(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     preferred_ai_model = forms.ChoiceField(
         choices=[
             ('gpt-4', 'GPT-4'),
@@ -258,25 +260,25 @@ class UserProfileForm(forms.ModelForm):
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     profile_public = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'rounded border-plum2 bg-dark2 text-accent focus:ring-accent focus:ring-offset-dark2'
         })
     )
-    
+
     chart_history_public = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'rounded border-plum2 bg-dark2 text-accent focus:ring-accent focus:ring-offset-dark2'
         })
     )
-    
+
     class Meta:
         model = User
         fields = [
-            'first_name', 'last_name', 'email', 'birth_date', 'birth_time', 
+            'first_name', 'last_name', 'email', 'birth_date', 'birth_time',
             'birth_location', 'latitude', 'longitude', 'timezone',
             'preferred_zodiac_type', 'preferred_house_system', 'preferred_ai_model',
             'profile_public', 'chart_history_public'
@@ -295,7 +297,7 @@ class UserProfileForm(forms.ModelForm):
                 'placeholder': 'Email address'
             }),
         }
-    
+
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if email:
@@ -304,7 +306,7 @@ class UserProfileForm(forms.ModelForm):
             if existing_user:
                 raise ValidationError('This email address is already registered by another user.')
         return email
-    
+
     def clean(self):
         cleaned_data = super().clean()
         birth_date = cleaned_data.get('birth_date')
@@ -312,22 +314,23 @@ class UserProfileForm(forms.ModelForm):
         birth_location = cleaned_data.get('birth_location')
         latitude = cleaned_data.get('latitude')
         longitude = cleaned_data.get('longitude')
-        
+
         # Validate birth data consistency
         if any([birth_date, birth_time, birth_location]):
             if not all([birth_date, birth_time, birth_location]):
                 raise ValidationError(
                     'If you provide birth information, please provide all fields (date, time, and location).'
                 )
-        
+
         # Validate coordinates
         if latitude is not None and (latitude < -90 or latitude > 90):
             raise ValidationError('Latitude must be between -90 and 90 degrees.')
-        
+
         if longitude is not None and (longitude < -180 or longitude > 180):
             raise ValidationError('Longitude must be between -180 and 180 degrees.')
-        
+
         return cleaned_data
+
 
 class PasswordChangeForm(BasePasswordChangeForm):
     """
@@ -341,7 +344,7 @@ class PasswordChangeForm(BasePasswordChangeForm):
             'placeholder': 'Current password'
         }),
     )
-    
+
     new_password1 = forms.CharField(
         label=_("New password"),
         strip=False,
@@ -351,7 +354,7 @@ class PasswordChangeForm(BasePasswordChangeForm):
         }),
         help_text=password_validation.password_validators_help_text_html(),
     )
-    
+
     new_password2 = forms.CharField(
         label=_("New password confirmation"),
         strip=False,
@@ -360,6 +363,7 @@ class PasswordChangeForm(BasePasswordChangeForm):
             'placeholder': 'Confirm new password'
         }),
     )
+
 
 class ChartForm(forms.Form):
     """
@@ -374,7 +378,7 @@ class ChartForm(forms.Form):
         }),
         help_text="Optional name for this chart"
     )
-    
+
     birth_date = forms.DateField(
         widget=forms.DateInput(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm',
@@ -382,7 +386,7 @@ class ChartForm(forms.Form):
             'required': 'required'
         })
     )
-    
+
     birth_time = forms.TimeField(
         widget=forms.TimeInput(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent placeholder-plum2 shadow-sm',
@@ -390,7 +394,7 @@ class ChartForm(forms.Form):
             'required': 'required'
         })
     )
-    
+
     latitude = forms.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -400,7 +404,7 @@ class ChartForm(forms.Form):
             'required': 'required'
         })
     )
-    
+
     longitude = forms.DecimalField(
         max_digits=9,
         decimal_places=6,
@@ -410,7 +414,7 @@ class ChartForm(forms.Form):
             'required': 'required'
         })
     )
-    
+
     location_name = forms.CharField(
         max_length=255,
         widget=forms.TextInput(attrs={
@@ -418,7 +422,7 @@ class ChartForm(forms.Form):
             'placeholder': 'City, Country'
         })
     )
-    
+
     timezone = forms.ChoiceField(
         choices=[
             ('UTC', 'UTC'),
@@ -436,21 +440,21 @@ class ChartForm(forms.Form):
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     zodiac_type = forms.ChoiceField(
         choices=[('tropical', 'Tropical'), ('sidereal', 'Sidereal')],
         widget=forms.Select(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     house_system = forms.ChoiceField(
         choices=[('placidus', 'Placidus'), ('whole_sign', 'Whole Sign')],
         widget=forms.Select(attrs={
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     ai_model = forms.ChoiceField(
         choices=[
             ('gpt-4', 'GPT-4'),
@@ -463,7 +467,7 @@ class ChartForm(forms.Form):
             'class': 'mt-1 block w-full rounded-md border border-plum2 bg-dark2 text-accent shadow-sm'
         })
     )
-    
+
     temperature = forms.FloatField(
         min_value=0.0,
         max_value=1.0,
@@ -475,7 +479,7 @@ class ChartForm(forms.Form):
             'max': '1.0'
         })
     )
-    
+
     max_tokens = forms.IntegerField(
         min_value=100,
         max_value=4000,
@@ -486,23 +490,23 @@ class ChartForm(forms.Form):
             'max': '4000'
         })
     )
-    
+
     is_public = forms.BooleanField(
         required=False,
         widget=forms.CheckboxInput(attrs={
             'class': 'rounded border-plum2 bg-dark2 text-accent focus:ring-accent focus:ring-offset-dark2'
         })
     )
-    
+
     def clean(self):
         cleaned_data = super().clean()
         latitude = cleaned_data.get('latitude')
         longitude = cleaned_data.get('longitude')
-        
+
         if latitude is not None and (latitude < -90 or latitude > 90):
             raise ValidationError('Latitude must be between -90 and 90 degrees.')
-        
+
         if longitude is not None and (longitude < -180 or longitude > 180):
             raise ValidationError('Longitude must be between -180 and 180 degrees.')
-        
-        return cleaned_data 
+
+        return cleaned_data

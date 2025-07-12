@@ -1,1 +1,3 @@
-# Astrology Chat Services Package 
+# Services for the astrology chat plugin
+
+# Services for the astrology chat plugin

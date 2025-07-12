@@ -14,7 +14,7 @@ User = get_user_model()
 
 class BaseAPITestCase(TestCase):
     """Base test case for API tests"""
-    
+
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(
@@ -26,7 +26,7 @@ class BaseAPITestCase(TestCase):
         )
         self.user_token = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
-    
+
     def create_premium_user(self):
         """Create a user with premium subscription"""
         premium_user = User.objects.create_user(
@@ -35,7 +35,7 @@ class BaseAPITestCase(TestCase):
             password='testpass123',
             is_premium=True
         )
-        
+
         # Create a premium plan
         plan = SubscriptionPlan.objects.create(
             name='Premium Plan',
@@ -46,20 +46,20 @@ class BaseAPITestCase(TestCase):
             ai_interpretations_per_month=-1,  # Unlimited
             description='Premium features'
         )
-        
+
         # Create subscription
         UserSubscription.objects.create(
             user=premium_user,
             plan=plan,
             status='active'
         )
-        
+
         return premium_user
 
 
 class AuthenticationAPITests(BaseAPITestCase):
     """Test authentication endpoints"""
-    
+
     def test_user_registration_success(self):
         """Test successful user registration"""
         url = reverse('auth-register')
@@ -71,13 +71,13 @@ class AuthenticationAPITests(BaseAPITestCase):
             'first_name': 'New',
             'last_name': 'User'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('tokens', response.data['data'])
         self.assertIn('user', response.data['data'])
         self.assertEqual(response.data['data']['user']['username'], 'newuser')
-    
+
     def test_user_registration_password_mismatch(self):
         """Test registration with mismatched passwords"""
         url = reverse('auth-register')
@@ -89,11 +89,11 @@ class AuthenticationAPITests(BaseAPITestCase):
             'first_name': 'New',
             'last_name': 'User'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('non_field_errors', response.data['data'])
-    
+
     def test_user_login_success(self):
         """Test successful user login"""
         url = reverse('auth-login')
@@ -101,12 +101,12 @@ class AuthenticationAPITests(BaseAPITestCase):
             'username': 'testuser',
             'password': 'testpass123'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('tokens', response.data['data'])
         self.assertIn('user', response.data['data'])
-    
+
     def test_user_login_invalid_credentials(self):
         """Test login with invalid credentials"""
         url = reverse('auth-login')
@@ -114,44 +114,44 @@ class AuthenticationAPITests(BaseAPITestCase):
             'username': 'testuser',
             'password': 'wrongpassword'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_token_refresh(self):
         """Test token refresh"""
         url = reverse('auth-refresh')
         data = {
             'refresh': str(self.user_token)
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('access', response.data['data'])
-    
+
     def test_user_logout(self):
         """Test user logout"""
         url = reverse('auth-logout')
         data = {
             'refresh': str(self.user_token)
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST])
 
 
 class UserAPITests(BaseAPITestCase):
     """Test user management endpoints"""
-    
+
     def test_get_user_profile(self):
         """Test getting user profile"""
         url = reverse('users-profile')
-        
+
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['data']['username'], 'testuser')
         self.assertEqual(response.data['data']['email'], 'test@example.com')
-    
+
     def test_update_user_profile(self):
         """Test updating user profile"""
         url = reverse('users-update-profile')
@@ -159,11 +159,11 @@ class UserAPITests(BaseAPITestCase):
             'first_name': 'Updated',
             'last_name': 'Name'
         }
-        
+
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['data']['first_name'], 'Updated')
-    
+
     def test_change_password(self):
         """Test changing user password"""
         url = reverse('users-change-password')
@@ -171,14 +171,14 @@ class UserAPITests(BaseAPITestCase):
             'old_password': 'testpass123',
             'new_password': 'newpassword123'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        
+
         # Verify password was changed
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('newpassword123'))
-    
+
     def test_change_password_invalid_old_password(self):
         """Test changing password with wrong old password"""
         url = reverse('users-change-password')
@@ -186,21 +186,21 @@ class UserAPITests(BaseAPITestCase):
             'old_password': 'wrongpassword',
             'new_password': 'newpassword123'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class ChartAPITests(BaseAPITestCase):
     """Test chart management endpoints"""
-    
+
     def setUp(self):
         super().setUp()
         # Create a premium user for chart generation
         self.premium_user = self.create_premium_user()
         self.premium_token = RefreshToken.for_user(self.premium_user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.premium_token.access_token}')
-    
+
     def test_generate_chart_error_details(self):
         """Test chart generation error details"""
         url = reverse('charts-generate')
@@ -216,7 +216,7 @@ class ChartAPITests(BaseAPITestCase):
             'ai_model': 'gpt-4',
             'chart_name': 'Test Chart'
         }
-        
+
         response = self.client.post(url, data, format='json')
         # If it fails, let's see what the error is
         if response.status_code != status.HTTP_200_OK:
@@ -224,7 +224,7 @@ class ChartAPITests(BaseAPITestCase):
             print(f"Response data: {response.data}")
         # For now, just check that we get a response
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR])
-    
+
     def test_generate_chart_success(self):
         """Test successful chart generation"""
         url = reverse('charts-generate')
@@ -240,14 +240,14 @@ class ChartAPITests(BaseAPITestCase):
             'ai_model': 'gpt-4',
             'chart_name': 'Test Chart'
         }
-        
+
         response = self.client.post(url, data, format='json')
         # Accept different status codes as the chart generation might fail due to missing AI API keys
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST, status.HTTP_500_INTERNAL_SERVER_ERROR])
         if response.status_code == status.HTTP_200_OK:
             self.assertIn('name', response.data['data'])
             self.assertEqual(response.data['data']['name'], 'Test Chart')
-    
+
     def test_generate_chart_invalid_data(self):
         """Test chart generation with invalid data"""
         url = reverse('charts-generate')
@@ -260,14 +260,14 @@ class ChartAPITests(BaseAPITestCase):
             'zodiac_type': 'tropical',
             'house_system': 'placidus'
         }
-        
+
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
+
     def test_list_user_charts(self):
         """Test listing user charts"""
         # Create a test chart
-        chart = Chart.objects.create(
+        _chart = Chart.objects.create(
             user=self.premium_user,
             birth_date='1990-05-15',
             birth_time='14:30',
@@ -283,12 +283,12 @@ class ChartAPITests(BaseAPITestCase):
             house_positions={},
             aspects={}
         )
-        
+
         url = reverse('charts-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['data']), 1)
-    
+
     def test_get_chart_detail(self):
         """Test getting chart details"""
         chart = Chart.objects.create(
@@ -307,7 +307,7 @@ class ChartAPITests(BaseAPITestCase):
             house_positions={},
             aspects={}
         )
-        
+
         url = reverse('charts-detail', kwargs={'pk': chart.id})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -316,35 +316,35 @@ class ChartAPITests(BaseAPITestCase):
 
 class SystemAPITests(BaseAPITestCase):
     """Test system information endpoints"""
-    
+
     def setUp(self):
         super().setUp()
         # Remove authentication for system endpoints
         self.client.credentials()
-    
+
     def test_health_check(self):
         """Test system health check"""
         url = reverse('system-health')
-        
+
         response = self.client.get(url)
         # Health check might return different status codes depending on system state
         self.assertIn(response.status_code, [status.HTTP_200_OK, status.HTTP_503_SERVICE_UNAVAILABLE])
         if response.status_code == status.HTTP_200_OK:
             self.assertEqual(response.data['status'], 'success')
             self.assertIn('timestamp', response.data['data'])
-    
+
     def test_ai_models_endpoint(self):
         """Test AI models listing"""
         url = reverse('system-ai-models')
-        
+
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('models', response.data['data'])
-    
+
     def test_themes_endpoint(self):
         """Test themes listing"""
         url = reverse('system-themes')
-        
+
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('themes', response.data['data'])
@@ -352,7 +352,7 @@ class SystemAPITests(BaseAPITestCase):
 
 class SubscriptionAPITests(BaseAPITestCase):
     """Test subscription endpoints"""
-    
+
     def test_subscription_models_can_be_created(self):
         """Test that subscription models can be created without errors"""
         # Create test plans
@@ -365,7 +365,7 @@ class SubscriptionAPITests(BaseAPITestCase):
             ai_interpretations_per_month=3,
             description='Free tier'
         )
-        
+
         plan2 = SubscriptionPlan.objects.create(
             name='Premium Plan',
             plan_type='cosmic',
@@ -375,12 +375,12 @@ class SubscriptionAPITests(BaseAPITestCase):
             ai_interpretations_per_month=-1,
             description='Premium tier'
         )
-        
+
         # Verify plans were created
         self.assertEqual(SubscriptionPlan.objects.count(), 2)
         self.assertEqual(plan1.name, 'Free Plan')
         self.assertEqual(plan2.name, 'Premium Plan')
-    
+
     def test_list_subscription_plans(self):
         """Test listing subscription plans"""
         # Create test plans
@@ -393,7 +393,7 @@ class SubscriptionAPITests(BaseAPITestCase):
             ai_interpretations_per_month=3,
             description='Free tier'
         )
-        
+
         SubscriptionPlan.objects.create(
             name='Premium Plan',
             plan_type='cosmic',
@@ -403,12 +403,12 @@ class SubscriptionAPITests(BaseAPITestCase):
             ai_interpretations_per_month=-1,
             description='Premium tier'
         )
-        
+
         url = reverse('subscriptions-list')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['data']['results']), 2)
-    
+
     def test_get_user_subscription(self):
         """Test getting user subscription"""
         # Create subscription for user
@@ -421,13 +421,13 @@ class SubscriptionAPITests(BaseAPITestCase):
             ai_interpretations_per_month=10,
             description='Test plan'
         )
-        
+
         UserSubscription.objects.create(
             user=self.user,
             plan=plan,
             status='active'
         )
-        
+
         url = reverse('subscriptions-my-subscription')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -436,7 +436,7 @@ class SubscriptionAPITests(BaseAPITestCase):
 
 class PaymentAPITests(BaseAPITestCase):
     """Test payment endpoints"""
-    
+
     def test_list_payments(self):
         """Test listing user payments"""
         url = reverse('payments-list')
@@ -447,14 +447,14 @@ class PaymentAPITests(BaseAPITestCase):
 
 class CouponAPITests(BaseAPITestCase):
     """Test coupon endpoints"""
-    
+
     def test_validate_coupon(self):
         """Test coupon validation"""
         url = reverse('coupons-validate')
         data = {
             'code': 'TESTCOUPON'
         }
-        
+
         response = self.client.post(url, data, format='json')
         # Should return error for non-existent coupon
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -462,18 +462,18 @@ class CouponAPITests(BaseAPITestCase):
 
 class APIAuthenticationTests(BaseAPITestCase):
     """Test API authentication requirements"""
-    
+
     def setUp(self):
         super().setUp()
         # Remove authentication
         self.client.credentials()
-    
+
     def test_protected_endpoint_requires_auth(self):
         """Test that protected endpoints require authentication"""
         url = reverse('users-profile')
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-    
+
     def test_authenticated_user_can_access_profile(self):
         """Test that authenticated user can access protected endpoints"""
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
@@ -484,17 +484,17 @@ class APIAuthenticationTests(BaseAPITestCase):
 
 class APIResponseFormatTests(BaseAPITestCase):
     """Test API response format consistency"""
-    
+
     def test_success_response_format(self):
         """Test success response format"""
         url = reverse('users-profile')
         response = self.client.get(url)
-        
+
         self.assertIn('status', response.data)
         self.assertIn('message', response.data)
         self.assertIn('data', response.data)
         self.assertEqual(response.data['status'], 'success')
-    
+
     def test_error_response_format(self):
         """Test error response format"""
         url = reverse('users-change-password')
@@ -502,9 +502,9 @@ class APIResponseFormatTests(BaseAPITestCase):
             'old_password': 'wrongpassword',
             'new_password': 'newpassword123'
         }
-        
+
         response = self.client.post(url, data, format='json')
-        
+
         self.assertIn('status', response.data)
         self.assertIn('message', response.data)
         self.assertIn('data', response.data)
@@ -512,4 +512,4 @@ class APIResponseFormatTests(BaseAPITestCase):
 
 
 if __name__ == '__main__':
-    pytest.main([__file__]) 
+    pytest.main([__file__])

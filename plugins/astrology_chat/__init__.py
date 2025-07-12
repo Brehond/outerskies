@@ -4,4 +4,5 @@ def get_plugin():
     from .plugin import AstrologyChatPlugin
     return AstrologyChatPlugin
 
-Plugin = get_plugin 
+
+Plugin = get_plugin
