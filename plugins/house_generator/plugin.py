@@ -323,4 +323,4 @@ class HouseGeneratorPlugin(BasePlugin):
             # Implementation for settings API
             return JsonResponse({'status': 'success', 'message': 'House settings endpoint'})
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500) 
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

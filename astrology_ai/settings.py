@@ -269,17 +269,22 @@ if database_url:
     # Extract database configuration from URL
     db_engine = "django.db.backends.postgresql" if parsed.scheme == "postgres" else db_engine
     db_name = parsed.path[1:] if parsed.path else "test_db"
-    db_user = parsed.username or "test_user"
-    db_password = parsed.password or "test_pass"
-    db_host = parsed.hostname or "localhost"
-    db_port = parsed.port or "5432"
+    db_user = parsed.username or os.getenv("DB_USER", "test_user")
+    db_password = parsed.password or os.getenv("DB_PASSWORD", "test_pass")
+    db_host = parsed.hostname or os.getenv("DB_HOST", "localhost")
+    db_port = parsed.port or os.getenv("DB_PORT", "5432")
 else:
     # Fallback to individual environment variables
     db_name = os.getenv("DB_NAME", BASE_DIR / "db.sqlite3")
-    db_user = os.getenv("DB_USER", "")
-    db_password = os.getenv("DB_PASSWORD", "")
-    db_host = os.getenv("DB_HOST", "")
-    db_port = os.getenv("DB_PORT", "")
+    db_user = os.getenv("DB_USER", "test_user")
+    db_password = os.getenv("DB_PASSWORD", "test_pass")
+    db_host = os.getenv("DB_HOST", "localhost")
+    db_port = os.getenv("DB_PORT", "5432")
+
+# Warn if db_user is root
+if db_user == "root":
+    import warnings
+    warnings.warn("Database user is set to 'root'. This may cause connection errors if the role does not exist. Please use a dedicated database user.")
 
 DATABASES = {
     "default": {
