@@ -70,7 +70,7 @@ jobs:
         echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
         echo "DEBUG=True" >> $GITHUB_ENV
         echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
-        echo "OPENROUTER_API_KEY=test-key" >> $GITHUB_ENV
+        echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> $GITHUB_ENV
         echo "STRIPE_SECRET_KEY=sk_test_dummy" >> $GITHUB_ENV
         echo "STRIPE_PUBLISHABLE_KEY=pk_test_dummy" >> $GITHUB_ENV
 

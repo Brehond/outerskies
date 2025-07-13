@@ -28,6 +28,7 @@ jobs:
       DEBUG: 'True'
       DATABASE_URL: postgres://test_user:test_pass@localhost:5432/test_db
       STRIPE_API_KEY: test_stripe_key
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
