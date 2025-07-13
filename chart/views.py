@@ -43,7 +43,7 @@ def local_to_utc(date_str: str, time_str: str, tz_str: str) -> Tuple[str, str]:
 
     Args:
         date_str: Date string in YYYY-MM-DD format
-        time_str: Time string in HH:MM or HH:MM:SS format
+        time_str: Time string in HH:MM or HH:MM:SS format, or datetime.time object
         tz_str: Timezone string (e.g., 'America/New_York')
 
     Returns:
@@ -55,6 +55,14 @@ def local_to_utc(date_str: str, time_str: str, tz_str: str) -> Tuple[str, str]:
     """
     try:
         local_tz = pytz.timezone(tz_str)
+        
+        # Convert time_str to string if it's a datetime.time object
+        if hasattr(time_str, 'strftime'):
+            # It's a datetime.time object
+            time_str = time_str.strftime('%H:%M:%S')
+        else:
+            # It's already a string, ensure it's a string
+            time_str = str(time_str)
         
         # Clean up time string - remove any trailing :00 if present
         cleaned_time = time_str.rstrip(':00')
@@ -143,8 +151,17 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
 
         # Time validation
         try:
+            # Convert time to string if it's a datetime.time object
+            time_value = data['time']
+            if hasattr(time_value, 'strftime'):
+                # It's a datetime.time object
+                time_value = time_value.strftime('%H:%M:%S')
+            else:
+                # It's already a string, ensure it's a string
+                time_value = str(time_value)
+            
             # Clean up time string - remove any trailing :00 if present
-            cleaned_time = data['time'].rstrip(':00')
+            cleaned_time = time_value.rstrip(':00')
             
             # Try different time formats
             time_formats = ['%H:%M:%S', '%H:%M']
@@ -201,7 +218,7 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
         # All validations passed
         return {
             'date': data['date'],
-            'time': data['time'],
+            'time': time_value,  # Use the processed time value
             'latitude': lat,
             'longitude': lon,
             'location': data.get('location', f"{lat}, {lon}"),

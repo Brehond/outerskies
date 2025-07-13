@@ -56,7 +56,7 @@ def get_julian_day(date_str: str, time_str: str) -> float:
 
     Args:
         date_str: Date string in YYYY-MM-DD format
-        time_str: Time string in HH:MM or HH:MM:SS format
+        time_str: Time string in HH:MM or HH:MM:SS format, or datetime.time object
 
     Returns:
         Julian Day as float
@@ -65,6 +65,14 @@ def get_julian_day(date_str: str, time_str: str) -> float:
         ValueError: If date/time format is invalid
     """
     try:
+        # Convert time_str to string if it's a datetime.time object
+        if hasattr(time_str, 'strftime'):
+            # It's a datetime.time object
+            time_str = time_str.strftime('%H:%M:%S')
+        else:
+            # It's already a string, ensure it's a string
+            time_str = str(time_str)
+        
         # Clean up time string - remove any trailing :00 if present
         cleaned_time = time_str.rstrip(':00')
         
