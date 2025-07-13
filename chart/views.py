@@ -43,7 +43,7 @@ def local_to_utc(date_str: str, time_str: str, tz_str: str) -> Tuple[str, str]:
 
     Args:
         date_str: Date string in YYYY-MM-DD format
-        time_str: Time string in HH:MM format
+        time_str: Time string in HH:MM or HH:MM:SS format
         tz_str: Timezone string (e.g., 'America/New_York')
 
     Returns:
@@ -55,7 +55,24 @@ def local_to_utc(date_str: str, time_str: str, tz_str: str) -> Tuple[str, str]:
     """
     try:
         local_tz = pytz.timezone(tz_str)
-        naive_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        
+        # Clean up time string - remove any trailing :00 if present
+        cleaned_time = time_str.rstrip(':00')
+        
+        # Try different time formats
+        time_formats = ['%H:%M:%S', '%H:%M']
+        naive_dt = None
+        
+        for fmt in time_formats:
+            try:
+                naive_dt = datetime.strptime(f"{date_str} {cleaned_time}", f"%Y-%m-%d {fmt}")
+                break
+            except ValueError:
+                continue
+        
+        if naive_dt is None:
+            raise ValueError(f"Invalid time format: {time_str}. Use HH:MM or HH:MM:SS")
+        
         local_dt = local_tz.localize(naive_dt)
         utc_dt = local_dt.astimezone(pytz.utc)
         return utc_dt.strftime("%Y-%m-%d"), utc_dt.strftime("%H:%M")
@@ -126,9 +143,25 @@ def validate_input(data: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[str]]
 
         # Time validation
         try:
-            datetime.strptime(data['time'], '%H:%M')
-        except ValueError:
-            return {}, "Invalid time format. Use HH:MM"
+            # Clean up time string - remove any trailing :00 if present
+            cleaned_time = data['time'].rstrip(':00')
+            
+            # Try different time formats
+            time_formats = ['%H:%M:%S', '%H:%M']
+            time_valid = False
+            
+            for fmt in time_formats:
+                try:
+                    datetime.strptime(cleaned_time, fmt)
+                    time_valid = True
+                    break
+                except ValueError:
+                    continue
+            
+            if not time_valid:
+                return {}, "Invalid time format. Use HH:MM or HH:MM:SS"
+        except Exception:
+            return {}, "Invalid time format. Use HH:MM or HH:MM:SS"
 
         # Timezone validation
         try:

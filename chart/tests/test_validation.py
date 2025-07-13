@@ -180,7 +180,7 @@ class DataValidationMiddlewareTests(TestCase):
         response = self.middleware(request)
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.content)
-        self.assertIn("Field 'data[0].timestamp' must be a valid date in format", data['details'][0])
+        self.assertIn("Field 'data[0].timestamp' must be a valid date in one of the supported formats", data['details'][0])
 
     def test_invalid_json(self):
         """Test that invalid JSON is caught."""

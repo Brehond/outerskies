@@ -52,11 +52,11 @@ DIGNITY_RULERSHIPS = {
 
 def get_julian_day(date_str: str, time_str: str) -> float:
     """
-    Convert date (yyyy-mm-dd) and time (hh:mm) to Julian Day (float).
+    Convert date (yyyy-mm-dd) and time (hh:mm or hh:mm:ss) to Julian Day (float).
 
     Args:
         date_str: Date string in YYYY-MM-DD format
-        time_str: Time string in HH:MM format
+        time_str: Time string in HH:MM or HH:MM:SS format
 
     Returns:
         Julian Day as float
@@ -65,7 +65,23 @@ def get_julian_day(date_str: str, time_str: str) -> float:
         ValueError: If date/time format is invalid
     """
     try:
-        dt = datetime.datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        # Clean up time string - remove any trailing :00 if present
+        cleaned_time = time_str.rstrip(':00')
+        
+        # Try different time formats
+        time_formats = ['%H:%M:%S', '%H:%M']
+        dt = None
+        
+        for fmt in time_formats:
+            try:
+                dt = datetime.datetime.strptime(f"{date_str} {cleaned_time}", f"%Y-%m-%d {fmt}")
+                break
+            except ValueError:
+                continue
+        
+        if dt is None:
+            raise ValueError(f"Invalid time format: {time_str}. Use HH:MM or HH:MM:SS")
+        
         return swe.julday(dt.year, dt.month, dt.day, dt.hour + dt.minute / 60.0)
     except ValueError as e:
         logger.error(f"Invalid date/time format: {e}")
