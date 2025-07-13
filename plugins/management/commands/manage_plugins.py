@@ -78,15 +78,15 @@ class Command(BaseCommand):
 
         for name, plugin in plugins.items():
             info = plugin.get_plugin_info()
-            status = 'âœ… Active' if name in plugin_manager.registered_plugins else 'âŒ Inactive'
+            status = '✅ Active' if name in plugin_manager.registered_plugins else '❌ Inactive'
 
             self.stdout.write(f"\n{self.style.SUCCESS(name)} - {status}")
-            self.stdout.write(f"  Version: {info['version']}")
-            self.stdout.write(f"  Description: {info['description']}")
-            self.stdout.write(f"  Author: {info['author']}")
-            self.stdout.write(f"  Requires Auth: {info['requires_auth']}")
-            self.stdout.write(f"  Admin Enabled: {info['admin_enabled']}")
-            self.stdout.write(f"  API Enabled: {info['api_enabled']}")
+            self.stdout.write(f"  Version: {info.get('version', 'N/A')}")
+            self.stdout.write(f"  Description: {info.get('description', 'N/A')}")
+            self.stdout.write(f"  Author: {info.get('author', 'N/A')}")
+            self.stdout.write(f"  Requires Auth: {info.get('requires_auth', 'N/A')}")
+            self.stdout.write(f"  Admin Enabled: {info.get('admin_enabled', 'N/A')}")
+            self.stdout.write(f"  API Enabled: {info.get('api_enabled', 'N/A')}")
 
     def install_plugin(self, plugin_manager, plugin_name, force):
         """Install a plugin"""
@@ -195,14 +195,14 @@ class Command(BaseCommand):
 
             self.stdout.write(self.style.SUCCESS(f"Plugin Information: {plugin_name}"))
             self.stdout.write('=' * 50)
-            self.stdout.write(f"Name: {info['name']}")
-            self.stdout.write(f"Version: {info['version']}")
-            self.stdout.write(f"Description: {info['description']}")
-            self.stdout.write(f"Author: {info['author']}")
-            self.stdout.write(f"Website: {info['website']}")
-            self.stdout.write(f"Requires Auth: {info['requires_auth']}")
-            self.stdout.write(f"Admin Enabled: {info['admin_enabled']}")
-            self.stdout.write(f"API Enabled: {info['api_enabled']}")
+            self.stdout.write(f"Name: {info.get('name', 'N/A')}")
+            self.stdout.write(f"Version: {info.get('version', 'N/A')}")
+            self.stdout.write(f"Description: {info.get('description', 'N/A')}")
+            self.stdout.write(f"Author: {info.get('author', 'N/A')}")
+            self.stdout.write(f"Website: {info.get('website', 'N/A')}")
+            self.stdout.write(f"Requires Auth: {info.get('requires_auth', 'N/A')}")
+            self.stdout.write(f"Admin Enabled: {info.get('admin_enabled', 'N/A')}")
+            self.stdout.write(f"API Enabled: {info.get('api_enabled', 'N/A')}")
 
             # Show additional information
             requirements = plugin.get_requirements()
