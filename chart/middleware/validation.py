@@ -82,7 +82,14 @@ class DataValidationMiddleware:
                 'max_value': 1e9
             },
             'date': {
-                'format': '%Y-%m-%dT%H:%M:%S.%fZ'
+                'formats': [
+                    '%Y-%m-%dT%H:%M:%S.%fZ',  # ISO format with microseconds and Z
+                    '%Y-%m-%dT%H:%M:%SZ',     # ISO format with Z
+                    '%Y-%m-%dT%H:%M:%S.%f',   # ISO format with microseconds
+                    '%Y-%m-%dT%H:%M:%S',      # ISO format without timezone
+                    '%Y-%m-%d %H:%M:%S',      # Space-separated format
+                    '%Y-%m-%d'                # Date only
+                ]
             }
         }
 
@@ -128,9 +135,22 @@ class DataValidationMiddleware:
                 errors.append(f"Field '{field_name}' must be one of: {schema['enum']}")
             if 'format' in schema:
                 try:
-                    datetime.strptime(str(value), self.sanitization_rules['date']['format'])
-                except ValueError:
-                    errors.append(f"Field '{field_name}' must be a valid date in format {self.sanitization_rules['date']['format']}")
+                    # Try multiple date formats for flexibility
+                    date_formats = self.sanitization_rules['date']['formats']
+                    date_valid = False
+                    for fmt in date_formats:
+                        try:
+                            # Clean up potential :00 suffix if present
+                            cleaned_value = re.sub(r':00$', '', str(value))
+                            datetime.strptime(cleaned_value, fmt)
+                            date_valid = True
+                            break
+                        except ValueError:
+                            continue
+                    if not date_valid:
+                        errors.append(f"Field '{field_name}' must be a valid date in one of the supported formats")
+                except Exception:
+                    errors.append(f"Field '{field_name}' must be a valid date")
 
         # Number validation
         if schema.get('type') == 'number':
@@ -218,7 +238,14 @@ class DataValidationMiddleware:
         elif field_type == 'date':
             try:
                 if isinstance(value, str):
-                    return datetime.strptime(value, rules['format'])
+                    for fmt in rules['formats']:
+                        try:
+                            # Clean up potential :00 suffix if present
+                            cleaned_value = re.sub(r':00$', '', value)
+                            return datetime.strptime(cleaned_value, fmt)
+                        except ValueError:
+                            continue
+                    return None # No format matched
                 return value
             except (ValueError, TypeError):
                 return None

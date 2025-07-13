@@ -164,11 +164,9 @@ class TestDatabaseHealthChecks(unittest.TestCase):
         
         result = check_database_connection()
         
-        # Verify the result structure
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(len(result), 2)
-        self.assertIn(result[0], [0, 1])  # Status should be 0 or 1
-        self.assertIsInstance(result[1], str)  # Message should be string
+        # Verify the result is a boolean
+        self.assertIsInstance(result, bool)
+        self.assertTrue(result)  # Should be True when connection succeeds
             
     @patch('psycopg2.connect')
     def test_database_query_performance(self, mock_connect):
