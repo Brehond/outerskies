@@ -363,12 +363,8 @@ DATABASES = {
 
 # Database connection pooling for PostgreSQL
 if db_engine == "django.db.backends.postgresql":
-    DATABASES["default"]["OPTIONS"].update({
-        "MAX_CONNS": 20,
-        "MIN_CONNS": 5,
-        "CONN_MAX_AGE": 600,
-        "CONN_HEALTH_CHECKS": True,
-    })
+    # Set connection pooling using Django's CONN_MAX_AGE
+    DATABASES["default"]["CONN_MAX_AGE"] = 600  # 10 minutes
 
 # Static files configuration
 STATIC_URL = "/static/"

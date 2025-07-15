@@ -165,12 +165,12 @@ class TestAuthFlow(TestCase):
         self.client.login(username='astrotest', password='Testpass123!')
         response = self.client.post(self.change_password_url, {
             'old_password': 'Testpass123!',
-            'new_password1': 'Newpass123!',
-            'new_password2': 'Newpass123!',
+            'new_password1': 'Newpass123!@',
+            'new_password2': 'Newpass123!@',
         })
         self.assertEqual(response.status_code, 302)
         user.refresh_from_db()
-        self.assertTrue(user.check_password('Newpass123!'))
+        self.assertTrue(user.check_password('Newpass123!@'))
 
     def test_password_reset_request_and_confirm(self):
         user = User.objects.create_user(username='astrotest', email='astro@example.com', password='Testpass123!')
@@ -182,12 +182,12 @@ class TestAuthFlow(TestCase):
         self.assertIsNotNone(token)
         reset_url = reverse('auth:password_reset_confirm', args=[str(token.token)])
         response = self.client.post(reset_url, {
-            'password1': 'Resetpass123!',
-            'password2': 'Resetpass123!',
+            'password1': 'Resetpass123!@',
+            'password2': 'Resetpass123!@',
         })
         self.assertEqual(response.status_code, 302)
         user.refresh_from_db()
-        self.assertTrue(user.check_password('Resetpass123!'))
+        self.assertTrue(user.check_password('Resetpass123!@'))
 
     def test_chart_model_and_history(self):
         user = User.objects.create_user(username='astrotest', email='astro@example.com', password='Testpass123!')
