@@ -4,13 +4,8 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
-from .services.ephemeris import (
-    get_julian_day,
-    get_planet_positions,
-    get_ascendant_and_houses,
-    get_chart_data,
-    SIGN_NAMES
-)
+from .services.chart_orchestrator import ChartOrchestrator
+from .services.planetary_calculator import PlanetaryCalculator
 from .services.caching import ephemeris_cache, ai_cache, user_cache
 from ai_integration.openrouter_api import generate_interpretation, get_available_models
 from .prompts import prompt_manager
@@ -264,7 +259,26 @@ def calculate_chart_data_with_caching(utc_date: str, utc_time: str, lat: float, 
 
         # Calculate if not in cache
         logger.info(f"Calculating chart data for {utc_date} {utc_time}")
-        chart_data = get_chart_data(utc_date, utc_time, lat, lon, timezone_str, zodiac_type, house_system)
+        
+        # Use the new orchestrator
+        orchestrator = ChartOrchestrator()
+        
+        # Parse datetime
+        try:
+            dt = datetime.strptime(f"{utc_date} {utc_time}", "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            dt = datetime.strptime(f"{utc_date} {utc_time}", "%Y-%m-%d %H:%M")
+        
+        # Calculate complete chart
+        chart_data = orchestrator.calculate_complete_chart(
+            dt, lat, lon, 
+            house_system=house_system.capitalize(),
+            include_aspects=True,
+            include_dignities=True
+        )
+        
+        # Cache the result
+        ephemeris_cache.cache_ephemeris_calculation(birth_data, chart_data)
 
         return chart_data, None
 
@@ -307,8 +321,8 @@ def generate_planet_interpretations_with_caching(
         logger.info("Generating planet interpretations")
         interpretations = {}
 
-        # Get planetary positions
-        positions = chart_data.get('planetary_positions', {})
+        # Get planetary positions (new structure)
+        positions = chart_data.get('planets', {})
 
         for planet, pos in positions.items():
             if planet in ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']:
@@ -408,10 +422,11 @@ def generate_master_interpretation_with_caching(
         # Generate if not in cache
         logger.info("Generating master interpretation")
 
-        # Get master prompt
-        positions = chart_data.get('planetary_positions', {})
-        ascendant = chart_data.get('ascendant', {})
-        houses = chart_data.get('house_cusps', [])
+        # Get master prompt (new structure)
+        positions = chart_data.get('planets', {})
+        houses_data = chart_data.get('houses', {})
+        ascendant = houses_data.get('ascendant', {})
+        houses = houses_data.get('cusps', {})
 
         # Debug logging to see what we're getting
         logger.debug(f"Chart data keys: {list(chart_data.keys())}")

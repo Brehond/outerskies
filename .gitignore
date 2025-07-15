@@ -51,3 +51,69 @@ yarn-error.log*
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Test outputs and temporary files
+test_output.txt
+test_output_*.txt
+celery_test_output_*.txt
+phase*_test_results_*.txt
+phase*_test_report_*.json
+background_task_test_results.json
+
+# Debug files
+debug_*.py
+
+# Temporary test scripts (one-off scripts)
+test_simple_endpoint.py
+test_live_endpoints.py
+test_security_endpoints.py
+quick_priority3_test.py
+test_priority3_features.py
+quick_optimized_test.py
+test_optimized_services.py
+test_new_services.py
+tests_health_monitoring.py
+test_celery_fixes.py
+test_production_deployment.py
+tests_docker_integration.py
+test_phase2_monitoring.py
+test_phase1_improvements.py
+test_house_positions.py
+test_fixes.py
+simple_ephemeris_test.py
+test_background_tasks.py
+test_no_redis.py
+test_web_server_celery.py
+test_django_celery.py
+test_redis_connection.py
+comprehensive_celery_test.py
+quick_test.py
+comprehensive_test.py
+
+# Fix scripts (one-time use)
+fix_*.py
+
+# Cache clearing scripts (can be moved to scripts/ if needed)
+clear_cache.py
+clear_ai_cache.py
+clear_session_cache.py
+
+# Redis and Celery files
+dump.rdb
+celerybeat-schedule.*
+
+# Windows-specific files
+setup_celery_windows.bat
+run_tests.bat
+
+# Redis installer
+redis-download/
+
+# Command output logs
+command_*.txt
+test_run_*.txt
+
+# Temporary documentation files
+*_COMPLETION_SUMMARY.md
+*_INTEGRATION_GUIDE.md
+*_VERIFICATION_CHECKLIST.md

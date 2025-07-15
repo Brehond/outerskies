@@ -1,367 +1,359 @@
 """
-Enhanced Rate Limiting Middleware
+Enhanced Rate Limiting System
 
 This module provides sophisticated rate limiting with:
-- Tiered rate limits (free/premium users)
-- Per-endpoint rate limits
-- Usage tracking and analytics
-- Cost management for AI operations
-- Rate limit headers and responses
+- User-based and IP-based limits
+- Endpoint-specific limits
+- Burst protection
+- Sliding window implementation
+- Rate limit headers
+- Analytics and monitoring
 """
 
 import time
-import json
 import logging
 from typing import Dict, Any, Optional, Tuple
-from django.conf import settings
+from django.http import JsonResponse, HttpResponse
 from django.core.cache import cache
-from django.http import JsonResponse
-from django.utils import timezone
-from django.core.exceptions import ImproperlyConfigured
+from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
+from rest_framework import status
+from rest_framework.response import Response
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('rate_limit')
 
 
-class EnhancedRateLimitMiddleware:
+class RateLimitConfig:
     """
-    Enhanced rate limiting middleware with tiered limits and usage tracking
+    Configuration for rate limiting rules.
     """
-
-    # Rate limit configurations
-    RATE_LIMITS = {
-        'free_user': {
-            'general': {'requests': 100, 'window': 3600},  # 100 requests per hour
-            'chart_generation': {'requests': 5, 'window': 3600},  # 5 charts per hour
-            'ai_interpretation': {'requests': 10, 'window': 3600},  # 10 interpretations per hour
-            'api_calls': {'requests': 200, 'window': 3600},  # 200 API calls per hour
+    
+    # Default rate limits
+    DEFAULT_LIMITS = {
+        'default': {
+            'requests': 100,
+            'window': 3600,  # 1 hour
+            'burst': 10
         },
-        'premium_user': {
-            'general': {'requests': 1000, 'window': 3600},  # 1000 requests per hour
-            'chart_generation': {'requests': 50, 'window': 3600},  # 50 charts per hour
-            'ai_interpretation': {'requests': 100, 'window': 3600},  # 100 interpretations per hour
-            'api_calls': {'requests': 2000, 'window': 3600},  # 2000 API calls per hour
+        'api': {
+            'requests': 1000,
+            'window': 3600,  # 1 hour
+            'burst': 50
         },
-        'admin_user': {
-            'general': {'requests': 5000, 'window': 3600},  # 5000 requests per hour
-            'chart_generation': {'requests': 200, 'window': 3600},  # 200 charts per hour
-            'ai_interpretation': {'requests': 500, 'window': 3600},  # 500 interpretations per hour
-            'api_calls': {'requests': 10000, 'window': 3600},  # 10000 API calls per hour
+        'auth': {
+            'requests': 5,
+            'window': 300,  # 5 minutes
+            'burst': 2
+        },
+        'chart_generation': {
+            'requests': 10,
+            'window': 3600,  # 1 hour
+            'burst': 2
+        },
+        'ai_interpretation': {
+            'requests': 50,
+            'window': 3600,  # 1 hour
+            'burst': 5
+        },
+        'file_upload': {
+            'requests': 20,
+            'window': 3600,  # 1 hour
+            'burst': 3
+        },
+        'admin': {
+            'requests': 1000,
+            'window': 3600,  # 1 hour
+            'burst': 20
         }
     }
-
-    # Endpoint-specific rate limit overrides
+    
+    # Endpoint-specific overrides
     ENDPOINT_LIMITS = {
-        '/api/v1/charts/generate/': 'chart_generation',
-        '/api/v1/charts/interpret/': 'ai_interpretation',
-        '/api/v1/background-charts/generate_chart/': 'chart_generation',
-        '/api/v1/background-charts/generate_interpretation/': 'ai_interpretation',
-        '/api/v1/auth/login/': {'requests': 10, 'window': 300},  # 10 login attempts per 5 minutes
-        '/api/v1/auth/register/': {'requests': 5, 'window': 3600},  # 5 registrations per hour
+        '/api/v1/auth/login': 'auth',
+        '/api/v1/auth/register': 'auth',
+        '/api/v1/auth/refresh': 'auth',
+        '/api/v1/charts/generate': 'chart_generation',
+        '/api/v1/charts/interpret': 'ai_interpretation',
+        '/api/v1/upload': 'file_upload',
+        '/admin/': 'admin',
     }
 
-    def __init__(self, get_response):
-        self.get_response = get_response
-        self.cache = cache
 
-    def __call__(self, request):
+class SlidingWindowRateLimiter:
+    """
+    Sliding window rate limiter implementation.
+    """
+    
+    def __init__(self, cache_key: str, limit_config: Dict[str, Any]):
+        self.cache_key = cache_key
+        self.requests = limit_config['requests']
+        self.window = limit_config['window']
+        self.burst = limit_config.get('burst', 1)
+    
+    def is_allowed(self) -> Tuple[bool, Dict[str, Any]]:
+        """
+        Check if request is allowed and return rate limit info.
+        """
+        now = time.time()
+        window_start = now - self.window
+        
+        # Get current requests from cache
+        current_requests = cache.get(self.cache_key, [])
+        
+        # Remove old requests outside the window
+        current_requests = [req_time for req_time in current_requests if req_time > window_start]
+        
+        # Check if we're within limits
+        if len(current_requests) >= self.requests:
+            # Rate limit exceeded
+            oldest_request = min(current_requests) if current_requests else now
+            reset_time = oldest_request + self.window
+            
+            return False, {
+                'limit': self.requests,
+                'remaining': 0,
+                'reset': int(reset_time),
+                'retry_after': int(reset_time - now)
+            }
+        
+        # Add current request
+        current_requests.append(now)
+        
+        # Store updated requests (with window as TTL)
+        cache.set(self.cache_key, current_requests, self.window)
+        
+        return True, {
+            'limit': self.requests,
+            'remaining': self.requests - len(current_requests),
+            'reset': int(now + self.window),
+            'retry_after': 0
+        }
+
+
+class EnhancedRateLimitMiddleware(MiddlewareMixin):
+    """
+    Enhanced rate limiting middleware with sliding window implementation.
+    """
+    
+    def __init__(self, get_response=None):
+        super().__init__(get_response)
+        self.config = RateLimitConfig()
+    
+    def process_request(self, request):
+        """
+        Process request and apply rate limiting.
+        """
         # Skip rate limiting for certain paths
         if self._should_skip_rate_limit(request):
-            return self.get_response(request)
-
-        # Get user tier and rate limits
-        user_tier = self._get_user_tier(request)
-        rate_limits = self.RATE_LIMITS.get(user_tier, self.RATE_LIMITS['free_user'])
-
-        # Check rate limits
-        rate_limit_result = self._check_rate_limits(request, rate_limits, user_tier)
-
-        if not rate_limit_result['allowed']:
-            return self._create_rate_limit_response(rate_limit_result)
-
-        # Add rate limit headers to response
-        response = self.get_response(request)
-        self._add_rate_limit_headers(response, rate_limit_result)
-
-        # Track usage
-        self._track_usage(request, user_tier, rate_limit_result)
-
+            return None
+        
+        # Get rate limit configuration
+        limit_type = self._get_rate_limit_type(request)
+        limit_config = self.config.DEFAULT_LIMITS.get(limit_type, self.config.DEFAULT_LIMITS['default'])
+        
+        # Get identifier (user ID or IP)
+        identifier = self._get_identifier(request)
+        
+        # Create cache key
+        cache_key = f"rate_limit:{limit_type}:{identifier}"
+        
+        # Check rate limit
+        rate_limiter = SlidingWindowRateLimiter(cache_key, limit_config)
+        is_allowed, rate_info = rate_limiter.is_allowed()
+        
+        # Store rate info for response headers
+        request.rate_limit_info = rate_info
+        
+        if not is_allowed:
+            # Rate limit exceeded
+            logger.warning(f'Rate limit exceeded for {identifier} on {limit_type}')
+            
+            # Log analytics
+            self._log_rate_limit_exceeded(request, identifier, limit_type, rate_info)
+            
+            return JsonResponse({
+                'error': 'Rate limit exceeded',
+                'message': f'Too many requests. Limit: {rate_info["limit"]} per {limit_config["window"]}s',
+                'retry_after': rate_info['retry_after'],
+                'limit': rate_info['limit'],
+                'reset': rate_info['reset']
+            }, status=429)
+        
+        return None
+    
+    def process_response(self, request, response):
+        """
+        Add rate limit headers to response.
+        """
+        if hasattr(request, 'rate_limit_info'):
+            rate_info = request.rate_limit_info
+            
+            # Add rate limit headers
+            response['X-RateLimit-Limit'] = str(rate_info['limit'])
+            response['X-RateLimit-Remaining'] = str(rate_info['remaining'])
+            response['X-RateLimit-Reset'] = str(rate_info['reset'])
+            
+            # Add retry-after header if rate limited
+            if rate_info['retry_after'] > 0:
+                response['Retry-After'] = str(rate_info['retry_after'])
+        
         return response
-
+    
     def _should_skip_rate_limit(self, request) -> bool:
         """
-        Determine if rate limiting should be skipped for this request
+        Determine if rate limiting should be skipped for this request.
         """
-        # Skip for admin interface
-        if request.path.startswith('/admin/'):
-            return True
-
-        # Skip for static files
-        if request.path.startswith('/static/') or request.path.startswith('/media/'):
-            return True
-
-        # Skip for health checks
-        if request.path in ['/api/v1/system/health/', '/health/']:
-            return True
-
-        # Skip for documentation
-        if request.path.startswith('/api/docs/') or request.path.startswith('/api/schema/'):
-            return True
-
-        return False
-
-    def _get_user_tier(self, request) -> str:
+        skip_paths = [
+            '/static/', '/media/', '/favicon.ico',
+            '/api/v1/system/health/', '/api/v1/system/quick-health/'
+        ]
+        return any(request.path.startswith(path) for path in skip_paths)
+    
+    def _get_rate_limit_type(self, request) -> str:
         """
-        Determine user tier based on authentication and subscription status
-        """
-        # Check if user is authenticated
-        if not request.user.is_authenticated:
-            return 'free_user'
-
-        # Check if user is admin
-        if request.user.is_staff or request.user.is_superuser:
-            return 'admin_user'
-
-        # Check if user has premium subscription
-        if hasattr(request.user, 'is_premium') and request.user.is_premium:
-            return 'premium_user'
-
-        return 'free_user'
-
-    def _check_rate_limits(self, request, rate_limits: Dict, user_tier: str) -> Dict[str, Any]:
-        """
-        Check all applicable rate limits for the request
-        """
-        current_time = int(time.time())
-        client_ip = self._get_client_ip(request)
-        user_id = request.user.id if request.user.is_authenticated else None
-
-        # Determine which rate limit to check
-        limit_type = self._get_limit_type(request)
-        limit_config = rate_limits.get(limit_type, rate_limits['general'])
-
-        # Handle endpoint-specific overrides
-        if request.path in self.ENDPOINT_LIMITS:
-            endpoint_limit = self.ENDPOINT_LIMITS[request.path]
-            if isinstance(endpoint_limit, str):
-                limit_config = rate_limits.get(endpoint_limit, limit_config)
-            else:
-                limit_config = endpoint_limit
-
-        # Create cache key
-        cache_key = self._create_cache_key(client_ip, user_id, limit_type, current_time, limit_config['window'])
-
-        # Check current usage
-        current_usage = self.cache.get(cache_key, 0)
-
-        # Check if limit exceeded
-        if current_usage >= limit_config['requests']:
-            return {
-                'allowed': False,
-                'limit_type': limit_type,
-                'current_usage': current_usage,
-                'limit': limit_config['requests'],
-                'window': limit_config['window'],
-                'reset_time': current_time + limit_config['window'],
-                'user_tier': user_tier
-            }
-
-        # Increment usage
-        self.cache.set(cache_key, current_usage + 1, limit_config['window'])
-
-        return {
-            'allowed': True,
-            'limit_type': limit_type,
-            'current_usage': current_usage + 1,
-            'limit': limit_config['requests'],
-            'window': limit_config['window'],
-            'reset_time': current_time + limit_config['window'],
-            'user_tier': user_tier
-        }
-
-    def _get_limit_type(self, request) -> str:
-        """
-        Determine the rate limit type based on the request
+        Determine rate limit type based on request path and method.
         """
         path = request.path
-
-        # Check for specific endpoint types
-        if 'chart' in path and ('generate' in path or 'interpret' in path):
-            return 'chart_generation'
-        elif 'ai' in path or 'interpret' in path:
-            return 'ai_interpretation'
-        elif path.startswith('/api/'):
-            return 'api_calls'
-
-        return 'general'
-
-    def _create_cache_key(self, client_ip: str, user_id: Optional[int],
-                          limit_type: str, current_time: int, window: int) -> str:
+        
+        # Check endpoint-specific limits
+        for endpoint, limit_type in self.config.ENDPOINT_LIMITS.items():
+            if path.startswith(endpoint):
+                return limit_type
+        
+        # Check for API requests
+        if path.startswith('/api/'):
+            return 'api'
+        
+        return 'default'
+    
+    def _get_identifier(self, request) -> str:
         """
-        Create a cache key for rate limiting
+        Get unique identifier for rate limiting (user ID or IP).
         """
-        # Use user ID if available, otherwise use IP
-        identifier = f"user_{user_id}" if user_id else f"ip_{client_ip}"
-
-        # Create time window
-        window_start = (current_time // window) * window
-
-        return f"rate_limit:{limit_type}:{identifier}:{window_start}"
-
+        # Use user ID if authenticated
+        if hasattr(request, 'user') and request.user.is_authenticated:
+            return f"user:{request.user.id}"
+        
+        # Fall back to IP address
+        return f"ip:{self._get_client_ip(request)}"
+    
     def _get_client_ip(self, request) -> str:
         """
-        Get client IP address
+        Get client IP address.
         """
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             return x_forwarded_for.split(',')[0].strip()
         return request.META.get('REMOTE_ADDR', 'unknown')
-
-    def _create_rate_limit_response(self, rate_limit_result: Dict[str, Any]) -> JsonResponse:
+    
+    def _log_rate_limit_exceeded(self, request, identifier: str, limit_type: str, rate_info: Dict[str, Any]):
         """
-        Create a rate limit exceeded response
+        Log rate limit exceeded event for analytics.
         """
-        response_data = {
-            'error': 'Rate limit exceeded',
-            'message': f'Too many requests for {rate_limit_result["limit_type"]}',
-            'limit_type': rate_limit_result['limit_type'],
-            'current_usage': rate_limit_result['current_usage'],
-            'limit': rate_limit_result['limit'],
-            'reset_time': rate_limit_result['reset_time'],
-            'user_tier': rate_limit_result['user_tier']
+        log_data = {
+            'identifier': identifier,
+            'limit_type': limit_type,
+            'path': request.path,
+            'method': request.method,
+            'user_agent': request.META.get('HTTP_USER_AGENT', ''),
+            'limit': rate_info['limit'],
+            'reset': rate_info['reset'],
+            'retry_after': rate_info['retry_after']
         }
-
-        response = JsonResponse(response_data, status=429)
-
-        # Add rate limit headers
-        response['X-RateLimit-Limit'] = str(rate_limit_result['limit'])
-        response['X-RateLimit-Remaining'] = '0'
-        response['X-RateLimit-Reset'] = str(rate_limit_result['reset_time'])
-        response['X-RateLimit-Type'] = rate_limit_result['limit_type']
-        response['X-RateLimit-UserTier'] = rate_limit_result['user_tier']
-
-        return response
-
-    def _add_rate_limit_headers(self, response, rate_limit_result: Dict[str, Any]):
-        """
-        Add rate limit headers to response
-        """
-        remaining = max(0, rate_limit_result['limit'] - rate_limit_result['current_usage'])
-
-        response['X-RateLimit-Limit'] = str(rate_limit_result['limit'])
-        response['X-RateLimit-Remaining'] = str(remaining)
-        response['X-RateLimit-Reset'] = str(rate_limit_result['reset_time'])
-        response['X-RateLimit-Type'] = rate_limit_result['limit_type']
-        response['X-RateLimit-UserTier'] = rate_limit_result['user_tier']
-
-    def _track_usage(self, request, user_tier: str, rate_limit_result: Dict[str, Any]):
-        """
-        Track API usage for analytics
-        """
-        try:
-            _usage_data = {
-                'timestamp': timezone.now().isoformat(),
-                'user_id': request.user.id if request.user.is_authenticated else None,
-                'user_tier': user_tier,
-                'endpoint': request.path,
-                'method': request.method,
-                'limit_type': rate_limit_result['limit_type'],
-                'usage_count': 1,
-                'ip_address': self._get_client_ip(request),
-                'user_agent': request.META.get('HTTP_USER_AGENT', ''),
-            }
-
-            # Store usage data in cache for aggregation
-            usage_key = f"usage_stats:{timezone.now().strftime('%Y-%m-%d')}"
-            current_stats = self.cache.get(usage_key, {})
-
-            # Aggregate usage by user tier and endpoint
-            tier_key = f"{user_tier}_{rate_limit_result['limit_type']}"
-            if tier_key not in current_stats:
-                current_stats[tier_key] = 0
-            current_stats[tier_key] += 1
-
-            # Store for 24 hours
-            self.cache.set(usage_key, current_stats, 86400)
-
-        except Exception as e:
-            logger.error(f"Error tracking usage: {e}")
+        
+        logger.warning(f'Rate limit exceeded: {log_data}')
 
 
 class UsageAnalytics:
     """
-    Utility class for analyzing API usage patterns
+    Analytics for rate limiting and usage tracking.
     """
-
+    
     @staticmethod
-    def get_daily_usage_stats(date_str: Optional[str] = None) -> Dict[str, Any]:
+    def track_request(request, identifier: str, limit_type: str, rate_info: Dict[str, Any]):
         """
-        Get daily usage statistics
+        Track request for analytics.
         """
-        if not date_str:
-            date_str = timezone.now().strftime('%Y-%m-%d')
-
-        cache_key = f"usage_stats:{date_str}"
-        stats = cache.get(cache_key, {})
-
-        # Parse and organize stats
-        organized_stats = {
-            'date': date_str,
+        analytics_data = {
+            'timestamp': time.time(),
+            'identifier': identifier,
+            'limit_type': limit_type,
+            'path': request.path,
+            'method': request.method,
+            'user_id': getattr(request.user, 'id', None) if hasattr(request, 'user') else None,
+            'remaining': rate_info['remaining'],
+            'limit': rate_info['limit']
+        }
+        
+        # Store analytics data (could be sent to external analytics service)
+        cache_key = f"analytics:requests:{int(time.time() / 3600)}"  # Hourly bucket
+        cache.set(cache_key, analytics_data, 86400)  # Keep for 24 hours
+    
+    @staticmethod
+    def get_usage_stats(identifier: str, hours: int = 24) -> Dict[str, Any]:
+        """
+        Get usage statistics for an identifier.
+        """
+        now = time.time()
+        stats = {
             'total_requests': 0,
-            'by_user_tier': {},
-            'by_endpoint': {},
-            'by_limit_type': {}
+            'rate_limited': 0,
+            'endpoints': {},
+            'hourly_breakdown': {}
         }
-
-        for key, count in stats.items():
-            if '_' in key:
-                tier, limit_type = key.split('_', 1)
-
-                # Add to total
-                organized_stats['total_requests'] += count
-
-                # Add to tier breakdown
-                if tier not in organized_stats['by_user_tier']:
-                    organized_stats['by_user_tier'][tier] = 0
-                organized_stats['by_user_tier'][tier] += count
-
-                # Add to limit type breakdown
-                if limit_type not in organized_stats['by_limit_type']:
-                    organized_stats['by_limit_type'][limit_type] = 0
-                organized_stats['by_limit_type'][limit_type] += count
-
-        return organized_stats
-
-    @staticmethod
-    def get_user_usage_summary(user_id: int, days: int = 30) -> Dict[str, Any]:
-        """
-        Get usage summary for a specific user
-        """
-        # This would typically query a database table for user usage
-        # For now, we'll return a placeholder
-        return {
-            'user_id': user_id,
-            'period_days': days,
-            'total_requests': 0,
-            'chart_generations': 0,
-            'ai_interpretations': 0,
-            'api_calls': 0,
-            'estimated_cost': 0.0
-        }
-
-    @staticmethod
-    def estimate_ai_cost(interpretations_count: int, model: str = 'gpt-4') -> float:
-        """
-        Estimate cost for AI interpretations
-        """
-        # Rough cost estimates (these would be updated based on actual usage)
-        cost_per_interpretation = {
-            'gpt-4': 0.05,  # $0.05 per interpretation
-            'gpt-3.5-turbo': 0.01,  # $0.01 per interpretation
-            'claude-3': 0.03,  # $0.03 per interpretation
-        }
-
-        return interpretations_count * cost_per_interpretation.get(model, 0.05)
+        
+        # Collect data from hourly buckets
+        for i in range(hours):
+            bucket_time = int((now - (i * 3600)) / 3600)
+            cache_key = f"analytics:requests:{bucket_time}"
+            data = cache.get(cache_key)
+            
+            if data and data.get('identifier') == identifier:
+                stats['total_requests'] += 1
+                
+                if data.get('remaining', 0) == 0:
+                    stats['rate_limited'] += 1
+                
+                # Track endpoints
+                endpoint = data.get('path', 'unknown')
+                stats['endpoints'][endpoint] = stats['endpoints'].get(endpoint, 0) + 1
+                
+                # Track hourly breakdown
+                hour = time.strftime('%Y-%m-%d %H:00', time.localtime(data['timestamp']))
+                stats['hourly_breakdown'][hour] = stats['hourly_breakdown'].get(hour, 0) + 1
+        
+        return stats
 
 
-# Global rate limit middleware instance
-enhanced_rate_limit_middleware = EnhancedRateLimitMiddleware
+# Utility functions for rate limiting
+def get_rate_limit_info(request) -> Optional[Dict[str, Any]]:
+    """
+    Get current rate limit information for a request.
+    """
+    if hasattr(request, 'rate_limit_info'):
+        return request.rate_limit_info
+    return None
+
+
+def is_rate_limited(request) -> bool:
+    """
+    Check if request is currently rate limited.
+    """
+    rate_info = get_rate_limit_info(request)
+    return rate_info is not None and rate_info.get('remaining', 0) == 0
+
+
+def get_remaining_requests(request) -> int:
+    """
+    Get remaining requests for current rate limit window.
+    """
+    rate_info = get_rate_limit_info(request)
+    return rate_info.get('remaining', 0) if rate_info else 0
+
+
+def get_reset_time(request) -> int:
+    """
+    Get reset time for current rate limit window.
+    """
+    rate_info = get_rate_limit_info(request)
+    return rate_info.get('reset', 0) if rate_info else 0

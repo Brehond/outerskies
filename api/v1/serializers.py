@@ -112,11 +112,16 @@ class UserLoginSerializer(serializers.Serializer):
 class ChartSerializer(serializers.ModelSerializer):
     """Serializer for Chart model"""
     user = UserSerializer(read_only=True)
-    chart_summary = serializers.ReadOnlyField()
+    chart_summary = serializers.SerializerMethodField()
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_chart_summary(self, obj) -> str:
         return obj.chart_summary
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_chart_summary(self, obj) -> str:
+        return obj.chart_summary
+
 
     class Meta:
         model = Chart

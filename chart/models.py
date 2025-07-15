@@ -134,6 +134,17 @@ class Chart(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Chart'
         verbose_name_plural = 'Charts'
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['birth_date', 'birth_time']),
+            models.Index(fields=['is_public']),
+            models.Index(fields=['is_favorite']),
+            models.Index(fields=['zodiac_type', 'house_system']),
+            # JSON field indexes for PostgreSQL
+            models.Index(fields=['planetary_positions'], name='idx_chart_planetary_positions'),
+            models.Index(fields=['house_positions'], name='idx_chart_house_positions'),
+            models.Index(fields=['aspects'], name='idx_chart_aspects'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.name or self.birth_date}"

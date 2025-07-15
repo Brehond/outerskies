@@ -7,11 +7,7 @@ from django.core.cache import cache
 from django.conf import settings
 from django.utils import timezone
 
-from .services.ephemeris import (
-    get_julian_day,
-    get_planet_positions,
-    get_ascendant_and_houses
-)
+from .services.chart_orchestrator import ChartOrchestrator
 from ai_integration.openrouter_api import generate_interpretation, get_available_models
 from .prompts import prompt_manager
 
@@ -51,21 +47,29 @@ def generate_chart_task(self, chart_params: Dict[str, Any]) -> Dict[str, Any]:
         max_tokens = chart_params['max_tokens']
         location = chart_params['location']
 
-        # Calculate chart data
-        jd = get_julian_day(utc_date, utc_time)
-        positions = get_planet_positions(jd, latitude, longitude, zodiac_type=zodiac_type)
-        asc, houses, house_signs = get_ascendant_and_houses(jd, latitude, longitude, house_system=house_system)
-
-        chart_data = {
-            'julian_day': jd,
-            'positions': positions,
-            'ascendant': asc,
-            'houses': houses,
-            'house_signs': house_signs,
+        # Calculate chart data using new orchestrator
+        orchestrator = ChartOrchestrator()
+        
+        # Parse datetime
+        try:
+            dt = datetime.strptime(f"{utc_date} {utc_time}", "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            dt = datetime.strptime(f"{utc_date} {utc_time}", "%Y-%m-%d %H:%M")
+        
+        # Calculate complete chart
+        chart_data = orchestrator.calculate_complete_chart(
+            dt, latitude, longitude,
+            house_system=house_system.capitalize(),
+            include_aspects=True,
+            include_dignities=True
+        )
+        
+        # Add additional data for compatibility
+        chart_data.update({
             'birth_date': utc_date,
             'birth_time': utc_time,
             'location': location
-        }
+        })
 
         # Update progress
         self.update_state(
@@ -78,17 +82,18 @@ def generate_chart_task(self, chart_params: Dict[str, Any]) -> Dict[str, Any]:
         planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']
 
         for i, planet in enumerate(planets):
-            if planet in chart_data.get('planetary_positions', {}):
+            if planet in chart_data.get('planets', {}):
                 try:
+                    planet_data = chart_data['planets'][planet]
                     prompt = prompt_manager.format_planet_prompt(
                         planet,
                         date=utc_date,
                         time=utc_time,
                         location=location,
-                        sign=positions[planet].get('sign', ''),
-                        house=positions[planet].get('house', 1),
-                        position=positions[planet].get('absolute_degree', 0.0),
-                        retrograde_status=positions[planet].get('retrograde', ''),
+                        sign=planet_data.get('sign', ''),
+                        house=planet_data.get('house', 1),
+                        position=planet_data.get('absolute_degree', 0.0),
+                        retrograde_status=planet_data.get('retrograde', ''),
                         aspect_summary="",  # TODO: Add aspect calculation
                         dignity_status=""   # TODO: Add dignity calculation
                     )
@@ -116,32 +121,37 @@ def generate_chart_task(self, chart_params: Dict[str, Any]) -> Dict[str, Any]:
 
         # Generate master interpretation
         try:
+            planets = chart_data.get('planets', {})
+            houses_data = chart_data.get('houses', {})
+            ascendant = houses_data.get('ascendant', {})
+            mc = houses_data.get('mc', {})
+            
             master_prompt_data = {
                 'date': utc_date,
                 'time': utc_time,
                 'location': location,
-                'sun_sign': positions.get('Sun', {}).get('sign', ''),
-                'sun_house': positions.get('Sun', {}).get('house', 1),
-                'moon_sign': positions.get('Moon', {}).get('sign', ''),
-                'moon_house': positions.get('Moon', {}).get('house', 1),
-                'mercury_sign': positions.get('Mercury', {}).get('sign', ''),
-                'mercury_house': positions.get('Mercury', {}).get('house', 1),
-                'venus_sign': positions.get('Venus', {}).get('sign', ''),
-                'venus_house': positions.get('Venus', {}).get('house', 1),
-                'mars_sign': positions.get('Mars', {}).get('sign', ''),
-                'mars_house': positions.get('Mars', {}).get('house', 1),
-                'jupiter_sign': positions.get('Jupiter', {}).get('sign', ''),
-                'jupiter_house': positions.get('Jupiter', {}).get('house', 1),
-                'saturn_sign': positions.get('Saturn', {}).get('sign', ''),
-                'saturn_house': positions.get('Saturn', {}).get('house', 1),
-                'uranus_sign': positions.get('Uranus', {}).get('sign', ''),
-                'uranus_house': positions.get('Uranus', {}).get('house', 1),
-                'neptune_sign': positions.get('Neptune', {}).get('sign', ''),
-                'neptune_house': positions.get('Neptune', {}).get('house', 1),
-                'pluto_sign': positions.get('Pluto', {}).get('sign', ''),
-                'pluto_house': positions.get('Pluto', {}).get('house', 1),
-                'ascendant': asc.get('sign', '') + ' ' + str(asc.get('degree_in_sign', 0)) + '°',
-                'midheaven': str(house_signs[10]) + ' ' + str(houses[9]) + '°',
+                'sun_sign': planets.get('Sun', {}).get('sign', ''),
+                'sun_house': planets.get('Sun', {}).get('house', 1),
+                'moon_sign': planets.get('Moon', {}).get('sign', ''),
+                'moon_house': planets.get('Moon', {}).get('house', 1),
+                'mercury_sign': planets.get('Mercury', {}).get('sign', ''),
+                'mercury_house': planets.get('Mercury', {}).get('house', 1),
+                'venus_sign': planets.get('Venus', {}).get('sign', ''),
+                'venus_house': planets.get('Venus', {}).get('house', 1),
+                'mars_sign': planets.get('Mars', {}).get('sign', ''),
+                'mars_house': planets.get('Mars', {}).get('house', 1),
+                'jupiter_sign': planets.get('Jupiter', {}).get('sign', ''),
+                'jupiter_house': planets.get('Jupiter', {}).get('house', 1),
+                'saturn_sign': planets.get('Saturn', {}).get('sign', ''),
+                'saturn_house': planets.get('Saturn', {}).get('house', 1),
+                'uranus_sign': planets.get('Uranus', {}).get('sign', ''),
+                'uranus_house': planets.get('Uranus', {}).get('house', 1),
+                'neptune_sign': planets.get('Neptune', {}).get('sign', ''),
+                'neptune_house': planets.get('Neptune', {}).get('house', 1),
+                'pluto_sign': planets.get('Pluto', {}).get('sign', ''),
+                'pluto_house': planets.get('Pluto', {}).get('house', 1),
+                'ascendant': ascendant.get('sign', '') + ' ' + str(ascendant.get('degree_in_sign', 0)) + '°',
+                'midheaven': mc.get('sign', '') + ' ' + str(mc.get('degree_in_sign', 0)) + '°',
                 'aspects': '',  # TODO: Add aspect calculation
                 'dignities': ''  # TODO: Add dignity calculation
             }

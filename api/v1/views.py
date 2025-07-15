@@ -19,7 +19,7 @@ from .serializers import (
 )
 from api.utils import success_response, error_response, validate_required_fields
 from chart.models import User, Chart, TaskStatus
-from chart.services.ephemeris import get_chart_data
+from chart.services.chart_orchestrator import ChartOrchestrator
 from chart.services.caching import ephemeris_cache, ai_cache, user_cache, cache_service
 from chart.views import (
     local_to_utc, validate_input, calculate_chart_data_with_caching,
@@ -529,6 +529,13 @@ class SubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
             return error_response("Subscription cancellation failed")
 
 
+@extend_schema_view(
+    retrieve=extend_schema(
+        summary="Get payment details",
+        description="Retrieve payment information by ID",
+        tags=["payments"]
+    )
+)
 class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     """Payment history endpoints"""
     serializer_class = PaymentSerializer
@@ -804,6 +811,18 @@ class SystemViewSet(viewsets.ViewSet):
             }, status=500)
 
 
+@extend_schema_view(
+    retrieve=extend_schema(
+        summary="Get task status",
+        description="Retrieve task status information by ID",
+        tags=["tasks"]
+    ),
+    cancel=extend_schema(
+        summary="Cancel task",
+        description="Cancel a running background task",
+        tags=["tasks"]
+    )
+)
 class TaskStatusViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing and monitoring background tasks.

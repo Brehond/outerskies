@@ -10,8 +10,10 @@ ENV DJANGO_SETTINGS_MODULE=astrology_ai.settings
 # Set work directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
+# Install system dependencies with security updates
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
@@ -19,11 +21,17 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     redis-tools \
     cron \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /tmp/* \
+    && rm -rf /var/tmp/*
+
+# Create non-root user for security
+RUN adduser --disabled-password --gecos "" appuser
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy manage.py first for better caching
 COPY manage.py .
@@ -37,8 +45,9 @@ COPY payments/ ./payments/
 COPY monitoring/ ./monitoring/
 COPY ai_integration/ ./ai_integration/
 
-# Create necessary directories
-RUN mkdir -p /app/logs /app/staticfiles /app/media /app/backups
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/staticfiles /app/media /app/backups && \
+    chown -R appuser:appuser /app
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
@@ -48,13 +57,15 @@ RUN chmod +x /entrypoint.sh
 COPY scripts/backup.sh /app/scripts/backup.sh
 RUN chmod +x /app/scripts/backup.sh
 
-# Create non-root user for security
-RUN adduser --disabled-password --gecos "" appuser
-RUN chown -R appuser:appuser /app
+# Switch to non-root user
 USER appuser
 
 # Expose port
 EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/api/v1/system/health/ || exit 1
 
 # Development stage
 FROM base as development

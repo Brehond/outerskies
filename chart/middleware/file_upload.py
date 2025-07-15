@@ -1,5 +1,4 @@
 import os
-import magic
 import logging
 from django.conf import settings
 from django.http import JsonResponse
@@ -38,8 +37,8 @@ class FileUploadSecurityMiddleware:
         self.scan_files = getattr(settings, 'SCAN_UPLOADED_FILES', True)
         self.sanitize_files = getattr(settings, 'SANITIZE_UPLOADED_FILES', True)
 
-        # Initialize magic for file type detection
-        self.mime = magic.Magic(mime=True)
+        # Initialize MIME type detection
+        mimetypes.init()
 
     def __call__(self, request):
         # Only process file upload requests
@@ -109,8 +108,10 @@ class FileUploadSecurityMiddleware:
                     continue
 
                 # Check MIME type
-                mime_type = self.mime.from_buffer(file.read(1024))
-                file.seek(0)  # Reset file pointer
+                mime_type, _ = mimetypes.guess_type(file.name)
+                if not mime_type:
+                    # Fallback to content-type header
+                    mime_type = file.content_type or 'application/octet-stream'
 
                 if mime_type not in self.allowed_types:
                     errors.append(f'File type {mime_type} is not allowed')

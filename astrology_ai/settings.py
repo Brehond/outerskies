@@ -39,24 +39,35 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     raise ValueError('SECRET_KEY environment variable must be set')
 
+# Enforce production security in non-debug environments
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+if not DEBUG:
+    # Production security enforcement
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+else:
+    # Development-only settings
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
 # Parse ALLOWED_HOSTS from environment variable
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver").split(",")
 
-# Security Headers
+# Security Headers (always enabled)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
-
-# Only use these in production
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
 
 # Stripe API Keys
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
@@ -97,7 +108,9 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSION': 'v1',
     'ALLOWED_VERSIONS': ['v1'],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'EXCEPTION_HANDLER': 'api.utils.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'api.utils.error_handler.drf_exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',
+    'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
 }
 
 # JWT Settings
@@ -166,7 +179,41 @@ SESSION_COOKIE_SECURE = not DEBUG  # Only secure in production
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# Password Settings
+# Priority 3 Security Settings
+# Enhanced security settings
+SECURITY_SETTINGS = {
+    'RATE_LIMITS': {
+        'default': {'requests': 100, 'window': 3600},
+        'api': {'requests': 1000, 'window': 3600},
+        'chart_generation': {'requests': 10, 'window': 3600},
+        'auth': {'requests': 5, 'window': 300},
+    },
+    'PASSWORD_REQUIREMENTS': {
+        'min_length': 12,
+        'require_uppercase': True,
+        'require_lowercase': True,
+        'require_numbers': True,
+        'require_special': True,
+        'max_similarity': 0.7,
+    },
+    'ACCOUNT_LOCKOUT': {
+        'max_attempts': 5,
+        'lockout_duration': 900,  # 15 minutes
+        'max_lockouts': 3,
+        'permanent_lockout_duration': 86400,  # 24 hours
+    },
+    'CORS_ALLOWED_ORIGINS': [
+        'http://localhost:3000',
+        'https://outer-skies.com',
+        'https://www.outer-skies.com'
+    ],
+}
+
+# Update CORS settings
+CORS_ALLOWED_ORIGINS = SECURITY_SETTINGS['CORS_ALLOWED_ORIGINS']
+CORS_ALLOW_CREDENTIALS = True
+
+# Password Settings (enhanced with Priority 3 requirements)
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -174,7 +221,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {
-            'min_length': 8,
+            'min_length': 12,  # Increased from 8
         }
     },
     {
@@ -183,9 +230,25 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 12,
+        }
+    },
 ]
 
 MIDDLEWARE = [
+    # Consolidated Security Middleware (replaces all individual security middlewares)
+    'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
+    
+    # Enhanced Rate Limiting Middleware
+    'api.middleware.enhanced_rate_limit.EnhancedRateLimitMiddleware',
+    
+    # API Versioning Middleware
+    'api.utils.api_versioning.APIVersionMiddleware',
+    
+    # Django core middleware
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -193,21 +256,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    
+    # Error handling middleware
+    "api.utils.error_handler.ErrorHandlingMiddleware",
+    
+    # Monitoring middleware
     "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
-    # Custom security middleware
-    "chart.middleware.security.EnhancedSecurityMiddleware",
-    "chart.middleware.rate_limit.RateLimitMiddleware",
-    "chart.middleware.auth.APIAuthMiddleware",
-    "chart.middleware.validation.DataValidationMiddleware",
-    "chart.middleware.password.PasswordSecurityMiddleware",
-    "chart.middleware.file_upload.FileUploadSecurityMiddleware",
-    "chart.middleware.error_handling.ErrorHandlingMiddleware",
-    "chart.middleware.session.SessionSecurityMiddleware",
-    "chart.middleware.api_version.APIVersionMiddleware",
-    "chart.middleware.request_signing.RequestSigningMiddleware",
-    "chart.middleware.encryption.EncryptionMiddleware",
-    # Performance monitoring middleware
     "monitoring.performance_monitor.PerformanceMonitoringMiddleware",
 ]
 
@@ -298,9 +353,25 @@ DATABASES = {
         "ATOMIC_REQUESTS": False,  # Disable atomic requests for better performance
         "OPTIONS": {
             "timeout": 20,  # 20 seconds
-        } if db_engine == "django.db.backends.sqlite3" else {},
+            "connect_timeout": 10,
+            "application_name": "outer_skies",
+        } if db_engine == "django.db.backends.postgresql" else {
+            "timeout": 20,  # 20 seconds
+        },
+        "TEST": {
+            "NAME": None,  # Use in-memory database for tests
+        },
     }
 }
+
+# Database connection pooling for PostgreSQL
+if db_engine == "django.db.backends.postgresql":
+    DATABASES["default"]["OPTIONS"].update({
+        "MAX_CONNS": 20,
+        "MIN_CONNS": 5,
+        "CONN_MAX_AGE": 600,
+        "CONN_HEALTH_CHECKS": True,
+    })
 
 # Static files configuration
 STATIC_URL = "/static/"
@@ -376,6 +447,17 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        # Priority 3 Security Audit Logging
+        'security_audit': {
+            'handlers': ['security_file', 'console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
+        'api.middleware': {
+            'handlers': ['security_file', 'console'],
+            'level': 'WARNING',
+            'propagate': True,
+        },
     },
 }
 
@@ -399,10 +481,21 @@ PLUGIN_SETTINGS = {
 # }
 
 # Security Settings for Testing
-API_KEY = os.getenv('API_KEY', 'test-api-key-for-testing')
-API_SECRET = os.getenv('API_SECRET', 'test-api-secret-for-testing')
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'HCK08Wa6LrMN-3oYjzoy35i23h5duH32ClA9ujkUFyo=')
-ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-for-testing')
+API_KEY = os.getenv('API_KEY')
+if not API_KEY:
+    raise ValueError('API_KEY environment variable must be set')
+
+API_SECRET = os.getenv('API_SECRET')
+if not API_SECRET:
+    raise ValueError('API_SECRET environment variable must be set')
+
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
+if not ENCRYPTION_KEY:
+    raise ValueError('ENCRYPTION_KEY environment variable must be set')
+
+ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT')
+if not ENCRYPTION_SALT:
+    raise ValueError('ENCRYPTION_SALT environment variable must be set')
 
 # Rate Limiting Settings
 RATE_LIMIT_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
@@ -591,7 +684,16 @@ def get_cache_config():
     """Get cache configuration with fallback to local memory if Redis is unavailable."""
     try:
         import redis
-        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, password=REDIS_PASSWORD)
+        r = redis.Redis(
+            host=REDIS_HOST, 
+            port=REDIS_PORT, 
+            db=REDIS_DB, 
+            password=REDIS_PASSWORD,
+            socket_connect_timeout=5,
+            socket_timeout=5,
+            retry_on_timeout=True,
+            health_check_interval=30
+        )
         r.ping()
         # Redis is available, use it
         return {
@@ -606,15 +708,23 @@ def get_cache_config():
                         'retry_on_timeout': True,
                         'socket_connect_timeout': 5,
                         'socket_timeout': 5,
+                        'health_check_interval': 30,
                     },
                     'SOCKET_CONNECT_TIMEOUT': 5,
                     'SOCKET_TIMEOUT': 5,
                     'RETRY_ON_TIMEOUT': True,
                     'MAX_CONNECTIONS': 50,
-                }
+                    'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                    'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+                },
+                'TIMEOUT': 300,  # 5 minutes default
+                'KEY_PREFIX': 'outer_skies',
             }
         }
-    except Exception:
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Redis not available, falling back to local memory cache: {e}")
         # Redis is not available, use local memory cache
         return {
             'default': {

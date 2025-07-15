@@ -1,0 +1,318 @@
+"""
+House Generator Plugin
+
+This plugin generates AI-powered interpretations for each of the 12 astrological houses,
+including house cusp signs and any planets present in each house.
+"""
+
+import logging
+from typing import Dict, Any, List, Optional
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
+from django.urls import path
+from plugins.base import BasePlugin
+from ai_integration.openrouter_api import generate_interpretation
+
+logger = logging.getLogger(__name__)
+
+
+class HouseGeneratorPlugin(BasePlugin):
+    """
+    House Generator Plugin for Outer Skies
+
+    Generates AI-powered interpretations for each of the 12 astrological houses,
+    including house cusp signs and any planets present in each house.
+    """
+
+    # Plugin metadata
+    name = "House Generator"
+    version = "1.0.0"
+    description = "Generates AI-powered interpretations for each of the 12 astrological houses"
+    author = "Outer Skies Team"
+    website = "https://outer-skies.com"
+
+    # Plugin configuration
+    requires_auth = False
+    admin_enabled = False
+    api_enabled = True
+
+    def __init__(self):
+        super().__init__()
+        self.houses_enabled = True
+        self.include_planets = True
+
+    def install(self):
+        """Install the plugin"""
+        logger.info("Installing House Generator Plugin")
+        # No database migrations needed for this plugin
+        return True
+
+    def uninstall(self):
+        """Uninstall the plugin"""
+        logger.info("Uninstalling House Generator Plugin")
+        return True
+
+    def get_urls(self):
+        """Return URL patterns for the plugin"""
+        return [
+            path('houses/generate/', self.generate_houses_view, name='generate_houses'),
+            path('houses/settings/', self.house_settings_view, name='house_settings'),
+        ]
+
+    def get_api_urls(self):
+        """Return API URL patterns for the plugin"""
+        return [
+            path('api/houses/generate/', self.generate_houses_api, name='api_generate_houses'),
+            path('api/houses/settings/', self.house_settings_api, name='api_house_settings'),
+        ]
+
+    def get_context(self, request):
+        """Get context data for the plugin"""
+        return {
+            'house_generator_enabled': self.houses_enabled,
+            'include_planets': self.include_planets,
+        }
+
+    def get_navigation_items(self, request):
+        """Get navigation items for the plugin"""
+        return [
+            {
+                'name': 'House Generator',
+                'url': '/houses/generate/',
+                'icon': 'home',
+                'description': 'Generate house interpretations'
+            }
+        ]
+
+    def get_dashboard_widgets(self, request):
+        """Get dashboard widgets for the plugin"""
+        return [
+            {
+                'name': 'house_generator_widget',
+                'template': 'house_generator/widget.html',
+                'context': self.get_context(request)
+            }
+        ]
+
+    def get_settings_form(self):
+        """Get settings form for the plugin"""
+        from .forms import HouseGeneratorSettingsForm
+        return HouseGeneratorSettingsForm
+
+    def get_requirements(self):
+        """Get plugin requirements"""
+        return [
+            'django>=4.2.0',
+            'ai_integration',  # Requires the AI integration module
+        ]
+
+    def get_dependencies(self):
+        """Get plugin dependencies"""
+        return [
+            'chart',  # Depends on the chart app
+            'ai_integration',  # Depends on AI integration
+        ]
+
+    def validate_installation(self):
+        """Validate plugin installation"""
+        try:
+            # Check if required modules are available
+            import ai_integration.openrouter_api
+            return True, "Plugin installed successfully"
+        except ImportError as e:
+            return False, f"Missing dependency: {str(e)}"
+
+    def get_plugin_info(self):
+        """Get plugin information"""
+        return {
+            'name': self.name,
+            'version': self.version,
+            'description': self.description,
+            'author': self.author,
+            'website': self.website,
+            'status': 'active' if self.houses_enabled else 'disabled'
+        }
+
+    # Plugin-specific methods
+
+    def calculate_houses(self, chart_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Calculate house information and planets in each house
+
+        Args:
+            chart_data: Chart data containing house cusps and planet positions
+
+        Returns:
+            List of house dictionaries with planets
+        """
+        houses = []
+        positions = chart_data.get('planetary_positions', {})
+        house_cusps = self._get_house_cusps(chart_data)
+
+        logger.debug(f"Chart data keys: {list(chart_data.keys())}")
+        logger.debug(f"House cusps found: {len(house_cusps)}")
+        logger.debug(f"Positions found: {list(positions.keys())}")
+
+        if not house_cusps or len(house_cusps) < 12:
+            logger.error("Invalid house cusps data")
+            return houses
+
+        # Process each house
+        for house_num in range(1, 13):
+            house_info = {
+                'house_number': house_num,
+                'cusp_degree': house_cusps[house_num - 1],
+                'cusp_sign': self._get_sign_for_degree(house_cusps[house_num - 1]),
+                'planets': []
+            }
+
+            # Find planets in this house
+            house_planets = self._get_planets_in_house(house_num, house_cusps, positions)
+            house_info['planets'] = house_planets
+
+            houses.append(house_info)
+
+        logger.debug(f"Calculated {len(houses)} houses")
+        return houses
+
+    def generate_house_interpretation(self, house_info: Dict[str, Any],
+                                     chart_data: Dict[str, Any],
+                                     model_name: Optional[str] = None,
+                                     temperature: Optional[float] = None,
+                                     max_tokens: Optional[int] = None) -> str:
+        """
+        Generate AI interpretation for a specific house
+
+        Args:
+            house_info: House information including planets
+            chart_data: Full chart data
+            model_name: AI model to use
+            temperature: AI temperature setting
+            max_tokens: Maximum tokens for response
+
+        Returns:
+            Generated interpretation text
+        """
+        try:
+            # Build prompt for house interpretation
+            prompt = self._build_house_prompt(house_info, chart_data)
+
+            # Generate interpretation using AI
+            interpretation = generate_interpretation(
+                prompt=prompt,
+                model_name=model_name or 'gpt-4',
+                temperature=temperature or 0.7,
+                max_tokens=max_tokens or 500
+            )
+
+            return interpretation
+        except Exception as e:
+            logger.error(f"Error generating house interpretation: {e}")
+            return f"Unable to generate interpretation for House {house_info['house_number']}"
+
+    def _get_house_cusps(self, chart_data: Dict[str, Any]) -> List[float]:
+        """Extract house cusps from chart data"""
+        house_cusps = chart_data.get('house_cusps', [])
+        if not house_cusps:
+            logger.warning("No house cusps found in chart data")
+        return house_cusps
+
+    def _get_sign_for_degree(self, degree: float) -> str:
+        """Get zodiac sign for a given degree"""
+        signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+                 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+        sign_index = int(degree / 30)
+        return signs[sign_index % 12]
+
+    def _get_planets_in_house(self, house_num: int, house_cusps: List[float],
+                             positions: Dict[str, Any]) -> List[str]:
+        """Find planets in a specific house"""
+        planets_in_house = []
+
+        for planet, position in positions.items():
+            if self._planet_in_house(planet, position, house_num, house_cusps):
+                planets_in_house.append(planet)
+
+        return planets_in_house
+
+    def _planet_in_house(self, planet: str, position: Dict[str, Any],
+                        house_num: int, house_cusps: List[float]) -> bool:
+        """Check if a planet is in a specific house"""
+        try:
+            planet_degree = position.get('degree', 0)
+            house_start = house_cusps[house_num - 1]
+            house_end = house_cusps[house_num % 12] if house_num < 12 else house_cusps[0]
+
+            # Handle house boundary crossing
+            if house_start > house_end:  # House crosses 0° Aries
+                return planet_degree >= house_start or planet_degree < house_end
+            else:
+                return house_start <= planet_degree < house_end
+        except (IndexError, KeyError, TypeError):
+            logger.warning(f"Error checking planet {planet} position")
+            return False
+
+    def _build_house_prompt(self, house_info: Dict[str, Any],
+                           chart_data: Dict[str, Any]) -> str:
+        """Build AI prompt for house interpretation"""
+        house_num = house_info['house_number']
+        cusp_sign = house_info['cusp_sign']
+        planets = house_info['planets']
+
+        prompt = f"""
+        Generate an astrological interpretation for the {house_num}{self._get_ordinal_suffix(house_num)} House.
+
+        House Details:
+        - House Number: {house_num}
+        - Cusp Sign: {cusp_sign}
+        - Planets in House: {', '.join(planets) if planets else 'None'}
+
+        Please provide a comprehensive interpretation that includes:
+        1. The general meaning of the {house_num}{self._get_ordinal_suffix(house_num)} House
+        2. How the {cusp_sign} cusp influences this house
+        3. The significance of any planets present in this house
+        4. Practical advice for working with this house's energy
+
+        Keep the interpretation clear, insightful, and actionable.
+        """
+
+        return prompt.strip()
+
+    def _get_ordinal_suffix(self, num: int) -> str:
+        """Get ordinal suffix for a number"""
+        if 10 <= num % 100 <= 20:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(num % 10, 'th')
+        return suffix
+
+    # View methods
+    def generate_houses_view(self, request):
+        """View for generating house interpretations"""
+        return render_to_string('house_generator/generate.html', {
+            'plugin': self,
+            'context': self.get_context(request)
+        })
+
+    def house_settings_view(self, request):
+        """View for house generator settings"""
+        return render_to_string('house_generator/settings.html', {
+            'plugin': self,
+            'context': self.get_context(request)
+        })
+
+    def generate_houses_api(self, request):
+        """API endpoint for generating house interpretations"""
+        try:
+            # Implementation for API endpoint
+            return JsonResponse({'status': 'success', 'message': 'House generation endpoint'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    def house_settings_api(self, request):
+        """API endpoint for house settings"""
+        try:
+            # Implementation for settings API
+            return JsonResponse({'status': 'success', 'message': 'House settings endpoint'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
