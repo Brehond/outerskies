@@ -135,15 +135,28 @@ class Chart(models.Model):
         verbose_name = 'Chart'
         verbose_name_plural = 'Charts'
         indexes = [
+            # User and time-based queries
             models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'is_favorite', 'created_at']),
+            models.Index(fields=['user', 'zodiac_type', 'house_system']),
+            
+            # Birth data queries
             models.Index(fields=['birth_date', 'birth_time']),
+            models.Index(fields=['latitude', 'longitude']),
+            
+            # Public and visibility queries
             models.Index(fields=['is_public']),
             models.Index(fields=['is_favorite']),
             models.Index(fields=['zodiac_type', 'house_system']),
-            # JSON field indexes for PostgreSQL
+            
+            # JSON field indexes for PostgreSQL (optimized queries)
             models.Index(fields=['planetary_positions'], name='idx_chart_planetary_positions'),
             models.Index(fields=['house_positions'], name='idx_chart_house_positions'),
             models.Index(fields=['aspects'], name='idx_chart_aspects'),
+            
+            # Performance indexes for common queries
+            models.Index(fields=['created_at', 'user']),
+            models.Index(fields=['updated_at', 'user']),
         ]
 
     def __str__(self):

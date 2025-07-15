@@ -69,6 +69,14 @@ SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
+# Additional Security Headers (from expert analysis)
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
+
+# Audit settings
+AUDIT_ENABLED = True
+
 # Stripe API Keys
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
@@ -239,11 +247,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 MIDDLEWARE = [
-    # Consolidated Security Middleware (replaces all individual security middlewares)
-    'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
-    
-    # Enhanced Rate Limiting Middleware
-    'api.middleware.enhanced_rate_limit.EnhancedRateLimitMiddleware',
+    # Focused Security Middleware Components (replaces consolidated middleware)
+    'api.middleware.rate_limit.RateLimitMiddleware',
+    'api.middleware.input_validation.InputValidationMiddleware',
+    'api.middleware.security_headers.SecurityHeadersMiddleware',
+    'api.middleware.audit.AuditMiddleware',
     
     # API Versioning Middleware
     'api.utils.api_versioning.APIVersionMiddleware',

@@ -43,40 +43,39 @@ app.conf.enable_utc = True
 app.conf.task_soft_time_limit = 300  # 5 minutes
 app.conf.task_time_limit = 600  # 10 minutes
 
-# Windows-specific configuration
-if platform.system() == 'Windows':
-    # Use solo pool on Windows to avoid multiprocessing issues
-    app.conf.worker_pool = 'solo'
-    app.conf.worker_concurrency = 1
-    app.conf.worker_prefetch_multiplier = 1
-    app.conf.worker_disable_rate_limits = True
+# Production-ready Celery configuration
+# Note: Windows is not recommended for production Celery workers
+# Use Linux containers for production deployment
 
-    # Windows-specific broker settings
-    app.conf.broker_transport_options = {
-        'visibility_timeout': 3600,
-        'fanout_prefix': True,
-        'fanout_patterns': True,
-        'socket_connect_timeout': 10,
-        'socket_timeout': 10,
-        'retry_on_timeout': True,
+# Worker configuration
+app.conf.worker_pool = 'prefork'  # Use prefork for CPU-bound tasks
+app.conf.worker_concurrency = 4   # Scale based on CPU cores
+app.conf.worker_prefetch_multiplier = 1
+app.conf.worker_max_tasks_per_child = 1000
+app.conf.worker_disable_rate_limits = False
+
+# Broker settings
+app.conf.broker_transport_options = {
+    'visibility_timeout': 3600,
+    'fanout_prefix': True,
+    'fanout_patterns': True,
+    'socket_connect_timeout': 5,
+    'socket_timeout': 5,
+    'retry_on_timeout': True,
+    'max_connections': 20,
+    'connection_pool': {
         'max_connections': 20,
-        'connection_pool': {
-            'max_connections': 20,
-            'retry_on_timeout': True,
-        }
-    }
-
-    # Windows-specific result backend settings
-    app.conf.result_backend_transport_options = {
-        'visibility_timeout': 3600,
-        'socket_connect_timeout': 10,
-        'socket_timeout': 10,
         'retry_on_timeout': True,
     }
-else:
-    # Linux/Unix settings
-    app.conf.worker_prefetch_multiplier = 1
-    app.conf.worker_max_tasks_per_child = 1000
+}
+
+# Result backend settings
+app.conf.result_backend_transport_options = {
+    'visibility_timeout': 3600,
+    'socket_connect_timeout': 5,
+    'socket_timeout': 5,
+    'retry_on_timeout': True,
+}
 
 # Configure result backend and broker (moved to avoid settings access issues)
 
