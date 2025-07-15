@@ -34,13 +34,13 @@ if sentry_dsn and sentry_dsn != "your_sentry_dsn_here":
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security settings
-SECRET_KEY = os.getenv('SECRET_KEY')
-if not SECRET_KEY:
-    raise ValueError('SECRET_KEY environment variable must be set')
-
 # Enforce production security in non-debug environments
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+
+# Security settings
+SECRET_KEY = os.getenv('SECRET_KEY', 'test-secret-key-for-ci-only')
+if not DEBUG and (not SECRET_KEY or SECRET_KEY == 'test-secret-key-for-ci-only'):
+    raise ValueError('SECRET_KEY environment variable must be set in production')
 if not DEBUG:
     # Production security enforcement
     SECURE_SSL_REDIRECT = True
@@ -481,21 +481,21 @@ PLUGIN_SETTINGS = {
 # }
 
 # Security Settings for Testing
-API_KEY = os.getenv('API_KEY')
-if not API_KEY:
-    raise ValueError('API_KEY environment variable must be set')
+API_KEY = os.getenv('API_KEY', 'test-api-key-for-ci-only')
+API_SECRET = os.getenv('API_SECRET', 'test-api-secret-for-ci-only')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'test-encryption-key-for-ci-only-32chars')
+ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-16chars')
 
-API_SECRET = os.getenv('API_SECRET')
-if not API_SECRET:
-    raise ValueError('API_SECRET environment variable must be set')
-
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY')
-if not ENCRYPTION_KEY:
-    raise ValueError('ENCRYPTION_KEY environment variable must be set')
-
-ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT')
-if not ENCRYPTION_SALT:
-    raise ValueError('ENCRYPTION_SALT environment variable must be set')
+# Validate required environment variables in production
+if not DEBUG:
+    if not os.getenv('API_KEY') or API_KEY == 'test-api-key-for-ci-only':
+        raise ValueError('API_KEY environment variable must be set in production')
+    if not os.getenv('API_SECRET') or API_SECRET == 'test-api-secret-for-ci-only':
+        raise ValueError('API_SECRET environment variable must be set in production')
+    if not os.getenv('ENCRYPTION_KEY') or ENCRYPTION_KEY == 'test-encryption-key-for-ci-only-32chars':
+        raise ValueError('ENCRYPTION_KEY environment variable must be set in production')
+    if not os.getenv('ENCRYPTION_SALT') or ENCRYPTION_SALT == 'test-salt-16chars':
+        raise ValueError('ENCRYPTION_SALT environment variable must be set in production')
 
 # Rate Limiting Settings
 RATE_LIMIT_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))

@@ -90,6 +90,34 @@ jobs:
             fi
           done
 
+      - name: Set default environment variables for CI
+        run: |
+          # Set default values for required environment variables if not provided
+          if [ -z "$API_KEY" ]; then
+            echo "API_KEY=test-api-key-for-ci-only" >> $GITHUB_ENV
+          fi
+          if [ -z "$API_SECRET" ]; then
+            echo "API_SECRET=test-api-secret-for-ci-only" >> $GITHUB_ENV
+          fi
+          if [ -z "$ENCRYPTION_KEY" ]; then
+            echo "ENCRYPTION_KEY=test-encryption-key-for-ci-only-32chars" >> $GITHUB_ENV
+          fi
+          if [ -z "$ENCRYPTION_SALT" ]; then
+            echo "ENCRYPTION_SALT=test-salt-16chars" >> $GITHUB_ENV
+          fi
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY=test-openrouter-key-for-ci-only" >> $GITHUB_ENV
+          fi
+          if [ -z "$STRIPE_SECRET_KEY" ]; then
+            echo "STRIPE_SECRET_KEY=sk_test_dummy_key_for_ci_only" >> $GITHUB_ENV
+          fi
+          if [ -z "$STRIPE_PUBLISHABLE_KEY" ]; then
+            echo "STRIPE_PUBLISHABLE_KEY=pk_test_dummy_key_for_ci_only" >> $GITHUB_ENV
+          fi
+          if [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
+            echo "STRIPE_WEBHOOK_SECRET=whsec_dummy_webhook_secret_for_ci_only" >> $GITHUB_ENV
+          fi
+
       - name: Wait for services
         run: |
           echo "Waiting for PostgreSQL..."
