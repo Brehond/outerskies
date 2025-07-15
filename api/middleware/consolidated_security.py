@@ -150,6 +150,7 @@ class ConsolidatedSecurityMiddleware(MiddlewareMixin):
         # Don't handle DRF exceptions - let DRF handle them
         from rest_framework.exceptions import APIException
         if isinstance(exception, APIException):
+            # Don't log DRF exceptions as "unexpected errors"
             return None
         
         if hasattr(request, 'start_time'):
@@ -228,14 +229,24 @@ class ConsolidatedSecurityMiddleware(MiddlewareMixin):
                 if isinstance(header_value, str) and self._contains_suspicious_content(header_value):
                     raise ValidationError(f'Suspicious content detected in header: {header_name}')
             
-            # Validate JSON data - store body content for reuse
+            # Cache request body for reuse (for all content types)
+            if not hasattr(request, '_body_cache') and request.body:
+                try:
+                    request._body_cache = request.body.decode('utf-8')
+                except UnicodeDecodeError:
+                    # If UTF-8 decode fails, store as bytes
+                    request._body_cache = request.body
+            
+            # Validate JSON data
             if request.content_type == 'application/json':
                 try:
-                    # Read body once and store it for reuse
-                    if not hasattr(request, '_body_cache'):
-                        request._body_cache = request.body.decode('utf-8')
-                    
-                    data = json.loads(request._body_cache)
+                    if hasattr(request, '_body_cache'):
+                        if isinstance(request._body_cache, str):
+                            data = json.loads(request._body_cache)
+                        else:
+                            data = json.loads(request._body_cache.decode('utf-8'))
+                    else:
+                        data = json.loads(request.body)
                     self._sanitize_data(data)
                 except json.JSONDecodeError:
                     raise ValidationError('Invalid JSON data')
