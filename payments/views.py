@@ -69,11 +69,20 @@ def create_subscription(request):
         # Use cached body if available (from middleware), otherwise read from request
         if hasattr(request, '_body_cache'):
             if isinstance(request._body_cache, str):
-                data = json.loads(request._body_cache)
+                if request._body_cache.strip():
+                    data = json.loads(request._body_cache)
+                else:
+                    data = {}
             else:
-                data = json.loads(request._body_cache.decode('utf-8'))
+                if request._body_cache:
+                    data = json.loads(request._body_cache.decode('utf-8'))
+                else:
+                    data = {}
         else:
-            data = json.loads(request.body)
+            if request.body:
+                data = json.loads(request.body)
+            else:
+                data = {}
         plan_id = data.get('plan_id')
         payment_method_id = data.get('payment_method_id')
         coupon_code = data.get('coupon_code')
@@ -118,11 +127,20 @@ def cancel_subscription(request):
         # Use cached body if available (from middleware), otherwise read from request
         if hasattr(request, '_body_cache'):
             if isinstance(request._body_cache, str):
-                data = json.loads(request._body_cache)
+                if request._body_cache.strip():
+                    data = json.loads(request._body_cache)
+                else:
+                    data = {}
             else:
-                data = json.loads(request._body_cache.decode('utf-8'))
+                if request._body_cache:
+                    data = json.loads(request._body_cache.decode('utf-8'))
+                else:
+                    data = {}
         else:
-            data = json.loads(request.body)
+            if request.body:
+                data = json.loads(request.body)
+            else:
+                data = {}
         cancel_at_period_end = data.get('cancel_at_period_end', True)
 
         if not hasattr(request.user, 'subscription'):
@@ -179,11 +197,20 @@ def update_payment_method(request):
         # Use cached body if available (from middleware), otherwise read from request
         if hasattr(request, '_body_cache'):
             if isinstance(request._body_cache, str):
-                data = json.loads(request._body_cache)
+                if request._body_cache.strip():
+                    data = json.loads(request._body_cache)
+                else:
+                    data = {}
             else:
-                data = json.loads(request._body_cache.decode('utf-8'))
+                if request._body_cache:
+                    data = json.loads(request._body_cache.decode('utf-8'))
+                else:
+                    data = {}
         else:
-            data = json.loads(request.body)
+            if request.body:
+                data = json.loads(request.body)
+            else:
+                data = {}
         payment_method_id = data.get('payment_method_id')
 
         if not payment_method_id:

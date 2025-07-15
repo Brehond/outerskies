@@ -589,11 +589,17 @@ class PaymentIntegrationTests(TestCase):
             billing_name=self.user.username
         )
 
-        self.client.login(username='testuser', password='testpass123')
+        # Ensure login works
+        login_success = self.client.login(username='testuser', password='testpass123')
+        self.assertTrue(login_success, "Login failed")
 
         response = self.client.get(reverse('payments:billing_history'))
         self.assertIn(response.status_code, [200, 302, 400, 500])
-        if response.status_code == 200:
+        
+        if response.status_code == 302:
+            # If redirected, check if it's to login page
+            self.assertIn('/login/', response.url)
+        elif response.status_code == 200:
             self.assertContains(response, '$9.99')
             self.assertContains(response, '$19.99')
 
@@ -608,12 +614,18 @@ class PaymentIntegrationTests(TestCase):
             current_period_end=timezone.now() + timedelta(days=30)
         )
 
-        self.client.login(username='testuser', password='testpass123')
+        # Ensure login works
+        login_success = self.client.login(username='testuser', password='testpass123')
+        self.assertTrue(login_success, "Login failed")
 
         # Test subscription management page shows active subscription
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [200, 302, 400, 500])
-        if response.status_code == 200:
+        
+        if response.status_code == 302:
+            # If redirected, check if it's to login page
+            self.assertIn('/login/', response.url)
+        elif response.status_code == 200:
             self.assertContains(response, 'active')
 
         # Change status to past_due
@@ -622,7 +634,11 @@ class PaymentIntegrationTests(TestCase):
 
         response = self.client.get(reverse('payments:subscription_management'))
         self.assertIn(response.status_code, [200, 302, 400, 500])
-        if response.status_code == 200:
+        
+        if response.status_code == 302:
+            # If redirected, check if it's to login page
+            self.assertIn('/login/', response.url)
+        elif response.status_code == 200:
             self.assertContains(response, 'past_due')
 
 
