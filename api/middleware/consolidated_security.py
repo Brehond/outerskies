@@ -223,10 +223,14 @@ class ConsolidatedSecurityMiddleware(MiddlewareMixin):
                 if isinstance(header_value, str) and self._contains_suspicious_content(header_value):
                     raise ValidationError(f'Suspicious content detected in header: {header_name}')
             
-            # Validate JSON data
+            # Validate JSON data - store body content for reuse
             if request.content_type == 'application/json':
                 try:
-                    data = json.loads(request.body.decode('utf-8'))
+                    # Read body once and store it for reuse
+                    if not hasattr(request, '_body_cache'):
+                        request._body_cache = request.body.decode('utf-8')
+                    
+                    data = json.loads(request._body_cache)
                     self._sanitize_data(data)
                 except json.JSONDecodeError:
                     raise ValidationError('Invalid JSON data')

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Billing History - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Billing History</h1>
+        
+        {% if payments %}
+            <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                <ul class="divide-y divide-gray-200">
+                    {% for payment in payments %}
+                    <li class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+                                        <span class="text-white font-semibold">$</span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ payment.amount|floatformat:2 }} {{ payment.currency|upper }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ payment.description|default:"Payment" }}
+                                    </div>
+                                    <div class="text-xs text-gray-400">
+                                        {{ payment.created_at|date:"M d, Y H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if payment.status == 'succeeded' %}bg-green-100 text-green-800
+                                    {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif payment.status == 'failed' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ payment.status|title }}
+                                </span>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% else %}
+            <div class="text-center py-12">
+                <div class="mx-auto h-12 w-12 text-gray-400">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                </div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No billing history</h3>
+                <p class="mt-1 text-sm text-gray-500">You haven't made any payments yet.</p>
+                <div class="mt-6">
+                    <a href="{% url 'payments:pricing' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        View Plans
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="mt-8">
+            <a href="{% url 'payments:subscription_management' %}" class="text-blue-600 hover:text-blue-500">
+                ← Back to Subscription Management
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

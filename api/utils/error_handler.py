@@ -160,10 +160,15 @@ class ErrorHandler:
         """
         Classify exception and return error type and status code.
         """
-        if isinstance(exception, ValidationError):
+        # Import DRF exceptions here to avoid circular imports
+        from rest_framework.exceptions import NotAuthenticated, PermissionDenied as DRFPermissionDenied, ValidationError as DRFValidationError
+        
+        if isinstance(exception, (ValidationError, DRFValidationError)):
             return 'validation', 400
-        elif isinstance(exception, PermissionDenied):
+        elif isinstance(exception, (PermissionDenied, DRFPermissionDenied)):
             return 'permission', 403
+        elif isinstance(exception, NotAuthenticated):
+            return 'authentication', 401
         elif isinstance(exception, Http404):
             return 'not_found', 404
         elif isinstance(exception, TimeoutError):

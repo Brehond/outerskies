@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Subscription Management - Outer Skies{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Subscription Management</h1>
+        
+        {% if subscription %}
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Current Subscription</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Manage your subscription and billing information.</p>
+                </div>
+                <div class="border-t border-gray-200">
+                    <dl>
+                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Plan</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ subscription.plan.name }}</dd>
+                        </div>
+                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Status</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if subscription.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif subscription.status == 'canceled' %}bg-red-100 text-red-800
+                                    {% elif subscription.status == 'past_due' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ subscription.status|title }}
+                                </span>
+                            </dd>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Price</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">${{ subscription.plan.price|floatformat:2 }}/month</dd>
+                        </div>
+                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Next Billing</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {% if subscription.current_period_end %}
+                                    {{ subscription.current_period_end|date:"M d, Y" }}
+                                {% else %}
+                                    Not available
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Usage Statistics -->
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Usage This Month</h3>
+                </div>
+                <div class="border-t border-gray-200">
+                    <dl>
+                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">Charts Used</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ subscription.charts_used_this_month }} / {{ subscription.plan.charts_per_month }}
+                            </dd>
+                        </div>
+                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                            <dt class="text-sm font-medium text-gray-500">AI Interpretations Used</dt>
+                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                                {{ subscription.interpretations_used_this_month }} / {{ subscription.plan.ai_interpretations_per_month }}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-white shadow sm:rounded-lg mb-8">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Subscription Actions</h3>
+                    <div class="space-y-4">
+                        {% if subscription.status == 'active' %}
+                            <button id="cancel-subscription" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
+                                Cancel Subscription
+                            </button>
+                        {% elif subscription.status == 'canceled' %}
+                            <button id="reactivate-subscription" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                                Reactivate Subscription
+                            </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'payments:billing_history' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            View Billing History
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Plans for Upgrade/Downgrade -->
+            {% if available_plans %}
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <div class="px-4 py-5 sm:px-6">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Available Plans</h3>
+                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Upgrade or downgrade your subscription.</p>
+                </div>
+                <div class="border-t border-gray-200">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-6">
+                        {% for plan in available_plans %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h4 class="text-lg font-medium text-gray-900">{{ plan.name }}</h4>
+                            <p class="text-2xl font-bold text-gray-900">${{ plan.price|floatformat:2 }}/month</p>
+                            <ul class="mt-4 space-y-2 text-sm text-gray-600">
+                                <li>{{ plan.charts_per_month }} charts per month</li>
+                                <li>{{ plan.ai_interpretations_per_month }} AI interpretations per month</li>
+                            </ul>
+                            <button class="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                                Switch to {{ plan.name }}
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <div class="text-center py-12">
+                <div class="mx-auto h-12 w-12 text-gray-400">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                </div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No active subscription</h3>
+                <p class="mt-1 text-sm text-gray-500">You don't have an active subscription.</p>
+                <div class="mt-6">
+                    <a href="{% url 'payments:pricing' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        View Plans
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Cancel subscription
+    const cancelBtn = document.getElementById('cancel-subscription');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period.')) {
+                fetch('{% url "payments:cancel_subscription" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        cancel_at_period_end: true
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while canceling your subscription.');
+                });
+            }
+        });
+    }
+
+    // Reactivate subscription
+    const reactivateBtn = document.getElementById('reactivate-subscription');
+    if (reactivateBtn) {
+        reactivateBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to reactivate your subscription?')) {
+                fetch('{% url "payments:reactivate_subscription" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while reactivating your subscription.');
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

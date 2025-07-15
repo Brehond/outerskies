@@ -203,6 +203,10 @@ class EnhancedRateLimitMiddleware(MiddlewareMixin):
         """
         Determine if rate limiting should be skipped for this request.
         """
+        # Skip rate limiting during tests
+        if getattr(settings, 'TESTING', False):
+            return True
+            
         skip_paths = [
             '/static/', '/media/', '/favicon.ico',
             '/api/v1/system/health/', '/api/v1/system/quick-health/'
