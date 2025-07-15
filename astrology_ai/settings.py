@@ -352,12 +352,9 @@ DATABASES = {
         "CONN_MAX_AGE": 600,  # 10 minutes
         "ATOMIC_REQUESTS": False,  # Disable atomic requests for better performance
         "OPTIONS": {
-            "timeout": 20,  # 20 seconds
             "connect_timeout": 10,
             "application_name": "outer_skies",
-        } if db_engine == "django.db.backends.postgresql" else {
-            "timeout": 20,  # 20 seconds
-        },
+        } if db_engine == "django.db.backends.postgresql" else {},
         "TEST": {
             "NAME": None,  # Use in-memory database for tests
         },
@@ -483,7 +480,7 @@ PLUGIN_SETTINGS = {
 # Security Settings for Testing
 API_KEY = os.getenv('API_KEY', 'test-api-key-for-ci-only')
 API_SECRET = os.getenv('API_SECRET', 'test-api-secret-for-ci-only')
-ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'test-encryption-key-for-ci-only-32chars')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '3w-9FN3J3p9hR-nHvNVo6Ed96_nzChIUYCpGzq4GPos=')
 ENCRYPTION_SALT = os.getenv('ENCRYPTION_SALT', 'test-salt-16chars')
 
 # Validate required environment variables in production
@@ -492,7 +489,7 @@ if not DEBUG:
         raise ValueError('API_KEY environment variable must be set in production')
     if not os.getenv('API_SECRET') or API_SECRET == 'test-api-secret-for-ci-only':
         raise ValueError('API_SECRET environment variable must be set in production')
-    if not os.getenv('ENCRYPTION_KEY') or ENCRYPTION_KEY == 'test-encryption-key-for-ci-only-32chars':
+    if not os.getenv('ENCRYPTION_KEY') or ENCRYPTION_KEY == '3w-9FN3J3p9hR-nHvNVo6Ed96_nzChIUYCpGzq4GPos=':
         raise ValueError('ENCRYPTION_KEY environment variable must be set in production')
     if not os.getenv('ENCRYPTION_SALT') or ENCRYPTION_SALT == 'test-salt-16chars':
         raise ValueError('ENCRYPTION_SALT environment variable must be set in production')
