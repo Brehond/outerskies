@@ -28,11 +28,8 @@ MEMORY_USAGE_THRESHOLD = 90  # Percentage
 
 # Add Security Middleware
 MIDDLEWARE = [
-    # Consolidated Security Middleware (replaces all individual security middlewares)
+    # Consolidated Security Middleware (must be first to cache request body)
     'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
-    
-    # API Versioning Middleware
-    'api.utils.api_versioning.APIVersionMiddleware',
     
     # Django core middleware
     'django.middleware.security.SecurityMiddleware',
@@ -42,6 +39,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # API Versioning Middleware
+    'api.utils.api_versioning.APIVersionMiddleware',
     
     # Error handling middleware
     'api.utils.error_handler.ErrorHandlingMiddleware',

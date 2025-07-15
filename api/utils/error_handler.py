@@ -59,8 +59,10 @@ class ErrorHandler:
         """
         Handle exceptions and return appropriate responses.
         """
-        # Log the exception
-        cls._log_exception(request, exception)
+        # Don't log DRF exceptions
+        from rest_framework.exceptions import APIException
+        if not isinstance(exception, APIException):
+            cls._log_exception(request, exception)
         
         # Determine error type and status code
         error_type, status_code = cls._classify_exception(exception)
@@ -276,6 +278,11 @@ class ErrorHandler:
         """
         Log exception with context information.
         """
+        # Don't log DRF exceptions as unexpected errors
+        from rest_framework.exceptions import APIException
+        if isinstance(exception, APIException):
+            return
+        
         log_data = {
             'exception_type': type(exception).__name__,
             'exception_message': str(exception),
