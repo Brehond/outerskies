@@ -57,6 +57,22 @@ class SubscriptionPlan(models.Model):
     class Meta:
         db_table = 'subscription_plan'
         ordering = ['price_monthly']
+        indexes = [
+            # Plan type and pricing queries
+            models.Index(fields=['plan_type', 'is_active']),
+            models.Index(fields=['billing_cycle', 'is_active']),
+            models.Index(fields=['price_monthly', 'is_active']),
+            models.Index(fields=['price_yearly', 'is_active']),
+            
+            # Feature-based queries
+            models.Index(fields=['charts_per_month', 'is_active']),
+            models.Index(fields=['ai_interpretations_per_month', 'is_active']),
+            models.Index(fields=['priority_support', 'is_active']),
+            
+            # Popular and active plans
+            models.Index(fields=['is_popular', 'is_active']),
+            models.Index(fields=['is_active', 'created_at']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.billing_cycle})"
@@ -123,6 +139,25 @@ class UserSubscription(models.Model):
 
     class Meta:
         db_table = 'user_subscription'
+        indexes = [
+            # User and subscription queries
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['user', 'plan']),
+            models.Index(fields=['status', 'current_period_end']),
+            
+            # Stripe integration queries
+            models.Index(fields=['stripe_customer_id']),
+            models.Index(fields=['stripe_subscription_id']),
+            
+            # Usage tracking queries
+            models.Index(fields=['user', 'last_usage_reset']),
+            models.Index(fields=['charts_used_this_month', 'interpretations_used_this_month']),
+            
+            # Time-based queries
+            models.Index(fields=['created_at', 'user']),
+            models.Index(fields=['updated_at', 'user']),
+            models.Index(fields=['current_period_start', 'current_period_end']),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.plan.name}"
@@ -222,6 +257,30 @@ class Payment(models.Model):
     class Meta:
         db_table = 'payment'
         ordering = ['-created_at']
+        indexes = [
+            # User and payment queries
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['subscription', 'status']),
+            
+            # Stripe integration queries
+            models.Index(fields=['stripe_payment_intent_id']),
+            models.Index(fields=['stripe_invoice_id']),
+            
+            # Payment status and amount queries
+            models.Index(fields=['status', 'amount']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['payment_method', 'status']),
+            
+            # Billing queries
+            models.Index(fields=['billing_email']),
+            models.Index(fields=['billing_name']),
+            
+            # Time-based queries
+            models.Index(fields=['created_at', 'user']),
+            models.Index(fields=['paid_at', 'user']),
+            models.Index(fields=['updated_at', 'user']),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - ${self.amount} - {self.status}"
@@ -263,6 +322,20 @@ class Coupon(models.Model):
 
     class Meta:
         db_table = 'coupon'
+        indexes = [
+            # Coupon validity queries
+            models.Index(fields=['code', 'is_active']),
+            models.Index(fields=['is_active', 'valid_from', 'valid_until']),
+            models.Index(fields=['discount_type', 'is_active']),
+            
+            # Usage tracking queries
+            models.Index(fields=['current_uses', 'max_uses']),
+            models.Index(fields=['is_active', 'current_uses']),
+            
+            # Time-based queries
+            models.Index(fields=['created_at']),
+            models.Index(fields=['valid_from', 'valid_until']),
+        ]
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -306,6 +379,16 @@ class CouponUsage(models.Model):
     class Meta:
         db_table = 'coupon_usage'
         unique_together = ['coupon', 'user']
+        indexes = [
+            # User and coupon usage queries
+            models.Index(fields=['user', 'used_at']),
+            models.Index(fields=['coupon', 'used_at']),
+            models.Index(fields=['payment', 'coupon']),
+            
+            # Time-based queries
+            models.Index(fields=['used_at', 'user']),
+            models.Index(fields=['used_at', 'coupon']),
+        ]
 
     def __str__(self):
         return f"{self.user.username} used {self.coupon.code}"

@@ -77,6 +77,60 @@ SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
 # Audit settings
 AUDIT_ENABLED = True
 
+# Performance Monitoring Settings
+PERFORMANCE_MONITORING_ENABLED = True
+SLOW_QUERY_THRESHOLD = 1.0  # seconds
+ERROR_RATE_THRESHOLD = 5.0  # percentage
+
+# Cache Settings (Enhanced for commercial scale)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+        },
+        'KEY_PREFIX': 'outer_skies',
+        'TIMEOUT': 300,  # 5 minutes default
+    },
+    'session': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/2'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'session',
+        'TIMEOUT': 86400,  # 24 hours
+    },
+    'api': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/3'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 100,
+                'retry_on_timeout': True,
+            },
+        },
+        'KEY_PREFIX': 'api',
+        'TIMEOUT': 600,  # 10 minutes
+    }
+}
+
+# Session configuration (enhanced for security and performance)
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'session'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
 # Stripe API Keys
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
@@ -247,6 +301,9 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 MIDDLEWARE = [
+    # Performance Monitoring Middleware (first to capture all requests)
+    'api.services.performance_monitor.PerformanceMonitoringMiddleware',
+    
     # Focused Security Middleware Components (replaces consolidated middleware)
     'api.middleware.rate_limit.RateLimitMiddleware',
     'api.middleware.input_validation.InputValidationMiddleware',
