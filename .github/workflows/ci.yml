@@ -23,6 +23,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     env:
       DB_ENGINE: django.db.backends.postgresql
@@ -31,10 +40,23 @@ jobs:
       DB_PASSWORD: test_pass
       DB_HOST: localhost
       DB_PORT: 5432
-      SECRET_KEY: test-secret
+      SECRET_KEY: test-secret-key-for-ci-only
       DEBUG: "True"
       ALLOWED_HOSTS: localhost,127.0.0.1
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      API_KEY: ${{ secrets.API_KEY }}
+      API_SECRET: ${{ secrets.API_SECRET }}
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+      ENCRYPTION_SALT: ${{ secrets.ENCRYPTION_SALT }}
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+      CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/0
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      CELERY_ALWAYS_EAGER: "True"
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +74,8 @@ jobs:
           for req in plugins/*/requirements.txt; do
             [ -f "$req" ] && pip install -r "$req" || true
           done
+          # Install Redis client for health checks
+          sudo apt-get update && sudo apt-get install -y redis-tools
 
       - name: Lint with flake8
         run: |
@@ -65,6 +89,18 @@ jobs:
               flake8 $plugin --exclude=venv311,.venv,venv,env,.env,node_modules,.git,__pycache__,.pytest_cache
             fi
           done
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for PostgreSQL..."
+          while ! pg_isready -h localhost -p 5432 -U test_user; do
+            sleep 1
+          done
+          echo "Waiting for Redis..."
+          while ! redis-cli ping; do
+            sleep 1
+          done
+          echo "All services ready!"
 
       - name: Run migrations
         run: |
