@@ -504,3 +504,32 @@ CRITICAL 2025-07-15 07:35:59,888 security_middleware 8380 8152 Security violatio
 CRITICAL 2025-07-15 07:36:01,041 security_middleware 8380 8152 Security violation: suspicious_patterns
 CRITICAL 2025-07-15 07:36:05,685 security_middleware 8380 8152 Security violation: suspicious_patterns
 CRITICAL 2025-07-15 07:36:06,824 security_middleware 8380 8152 Security violation: suspicious_patterns
+WARNING 2025-07-15 11:02:15,898 consolidated_security 21044 9140 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:04:08,371 consolidated_security 8524 8488 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:04:16,688 consolidated_security 12000 2252 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:04:26,411 consolidated_security 7356 8252 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:04:46,372 consolidated_security 940 20764 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:04:52,822 consolidated_security 20856 14200 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:50,770 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:51,342 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:51,899 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:52,459 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:53,031 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:05:53,596 consolidated_security 15288 8848 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:12:04,930 consolidated_security 15708 21160 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:31:34,184 consolidated_security 15756 5892 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:31:34,769 consolidated_security 15756 5892 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:31:35,361 consolidated_security 15756 5892 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:08,110 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:08,668 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:09,225 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:09,781 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:10,338 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:34:10,895 consolidated_security 17932 14516 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:15,620 consolidated_security 14732 2564 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:48,668 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:49,231 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:49,794 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:50,356 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:50,918 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth
+WARNING 2025-07-15 11:36:51,487 consolidated_security 21364 12952 Rate limit exceeded for 127.0.0.1: auth

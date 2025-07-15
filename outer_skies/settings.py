@@ -28,7 +28,13 @@ MEMORY_USAGE_THRESHOLD = 90  # Percentage
 
 # Add Security Middleware
 MIDDLEWARE = [
-    'monitoring.performance_monitor.PerformanceMonitoringMiddleware',
+    # Consolidated Security Middleware (replaces all individual security middlewares)
+    'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
+    
+    # API Versioning Middleware
+    'api.utils.api_versioning.APIVersionMiddleware',
+    
+    # Django core middleware
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -36,17 +42,16 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'chart.middleware.security.EnhancedSecurityMiddleware',
-    'chart.middleware.rate_limit.RateLimitMiddleware',
-    'chart.middleware.auth.APIAuthMiddleware',
-    'chart.middleware.validation.DataValidationMiddleware',
-    'chart.middleware.password.PasswordSecurityMiddleware',
-    'chart.middleware.file_upload.FileUploadSecurityMiddleware',
-    'chart.middleware.error_handling.ErrorHandlingMiddleware',
-    'chart.middleware.session.SessionSecurityMiddleware',
-    'chart.middleware.api_version.APIVersionMiddleware',
-    'chart.middleware.request_signing.RequestSigningMiddleware',
-    'chart.middleware.encryption.EncryptionMiddleware',
+    
+    # Error handling middleware
+    'api.utils.error_handler.ErrorHandlingMiddleware',
+    
+    # Monitoring middleware
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
+    'monitoring.performance_monitor.PerformanceMonitoringMiddleware',
+    
+    # Content Security Policy
     'csp.middleware.CSPMiddleware',
 ]
 

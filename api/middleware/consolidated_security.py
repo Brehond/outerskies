@@ -147,6 +147,11 @@ class ConsolidatedSecurityMiddleware(MiddlewareMixin):
     
     def process_exception(self, request, exception):
         """Handle exceptions with security logging."""
+        # Don't handle DRF exceptions - let DRF handle them
+        from rest_framework.exceptions import APIException
+        if isinstance(exception, APIException):
+            return None
+        
         if hasattr(request, 'start_time'):
             duration = time.time() - request.start_time
             self._log_exception_audit(request, exception, duration)

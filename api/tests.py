@@ -95,7 +95,11 @@ class AuthenticationAPITests(BaseAPITestCase):
         response = self.client.post(url, data, format='json')
         self.assertIn(response.status_code, [status.HTTP_400_BAD_REQUEST, status.HTTP_429_TOO_MANY_REQUESTS])
         if response.status_code == status.HTTP_400_BAD_REQUEST:
-            self.assertIn('error', response.data)
+            # Check for error in the new response structure
+            if 'data' in response.data and 'error' in response.data['data']:
+                self.assertIn('error', response.data['data'])
+            else:
+                self.assertIn('error', response.data)
 
     def test_user_login_success(self):
         """Test successful user login"""
