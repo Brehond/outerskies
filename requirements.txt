@@ -41,5 +41,9 @@ pytest>=7.4.0
 pytest-django>=4.7.0
 factory-boy>=3.3.0
 coverage>=7.3.0
+# Security Dependencies
+pyotp>=2.8.0
+user-agents>=2.2.0
+
 # Deployment and CI Dependencies
 docker>=6.0.0
