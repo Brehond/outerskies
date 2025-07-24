@@ -63,10 +63,32 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-django pytest-cov
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install Node dependencies
+      run: npm ci
+
+    - name: Build static assets
+      run: |
+        npm run build:all
+
+    - name: Collect static files
+      run: |
+        python manage.py collectstatic --noinput
+
     - name: Set up environment variables
       run: |
         echo "SECRET_KEY=test-secret-key-for-ci" >> $GITHUB_ENV
         echo "DATABASE_URL=postgresql://test_user:test_pass@localhost:5432/test_db" >> $GITHUB_ENV
+        echo "DB_USER=test_user" >> $GITHUB_ENV
+        echo "DB_PASSWORD=test_pass" >> $GITHUB_ENV
+        echo "DB_NAME=test_db" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
         echo "REDIS_URL=redis://localhost:6379/0" >> $GITHUB_ENV
         echo "DEBUG=True" >> $GITHUB_ENV
         echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
@@ -130,6 +152,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Build static assets
+        run: |
+          npm run build:all
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
@@ -153,6 +185,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install Node dependencies
+        run: npm ci
+      - name: Build static assets
+        run: |
+          npm run build:all
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub

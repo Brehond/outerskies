@@ -175,8 +175,10 @@ def password_reset_request_view(request):
             try:
                 user = User.objects.get(email=email)
                 # Create password reset token
+                import uuid
                 token = PasswordResetToken.objects.create(
                     user=user,
+                    token=str(uuid.uuid4()),
                     expires_at=timezone.now() + timezone.timedelta(hours=24)
                 )
 
