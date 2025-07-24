@@ -1,0 +1,149 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Theme Variables - Applied globally */
+:root {
+  /* Default theme (WoH PAL1) */
+  --primary-color: #111111;
+  --secondary-color: #222222;
+  --accent-color: #00aaff;
+  --accent-secondary-color: #0077cc;
+  --text-primary-color: #eeeeee;
+  --text-secondary-color: #cccccc;
+  --text-muted-color: #999999;
+  --border-color: #333333;
+  --border-light-color: #444444;
+  --success-color: #4ade80;
+  --error-color: #f87171;
+  --warning-color: #fbbf24;
+  --info-color: #60a5fa;
+}
+
+/* Theme utility classes */
+.theme-bg-primary { background-color: var(--primary-color); }
+.theme-bg-secondary { background-color: var(--secondary-color); }
+.theme-bg-accent { background-color: var(--accent-color); }
+.theme-text-primary { color: var(--text-primary-color); }
+.theme-text-secondary { color: var(--text-secondary-color); }
+.theme-text-muted { color: var(--text-muted-color); }
+.theme-text-accent { color: var(--accent-color); }
+.theme-border-primary { border-color: var(--border-color); }
+.theme-border-light { border-color: var(--border-light-color); }
+
+/* Form elements */
+input, select, textarea {
+  background-color: var(--primary-color);
+  color: var(--text-primary-color);
+  border-color: var(--border-color);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(0, 170, 255, 0.2);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--accent-color);
+  color: var(--primary-color);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-secondary-color);
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: var(--text-primary-color);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--border-color);
+}
+
+/* Cards */
+.card {
+  background-color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+}
+
+/* Navigation */
+.nav-item {
+  color: var(--text-secondary-color);
+  transition: color 0.2s ease;
+}
+
+.nav-item:hover {
+  color: var(--accent-color);
+}
+
+.nav-item.active {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Loading spinner */
+.spinner-border {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Prose styling for content */
+.prose {
+  color: var(--text-primary-color);
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  color: var(--text-primary-color);
+}
+
+.prose p {
+  color: var(--text-secondary-color);
+}
+
+.prose strong {
+  color: var(--text-primary-color);
+}
+
+.prose a {
+  color: var(--accent-color);
+}
+
+.prose a:hover {
+  color: var(--accent-secondary-color);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .theme-dropdown-content {
+    right: 0;
+    left: 0;
+    width: auto;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light-color);
+} 

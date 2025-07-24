@@ -11,6 +11,38 @@ from chart.models import User
 logger = logging.getLogger(__name__)
 
 
+def validate_payment_amount(amount, currency='usd'):
+    """
+    Validate payment amount and convert to cents safely.
+    
+    Args:
+        amount: Payment amount in dollars
+        currency: Currency code (default: 'usd')
+    
+    Returns:
+        int: Amount in cents
+        
+    Raises:
+        ValidationError: If amount is invalid
+    """
+    # Validate amount type and value
+    if not isinstance(amount, (int, float)) or amount <= 0:
+        raise ValidationError("Amount must be a positive number")
+    
+    # Validate amount limits (prevent integer overflow and reasonable limits)
+    if amount > 999999.99:  # $999,999.99 maximum
+        raise ValidationError("Amount exceeds maximum allowed limit")
+    
+    # Convert to cents with proper rounding
+    amount_cents = int(round(amount * 100))
+    
+    # Validate cents amount
+    if amount_cents <= 0 or amount_cents > 99999999:  # 999,999.99 cents
+        raise ValidationError("Invalid amount after conversion to cents")
+    
+    return amount_cents
+
+
 class StripeService:
     """
     Service class for handling Stripe operations
@@ -195,8 +227,11 @@ class StripeService:
     def create_payment_intent(amount, currency='usd', customer_id=None, metadata=None):
         """Create a payment intent for one-time payments"""
         try:
+            # Validate and convert amount to cents
+            amount_cents = validate_payment_amount(amount, currency)
+            
             intent_data = {
-                'amount': int(amount * 100),  # Convert to cents
+                'amount': amount_cents,
                 'currency': currency,
                 'automatic_payment_methods': {
                     'enabled': True,

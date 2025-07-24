@@ -7,6 +7,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from .services.chart_orchestrator import ChartOrchestrator
 from .services.planetary_calculator import PlanetaryCalculator
 from .services.caching import ephemeris_cache, ai_cache, user_cache
+from .services.business_logic import subscription_logic, customer_lifecycle
 from ai_integration.openrouter_api import generate_interpretation, get_available_models
 from .prompts import prompt_manager
 import pytz
@@ -923,7 +924,7 @@ def chart_form(request):
 @require_http_methods(["POST"])
 def generate_chart(request):
     """
-    API endpoint for chart generation.
+    API endpoint for chart generation with business logic integration.
     """
     try:
         # Check if API key is available
@@ -952,6 +953,18 @@ def generate_chart(request):
         if error:
             return JsonResponse({"success": False, "error": error}, status=400)
 
+        # Check user limits using business logic
+        if request.user.is_authenticated:
+            user = request.user
+            
+            # Check chart generation limits
+            if not subscription_logic.check_user_limits(user, 'chart_generation'):
+                return JsonResponse({
+                    "success": False,
+                    "error": "Chart generation limit exceeded",
+                    "message": "You have reached your monthly chart generation limit. Please upgrade your plan for unlimited charts."
+                }, status=429)
+
         # Convert to UTC
         utc_date, utc_time = local_to_utc(
             params['date'],
@@ -973,6 +986,22 @@ def generate_chart(request):
         if error:
             return JsonResponse({"success": False, "error": error}, status=500)
         logger.debug(f"Calculated chart data: {chart_data}")
+
+        # Track chart generation usage
+        if request.user.is_authenticated:
+            subscription_logic.track_usage(request.user, 'chart_generation')
+
+        # Check interpretation limits before generating
+        if request.user.is_authenticated:
+            user = request.user
+            
+            # Check AI interpretation limits
+            if not subscription_logic.check_user_limits(user, 'ai_interpretation'):
+                return JsonResponse({
+                    "success": False,
+                    "error": "AI interpretation limit exceeded",
+                    "message": "You have reached your monthly AI interpretation limit. Please upgrade your plan for unlimited interpretations."
+                }, status=429)
 
         # Generate interpretations
         logger.debug("Starting planet interpretations generation...")
@@ -998,6 +1027,10 @@ def generate_chart(request):
             params['max_tokens']
         )
         logger.debug("Generated master interpretation")
+
+        # Track AI interpretation usage
+        if request.user.is_authenticated:
+            subscription_logic.track_usage(request.user, 'ai_interpretation')
 
         # Plugin integration - Aspect Generator
         aspect_results = []

@@ -170,7 +170,7 @@ REST_FRAMEWORK = {
     'DEFAULT_VERSION': 'v1',
     'ALLOWED_VERSIONS': ['v1'],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'EXCEPTION_HANDLER': 'api.utils.error_handler.drf_exception_handler',
+    'EXCEPTION_HANDLER': 'core.error_handler.drf_exception_handler',  # Use centralized error handler
     'NON_FIELD_ERRORS_KEY': 'error',
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
 }
@@ -215,6 +215,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "django_celery_results",
     "django_celery_beat",
+    "core",  # Add core module
     "api",
     "chart",
     "payments",
@@ -300,36 +301,384 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Middleware Configuration (Updated)
 MIDDLEWARE = [
-    # Performance Monitoring Middleware (first to capture all requests)
-    'api.services.performance_monitor.PerformanceMonitoringMiddleware',
-    
-    # Focused Security Middleware Components (replaces consolidated middleware)
-    'api.middleware.rate_limit.RateLimitMiddleware',
-    'api.middleware.input_validation.InputValidationMiddleware',
-    'api.middleware.security_headers.SecurityHeadersMiddleware',
-    'api.middleware.audit.AuditMiddleware',
-    
-    # API Versioning Middleware
-    'api.utils.api_versioning.APIVersionMiddleware',
-    
-    # Django core middleware
-    "django.middleware.security.SecurityMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    
-    # Error handling middleware
-    "api.utils.error_handler.ErrorHandlingMiddleware",
-    
-    # Monitoring middleware
-    "django_prometheus.middleware.PrometheusBeforeMiddleware",
-    "django_prometheus.middleware.PrometheusAfterMiddleware",
-    "monitoring.performance_monitor.PerformanceMonitoringMiddleware",
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.security.SecurityMiddleware',  # Use consolidated security middleware
+    'core.error_handler.ErrorHandlingMiddleware',  # Use centralized error handling
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
+
+# Phase 3: Production Monitoring and Security Settings
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
+    # Phase 1: Consolidated Security Middleware
+    'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
+    
+    # Phase 3: Advanced Security Middleware
+    'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
+    
+    # Phase 2: Enhanced Performance Monitoring
+    'api.middleware.performance_monitor.PerformanceMonitorMiddleware',
+    
+    # Phase 1: Audit Middleware
+    'api.middleware.audit.AuditMiddleware',
+]
+
+# Phase 3: Production Monitoring Configuration
+PRODUCTION_MONITORING = {
+    'ENABLED': True,
+    'METRICS_INTERVAL': 60,  # seconds
+    'ALERT_EMAIL_RECIPIENTS': [
+        'admin@outerskies.com',
+        'ops@outerskies.com'
+    ],
+    'PROMETHEUS_ENABLED': True,
+    'SENTRY_ENABLED': True,
+}
+
+# Phase 3: Advanced Security Configuration
+ADVANCED_SECURITY = {
+    'ENABLED': True,
+    'RATE_LIMITING': {
+        'API': {'requests': 100, 'window': 3600},
+        'AUTH': {'requests': 5, 'window': 300},
+        'CHART': {'requests': 10, 'window': 3600},
+        'DEFAULT': {'requests': 1000, 'window': 3600}
+    },
+    'THREAT_DETECTION': {
+        'ENABLED': True,
+        'RISK_THRESHOLD': 0.8,
+        'BLOCK_THRESHOLD': 0.9
+    },
+    'IP_REPUTATION': {
+        'ENABLED': True,
+        'CACHE_DURATION': 3600,
+        'EXTERNAL_SERVICES': ['abuseipdb', 'ipqualityscore']
+    }
+}
+
+# Phase 3: External Security Services (Optional)
+# ABUSEIPDB_API_KEY = 'your_abuseipdb_api_key_here'
+# IPQUALITYSCORE_API_KEY = 'your_ipqualityscore_api_key_here'
+# GEOIP_PATH = '/path/to/GeoLite2-City.mmdb'
+
+# Phase 3: Sentry Configuration (Optional)
+# SENTRY_DSN = 'your_sentry_dsn_here'
+
+# Phase 3: Prometheus Configuration
+PROMETHEUS_METRICS = {
+    'ENABLED': True,
+    'EXPORT_ENDPOINT': '/api/v1/monitoring/prometheus/',
+    'COLLECT_DEFAULT_METRICS': True,
+    'COLLECT_DJANGO_METRICS': True,
+}
+
+# Phase 3: Enhanced Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+        'security': {
+            'format': 'SECURITY {levelname} {asctime} {ip_address} {user_id} {event_type} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'security_filter': {
+            '()': 'api.middleware.consolidated_security.ConsolidatedSecurityMiddleware',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/outer_skies.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'security_file': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/security.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 10,
+            'formatter': 'security',
+            'filters': ['security_filter'],
+        },
+        'error_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/errors.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'django.security': {
+            'handlers': ['security_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'api.security': {
+            'handlers': ['security_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'monitoring': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'chart': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'payments': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'celery': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console', 'file', 'error_file'],
+        'level': 'INFO',
+    },
+}
+
+# Phase 3: Enhanced Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Phase 3: Content Security Policy
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_FONT_SRC = ("'self'", "https://fonts.gstatic.com")
+CSP_CONNECT_SRC = ("'self'",)
+
+# Phase 3: Rate Limiting Configuration
+RATE_LIMIT_ENABLED = True
+RATE_LIMIT_USE_CACHE = True
+RATE_LIMIT_CACHE_PREFIX = 'rate_limit'
+
+# Phase 3: Cache Configuration for Monitoring
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+        },
+        'KEY_PREFIX': 'outer_skies',
+        'TIMEOUT': 300,
+    },
+    'monitoring': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/2',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'monitoring',
+        'TIMEOUT': 86400,  # 24 hours for monitoring data
+    },
+    'security': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/3',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        },
+        'KEY_PREFIX': 'security',
+        'TIMEOUT': 3600,  # 1 hour for security data
+    },
+}
+
+# Database Configuration - Consolidated and Environment-Aware
+def get_database_config():
+    """
+    Get database configuration based on environment variables.
+    Supports DATABASE_URL and individual environment variables.
+    """
+    import sys
+    # Use SQLite in-memory DB for tests
+    if any(x in sys.argv[0] for x in ["pytest", "unittest"]) or any(x in sys.argv for x in ["pytest", "unittest"]):
+        return {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": ":memory:",
+            "TEST": {"NAME": ":memory:"},
+        }
+    # Parse DATABASE_URL if provided
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        import urllib.parse
+        parsed = urllib.parse.urlparse(database_url)
+        
+        # Extract database configuration from URL
+        db_engine = "django.db.backends.postgresql" if parsed.scheme == "postgres" else "django.db.backends.sqlite3"
+        db_name = parsed.path[1:] if parsed.path else "outer_skies"
+        db_user = parsed.username or os.getenv("DB_USER", "postgres")
+        db_password = parsed.password or os.getenv("DB_PASSWORD", "")
+        db_host = parsed.hostname or os.getenv("DB_HOST", "localhost")
+        db_port = parsed.port or os.getenv("DB_PORT", "5432")
+    else:
+        # Fallback to individual environment variables
+        db_engine = os.getenv("DB_ENGINE", "django.db.backends.postgresql")
+        db_name = os.getenv("DB_NAME", "outer_skies")
+        db_user = os.getenv("DB_USER", "postgres")
+        db_password = os.getenv("DB_PASSWORD", "")
+        db_host = os.getenv("DB_HOST", "localhost")
+        db_port = os.getenv("DB_PORT", "5432")
+
+    # Warn if db_user is root
+    if db_user == "root":
+        import warnings
+        warnings.warn("Database user is set to 'root'. This may cause connection errors if the role does not exist. Please use a dedicated database user.")
+
+    # Base configuration
+    config = {
+        "ENGINE": db_engine,
+        "NAME": db_name,
+        "USER": db_user,
+        "PASSWORD": db_password,
+        "HOST": db_host,
+        "PORT": db_port,
+        "CONN_MAX_AGE": 600,  # 10 minutes
+        "ATOMIC_REQUESTS": False,  # Disable atomic requests for better performance
+        "TEST": {
+            "NAME": None,  # Use in-memory database for tests
+        },
+    }
+
+    # PostgreSQL-specific options
+    if db_engine == "django.db.backends.postgresql":
+        config["OPTIONS"] = {
+            "sslmode": "require" if not DEBUG else "disable",
+            "connect_timeout": 10,
+            "application_name": "outer_skies",
+        }
+        config["CONN_HEALTH_CHECKS"] = True
+
+    return config
+
+# Set database configuration
+DATABASES = {
+    "default": get_database_config()
+}
+
+# Phase 3: Celery Configuration for Production
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_TASK_SOFT_TIME_LIMIT = 300  # 5 minutes
+CELERY_TASK_TIME_LIMIT = 600  # 10 minutes
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_REJECTS_TASKS = True
+
+# Phase 3: Email Configuration for Alerts
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@outerskies.com')
+
+# Phase 3: Static Files Configuration for Production
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
+# Phase 3: Media Files Configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Phase 3: Session Configuration
+SESSION_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 3600  # 1 hour
+
+# Phase 3: CSRF Configuration
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_TRUSTED_ORIGINS = [
+    'https://outerskies.com',
+    'https://www.outerskies.com',
+    'https://api.outerskies.com',
+]
+
+# Phase 3: Allowed Hosts for Production
+ALLOWED_HOSTS = [
+    'outerskies.com',
+    'www.outerskies.com',
+    'api.outerskies.com',
+    'localhost',
+    '127.0.0.1',
+]
+
+# Phase 3: Debug Configuration
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+
+# Phase 3: Secret Key Configuration
+SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
 
 # Internationalization
 LANGUAGE_CODE = "en-us"
@@ -377,59 +726,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "astrology_ai.wsgi.application"
 
-# Database settings with better error handling
-db_engine = os.getenv("DB_ENGINE", "django.db.backends.sqlite3")
-
-# Parse DATABASE_URL if provided
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-    import urllib.parse
-    parsed = urllib.parse.urlparse(database_url)
-    
-    # Extract database configuration from URL
-    db_engine = "django.db.backends.postgresql" if parsed.scheme == "postgres" else db_engine
-    db_name = parsed.path[1:] if parsed.path else "test_db"
-    db_user = parsed.username or os.getenv("DB_USER", "test_user")
-    db_password = parsed.password or os.getenv("DB_PASSWORD", "test_pass")
-    db_host = parsed.hostname or os.getenv("DB_HOST", "localhost")
-    db_port = parsed.port or os.getenv("DB_PORT", "5432")
-else:
-    # Fallback to individual environment variables
-    db_name = os.getenv("DB_NAME", BASE_DIR / "db.sqlite3")
-    db_user = os.getenv("DB_USER", "test_user")
-    db_password = os.getenv("DB_PASSWORD", "test_pass")
-    db_host = os.getenv("DB_HOST", "localhost")
-    db_port = os.getenv("DB_PORT", "5432")
-
-# Warn if db_user is root
-if db_user == "root":
-    import warnings
-    warnings.warn("Database user is set to 'root'. This may cause connection errors if the role does not exist. Please use a dedicated database user.")
-
-DATABASES = {
-    "default": {
-        "ENGINE": db_engine,
-        "NAME": db_name,
-        "USER": db_user,
-        "PASSWORD": db_password,
-        "HOST": db_host,
-        "PORT": db_port,
-        "CONN_MAX_AGE": 600,  # 10 minutes
-        "ATOMIC_REQUESTS": False,  # Disable atomic requests for better performance
-        "OPTIONS": {
-            "connect_timeout": 10,
-            "application_name": "outer_skies",
-        } if db_engine == "django.db.backends.postgresql" else {},
-        "TEST": {
-            "NAME": None,  # Use in-memory database for tests
-        },
-    }
-}
-
-# Database connection pooling for PostgreSQL
-if db_engine == "django.db.backends.postgresql":
-    # Set connection pooling using Django's CONN_MAX_AGE
-    DATABASES["default"]["CONN_MAX_AGE"] = 600  # 10 minutes
+# Database configuration is now handled by get_database_config() function above
 
 # Static files configuration
 STATIC_URL = "/static/"
@@ -734,6 +1031,9 @@ REDIS_HOST = os.getenv('REDIS_HOST', '127.0.0.1')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 REDIS_DB = int(os.getenv('REDIS_DB', 0))
 REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+
+# Redis configuration for background tasks, caching, etc.
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
 
 # Cache Configuration with Redis fallback
 

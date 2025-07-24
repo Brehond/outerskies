@@ -29,10 +29,11 @@ from payments.models import SubscriptionPlan, UserSubscription, Payment, Coupon
 from payments.stripe_utils import StripeService
 from ai_integration.openrouter_api import get_available_models, generate_interpretation as openrouter_generate_interpretation
 from astrology_ai.context_processors import theme_context
-from chart.tasks import generate_chart_task, generate_interpretation_task, calculate_ephemeris_task
+from chart.tasks import generate_chart_task, generate_planet_interpretations_task, generate_master_interpretation_task, process_plugin_tasks_task
 from celery.result import AsyncResult
 from chart.celery_utils import enhanced_celery_manager
-from api.middleware.enhanced_rate_limit import UsageAnalytics
+# UsageAnalytics moved to consolidated security middleware
+# from api.middleware.enhanced_rate_limit import UsageAnalytics
 from monitoring.health_checks import get_system_health, get_quick_health_status
 from monitoring.performance_monitor import get_performance_summary
 

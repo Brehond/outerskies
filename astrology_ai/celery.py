@@ -21,13 +21,26 @@ def debug_task(self):
     print(f'Request: {self.request!r}')
 
 
-# Configure task routing
+# Enhanced task routing for Phase 2 priority queues
 app.conf.task_routes = {
-    'chart.tasks.generate_chart_task': {'queue': 'chart_generation'},
-    'chart.tasks.generate_interpretation_task': {'queue': 'ai_processing'},
-    'chart.tasks.calculate_ephemeris_task': {'queue': 'ephemeris'},
-    'chart.tasks.cleanup_old_tasks': {'queue': 'maintenance'},
-    'chart.tasks.health_check': {'queue': 'maintenance'},
+    # High priority tasks
+    'chart.tasks.generate_chart_task': {'queue': 'high'},
+    'chart.tasks.generate_interpretation_task': {'queue': 'high'},
+    'payments.tasks.*': {'queue': 'critical'},
+    
+    # Normal priority tasks
+    'chart.tasks.calculate_ephemeris_task': {'queue': 'normal'},
+    'chart.tasks.cleanup_old_tasks': {'queue': 'normal'},
+    'chart.tasks.health_check': {'queue': 'normal'},
+    'api.tasks.*': {'queue': 'normal'},
+    
+    # Low priority tasks
+    'system.tasks.*': {'queue': 'low'},
+    'maintenance.tasks.*': {'queue': 'low'},
+    
+    # Bulk processing tasks
+    'chart.tasks.bulk_chart_generation': {'queue': 'bulk'},
+    'chart.tasks.bulk_interpretation': {'queue': 'bulk'},
 }
 
 # Configure task serialization
@@ -44,15 +57,25 @@ app.conf.task_soft_time_limit = 300  # 5 minutes
 app.conf.task_time_limit = 600  # 10 minutes
 
 # Production-ready Celery configuration
-# Note: Windows is not recommended for production Celery workers
-# Use Linux containers for production deployment
+# Platform-specific optimizations
+import platform
+is_windows = platform.system().lower() == 'windows'
 
-# Worker configuration
-app.conf.worker_pool = 'prefork'  # Use prefork for CPU-bound tasks
-app.conf.worker_concurrency = 4   # Scale based on CPU cores
-app.conf.worker_prefetch_multiplier = 1
-app.conf.worker_max_tasks_per_child = 1000
-app.conf.worker_disable_rate_limits = False
+# Worker configuration - Platform optimized
+if is_windows:
+    # Windows-specific configuration
+    app.conf.worker_pool = 'solo'  # Use solo pool for Windows
+    app.conf.worker_concurrency = 1  # Single worker for Windows
+    app.conf.worker_prefetch_multiplier = 1
+    app.conf.worker_max_tasks_per_child = 1000
+    app.conf.worker_disable_rate_limits = True  # Disable rate limits on Windows
+else:
+    # Unix/Linux production configuration
+    app.conf.worker_pool = 'prefork'  # Use prefork for CPU-bound tasks
+    app.conf.worker_concurrency = 4   # Scale based on CPU cores
+    app.conf.worker_prefetch_multiplier = 1
+    app.conf.worker_max_tasks_per_child = 1000
+    app.conf.worker_disable_rate_limits = False
 
 # Broker settings
 app.conf.broker_transport_options = {
@@ -88,8 +111,9 @@ def configure_celery():
 # Call configuration function
 configure_celery()
 
-# Configure periodic tasks
+# Enhanced periodic tasks for Phase 2
 app.conf.beat_schedule = {
+    # Maintenance tasks
     'cleanup-old-tasks': {
         'task': 'chart.tasks.cleanup_old_tasks',
         'schedule': 3600.0,  # Every hour
@@ -98,9 +122,43 @@ app.conf.beat_schedule = {
         'task': 'chart.tasks.health_check',
         'schedule': 300.0,  # Every 5 minutes
     },
+    
+    # Cache warming
+    'cache-warming': {
+        'task': 'chart.tasks.warm_cache',
+        'schedule': 900.0,  # Every 15 minutes
+    },
+    
+    # Database optimization
+    'database-optimization': {
+        'task': 'chart.tasks.optimize_database',
+        'schedule': 86400.0,  # Daily
+    },
+    
+    # System monitoring
+    'system-monitoring': {
+        'task': 'system.tasks.system_monitoring',
+        'schedule': 300.0,  # Every 5 minutes
+    },
+    
+    # Performance analytics
+    'performance-analytics': {
+        'task': 'system.tasks.performance_analytics',
+        'schedule': 1800.0,  # Every 30 minutes
+    },
 }
 
 # Development environment detection
 if os.getenv('CELERY_ALWAYS_EAGER', 'False').lower() == 'true':
     app.conf.task_always_eager = True
     app.conf.task_eager_propagates = True
+
+# Production environment optimizations
+if not is_windows and os.getenv('CELERY_PRODUCTION', 'False').lower() == 'true':
+    # Production-specific optimizations for Unix/Linux
+    app.conf.worker_direct = True  # Direct task execution for better performance
+    app.conf.task_compression = 'gzip'  # Compress task data
+    app.conf.result_compression = 'gzip'  # Compress result data
+    app.conf.task_acks_late = True  # Acknowledge tasks after completion
+    app.conf.worker_prefetch_multiplier = 1  # Don't prefetch tasks
+    app.conf.task_reject_on_worker_lost = True  # Reject tasks if worker dies
