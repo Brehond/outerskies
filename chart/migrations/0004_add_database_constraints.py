@@ -12,46 +12,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Add validation constraints for User model (SQLite compatible)
-        migrations.RunSQL(
-            # Forward SQL - add constraints (SQLite uses CHECK constraints differently)
-            """
-            -- Note: SQLite doesn't support ALTER TABLE ADD CONSTRAINT in the same way
-            -- These constraints are handled at the Django model level instead
-            """,
-            # Reverse SQL - no action needed
-            """
-            -- No reverse action needed for SQLite
-            """
-        ),
-        
-        # Add validation constraints for Chart model (SQLite compatible)
-        migrations.RunSQL(
-            # Forward SQL - add constraints
-            """
-            -- Note: SQLite doesn't support ALTER TABLE ADD CONSTRAINT in the same way
-            -- These constraints are handled at the Django model level instead
-            """,
-            # Reverse SQL - no action needed
-            """
-            -- No reverse action needed for SQLite
-            """
-        ),
-        
-        # Add validation constraints for TaskStatus model (SQLite compatible)
-        migrations.RunSQL(
-            # Forward SQL - add constraints
-            """
-            -- Note: SQLite doesn't support ALTER TABLE ADD CONSTRAINT in the same way
-            -- These constraints are handled at the Django model level instead
-            """,
-            # Reverse SQL - no action needed
-            """
-            -- No reverse action needed for SQLite
-            """
-        ),
-        
-        # Add indexes for better performance (SQLite compatible)
+        # Add indexes for better performance (PostgreSQL compatible)
         migrations.RunSQL(
             # Forward SQL - add indexes
             """
